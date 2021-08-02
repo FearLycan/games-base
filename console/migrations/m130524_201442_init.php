@@ -19,11 +19,16 @@ class m130524_201442_init extends Migration
             'password_hash' => $this->string()->notNull(),
             'password_reset_token' => $this->string()->unique(),
             'email' => $this->string()->notNull()->unique(),
-
             'status' => $this->smallInteger()->notNull()->defaultValue(10),
-            'created_at' => $this->integer()->notNull(),
-            'updated_at' => $this->integer()->notNull(),
+            'role' => $this->smallInteger()->notNull()->defaultValue(1),
+
+            'created_at' => $this->timestamp()->notNull()->defaultExpression('CURRENT_TIMESTAMP'),
+            'updated_at' => $this->timestamp()->null(),
         ], $tableOptions);
+
+        $this->createIndex('{{%user_username_index}}', '{{%user}}', 'username');
+        $this->createIndex('{{%user_created_at_index}}', '{{%user}}', 'created_at');
+        $this->createIndex('{{%user_updated_at_index}}', '{{%user}}', 'updated_at');
     }
 
     public function down()

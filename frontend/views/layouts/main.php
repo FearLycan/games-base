@@ -28,7 +28,7 @@ AppAsset::register($this);
 
         <?php $this->head() ?>
     </head>
-    <body class="d-flex flex-column h-100">
+    <body>
     <?php $this->beginBody() ?>
 
     <!-- Page Preloder -->
@@ -76,15 +76,7 @@ AppAsset::register($this);
     </header>
     <!-- Header Section End -->
 
-    <main role="main" class="flex-shrink-0">
-        <div class="container">
-            <?= Breadcrumbs::widget([
-                'links' => isset($this->params['breadcrumbs']) ? $this->params['breadcrumbs'] : [],
-            ]) ?>
-            <?= Alert::widget() ?>
-            <?= $content ?>
-        </div>
-    </main>
+    <?= $content ?>
 
     <!-- Footer Section Begin -->
     <footer class="footer">

@@ -12,11 +12,13 @@ return [
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log'],
     'controllerNamespace' => 'frontend\controllers',
+    'defaultRoute' => 'homepage/home/index',
     'components' => [
         'request' => [
             'csrfParam' => '_csrf-frontend',
         ],
         'user' => [
+            'class' => 'common\components\WebUser',
             'identityClass' => 'common\models\User',
             'enableAutoLogin' => true,
             'identityCookie' => ['name' => '_identity-frontend', 'httpOnly' => true],
@@ -41,7 +43,13 @@ return [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
+                '/' => 'homepage/home/index',
             ],
+        ],
+    ],
+    'modules' => [
+        'homepage' => [
+            'class' => 'frontend\modules\homepage\Module',
         ],
     ],
     'params' => $params,
