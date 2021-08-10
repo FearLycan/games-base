@@ -164,4 +164,18 @@ class Game extends \yii\db\ActiveRecord
     {
         return $this->hasMany(Publisher::className(), ['id' => 'publisher_id'])->viaTable('{{%game_publisher}}', ['game_id' => 'id']);
     }
+
+    public function createApp($app)
+    {
+        $game = self::findOne(['steam_appid' => $app['appid']]);
+
+        if (!$game) {
+            $game = new self();
+            $game->steam_appid = $app['appid'];
+            $game->title = $app['name'];
+            $game->save();
+        }
+
+        return $game;
+    }
 }
