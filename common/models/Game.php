@@ -5,6 +5,7 @@ namespace common\models;
 
 
 use Yii;
+use yii\base\BaseObject;
 use yii\behaviors\SluggableBehavior;
 use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveRecord;
@@ -75,7 +76,8 @@ class Game extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['steam_appid', 'required_age', 'is_free', 'status'], 'integer'],
+            [['steam_appid', 'status'], 'integer'],
+            [['required_age', 'is_free'], 'boolean'],
             [['detailed_description', 'about_the_game', 'short_description'], 'string'],
             [['release_date', 'created_at', 'updated_at'], 'safe'],
             [['title', 'type', 'website'], 'string', 'max' => 255],
@@ -178,4 +180,102 @@ class Game extends \yii\db\ActiveRecord
 
         return $game;
     }
+
+    public function setBaseInformation($information)
+    {
+        //die(var_dump($information['is_free']));
+        $this->title = $information['name'];
+        $this->required_age = (boolean)$information['required_age'];
+        $this->is_free = $information['is_free'];
+        $this->type = $information['type'];
+        $this->detailed_description = $information['detailed_description'];
+        $this->about_the_game = $information['about_the_game'];
+        $this->short_description = $information['short_description'];
+        $this->release_date = (new \DateTime($information['release_date']['date']))->format('Y-m-d 00:00:00');
+        $this->website = $information['website'];
+        $this->save();
+
+        $this->setCategories($information['categories']);
+        $this->setDevelopers($information['developers']);
+        $this->setPublisher($information['publishers']);
+        $this->setGenres($information['genres']);
+    }
+
+    public function setCategories($categories)
+    {
+        GameCategory::removeConnectionsByGameID($this->id);
+
+        foreach ($categories as $item) {
+
+            $category = Category::findOne($item['id']);
+
+            if (!$category) {
+                $category = new Category();
+                $category->id = $item['id'];
+            }
+
+            $category->name = $item['description'];
+            $category->save();
+
+            GameCategory::createConnection($this->id, $category->id);
+        }
+    }
+
+    public function setDevelopers($developers)
+    {
+        GameDeveloper::removeConnectionsByGameID($this->id);
+
+        foreach ($developers as $name) {
+
+            $developer = Developer::findOne(['name' => $name]);
+
+            if (!$developer) {
+                $developer = new Developer();
+                $developer->name = $name;
+                $developer->save();
+            }
+
+            GameDeveloper::createConnection($this->id, $developer->id);
+        }
+    }
+
+    public function setPublisher($publishers)
+    {
+        GamePublisher::removeConnectionsByGameID($this->id);
+
+        foreach ($publishers as $name) {
+
+            $developer = Publisher::findOne(['name' => $name]);
+
+            if (!$developer) {
+                $developer = new Publisher();
+                $developer->name = $name;
+                $developer->save();
+            }
+
+            GamePublisher::createConnection($this->id, $developer->id);
+        }
+    }
+
+    public function setGenres($genres)
+    {
+        GameGenre::removeConnectionsByGameID($this->id);
+
+        foreach ($genres as $item) {
+
+            $genre = Genre::findOne($item['id']);
+
+            if (!$genre) {
+                $genre = new Genre();
+                $genre->id = $item['id'];
+            }
+
+            $genre->name = $item['description'];
+            $genre->save();
+
+            GameGenre::createConnection($this->id, $genre->id);
+        }
+    }
+
+
 }

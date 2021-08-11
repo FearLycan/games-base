@@ -67,4 +67,22 @@ class GameGenre extends \yii\db\ActiveRecord
     {
         return $this->hasOne(Genre::className(), ['id' => 'genre_id']);
     }
+
+    public static function removeConnectionsByGameID($game_id)
+    {
+        self::deleteAll(['game_id' => $game_id]);
+    }
+
+    public static function removeConnectionsByGenreID($genre_id)
+    {
+        self::deleteAll(['genre_id' => $genre_id]);
+    }
+
+    public static function createConnection($game_id, $genre_id)
+    {
+        $connection = new self();
+        $connection->genre_id = $genre_id;
+        $connection->game_id = $game_id;
+        $connection->save();
+    }
 }

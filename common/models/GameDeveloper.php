@@ -67,4 +67,22 @@ class GameDeveloper extends \yii\db\ActiveRecord
     {
         return $this->hasOne(Game::className(), ['id' => 'game_id']);
     }
+
+    public static function removeConnectionsByGameID($game_id)
+    {
+        self::deleteAll(['game_id' => $game_id]);
+    }
+
+    public static function removeConnectionsByDeveloperID($developer_id)
+    {
+        self::deleteAll(['developer_id' => $developer_id]);
+    }
+
+    public static function createConnection($game_id, $developer_id)
+    {
+        $connection = new self();
+        $connection->developer_id = $developer_id;
+        $connection->game_id = $game_id;
+        $connection->save();
+    }
 }

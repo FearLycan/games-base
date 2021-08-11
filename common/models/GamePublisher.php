@@ -67,4 +67,22 @@ class GamePublisher extends \yii\db\ActiveRecord
     {
         return $this->hasOne(Publisher::className(), ['id' => 'publisher_id']);
     }
+
+    public static function removeConnectionsByGameID($game_id)
+    {
+        self::deleteAll(['game_id' => $game_id]);
+    }
+
+    public static function removeConnectionsByDeveloperID($publisher_id)
+    {
+        self::deleteAll(['publisher_id' => $publisher_id]);
+    }
+
+    public static function createConnection($game_id, $publisher_id)
+    {
+        $connection = new self();
+        $connection->publisher_id = $publisher_id;
+        $connection->game_id = $game_id;
+        $connection->save();
+    }
 }
