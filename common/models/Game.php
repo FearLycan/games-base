@@ -1,14 +1,13 @@
 <?php
 
-
 namespace common\models;
 
-
-use Yii;
-use yii\base\BaseObject;
+use phpDocumentor\Reflection\Types\This;
 use yii\behaviors\SluggableBehavior;
 use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveRecord;
+use yii\httpclient\Client;
+use Yii;
 
 /**
  * This is the model class for table "{{%game}}".
@@ -35,9 +34,13 @@ use yii\db\ActiveRecord;
  * @property Genre[] $genres
  * @property Platform[] $platforms
  * @property Publisher[] $publishers
+ * @property Metacritic $metacritic
  */
 class Game extends \yii\db\ActiveRecord
 {
+    const  STATUS_ACTIVE = 1;
+    const  STATUS_INACTIVE = 0;
+
     /**
      * @return array
      */
@@ -158,6 +161,16 @@ class Game extends \yii\db\ActiveRecord
     }
 
     /**
+     * Gets query for [[Metacritic]].
+     *
+     * @return \yii\db\ActiveQuery
+     */
+    public function getMetacritic()
+    {
+        return $this->hasOne(Metacritic::className(), ['game_id' => 'id']);
+    }
+
+    /**
      * Gets query for [[Publishers]].
      *
      * @return \yii\db\ActiveQuery
@@ -183,7 +196,6 @@ class Game extends \yii\db\ActiveRecord
 
     public function setBaseInformation($information)
     {
-        //die(var_dump($information['is_free']));
         $this->title = $information['name'];
         $this->required_age = (boolean)$information['required_age'];
         $this->is_free = $information['is_free'];
@@ -199,6 +211,17 @@ class Game extends \yii\db\ActiveRecord
         $this->setDevelopers($information['developers']);
         $this->setPublisher($information['publishers']);
         $this->setGenres($information['genres']);
+        $this->setScreenshots($information['screenshots']);
+        $this->setBackground($information['background']);
+        $this->setIcons();
+        $this->setPlatforms($information);
+
+        if (isset($information['metacritic'])) {
+            $this->setMetacritic($information['metacritic']);
+        }
+
+        $this->status = self::STATUS_ACTIVE;
+        $this->save();
     }
 
     public function setCategories($categories)
@@ -277,5 +300,122 @@ class Game extends \yii\db\ActiveRecord
         }
     }
 
+    public function setScreenshots($screenshots)
+    {
+        GameImage::deleteAll(['game_id' => $this->id, 'type' => GameImage::TYPE_SCREENSHOT]);
 
+        foreach ($screenshots as $screenshot) {
+            $image = new GameImage();
+            $image->type = GameImage::TYPE_SCREENSHOT;
+            $image->url = $screenshot['path_full'];
+            $image->game_id = $this->id;
+            $image->status = GameImage::STATUS_ACTIVE;
+            $image->save();
+        }
+    }
+
+    public function setBackground($background)
+    {
+        $image = GameImage::findOne([
+            'url' => $background,
+            'type' => GameImage::TYPE_BACKGROUND,
+            'game_id' => $this->id
+        ]);
+
+        if (!$image) {
+            $image = new GameImage();
+            $image->type = GameImage::TYPE_BACKGROUND;
+            $image->url = $background;
+            $image->game_id = $this->id;
+            $image->status = GameImage::STATUS_ACTIVE;
+            $image->save();
+        }
+    }
+
+    public function getBackground()
+    {
+        $background = $this->getImages()->where([
+            'status' => GameImage::STATUS_ACTIVE,
+            'type' => GameImage::TYPE_BACKGROUND,
+        ])->one();
+
+        if (!$background) {
+            return '/img/background-default.jpg';
+        }
+
+        return $background->url;
+    }
+
+    public function setIcons()
+    {
+        $client = new Client(['baseUrl' => 'https://www.steamgriddb.com/api/v2/icons/steam/' . $this->steam_appid]);
+
+        $request = $client->createRequest()
+            ->setMethod('GET')
+            ->setHeaders(['Authorization' => 'Bearer ' . Yii::$app->params['steamgriddb_api_key']]);
+
+        $response = $request->send();
+
+        if ($response->isOk && $response->data['success']) {
+            foreach ($response->data['data'] as $icon) {
+                $image = GameImage::findOne([
+                    'game_id' => $this->id,
+                    'type' => GameImage::TYPE_ICON,
+                    'url' => $icon['url']
+                ]);
+
+                if (!$image) {
+                    $image = new GameImage();
+                    $image->type = GameImage::TYPE_ICON;
+                    $image->url = $icon['url'];
+                    $image->game_id = $this->id;
+                    $image->status = GameImage::STATUS_ACTIVE;
+                    $image->save();
+                }
+            }
+        }
+    }
+
+    public function setPlatforms($information)
+    {
+        foreach ($information['platforms'] as $platform => $available) {
+
+            $requirements = Platform::findOne([
+                'game_id' => $this->id,
+                'name' => $platform,
+            ]);
+
+            if (!$requirements) {
+                $requirements = new Platform();
+                $requirements->game_id = $this->id;
+            }
+
+            $requirements->name = $platform;
+            $requirements->available = $available;
+
+            $required = $platform == 'windows' ? 'pc_requirements' : $platform . '_requirements';
+
+            if ($available) {
+                $requirements->requirements_minimum = $information[$required]['minimum'];
+                $requirements->requirements_recommended = $information[$required]['recommended'];
+            }
+
+            $requirements->save();
+        }
+    }
+
+    public function setMetacritic($metacritic)
+    {
+        $meta = Metacritic::findOne(['game_id' => $this->id]);
+
+        if (!$meta) {
+            $meta = new Metacritic();
+            $meta->game_id = $this->id;
+        }
+
+        $meta->score = $metacritic['score'];
+        $meta->url = $metacritic['url'];
+        $meta->save();
+
+    }
 }

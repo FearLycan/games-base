@@ -19,6 +19,13 @@ use Yii;
  */
 class GameImage extends \yii\db\ActiveRecord
 {
+    const TYPE_SCREENSHOT = 'screenshot';
+    const TYPE_ICON = 'icon';
+    const TYPE_BACKGROUND = 'background';
+
+    const STATUS_ACTIVE = 1;
+    const STATUS_INACTIVE = 0;
+
     /**
      * {@inheritdoc}
      */

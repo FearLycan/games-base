@@ -2,27 +2,22 @@
 
 namespace common\models;
 
-use Yii;
-use yii\behaviors\SluggableBehavior;
 use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveRecord;
 
 /**
- * This is the model class for table "{{%platform}}".
+ * This is the model class for table "{{%metacritic}}".
  *
  * @property int $id
- * @property string|null $name
- * @property int|null $available
- * @property int $game_id
- * @property string|null $slug
- * @property string|null $requirements_minimum
- * @property string|null $requirements_recommended
+ * @property int|null $score
+ * @property string|null $url
+ * @property int|null $game_id
  * @property string $created_at
  * @property string|null $updated_at
  *
  * @property Game $game
  */
-class Platform extends ActiveRecord
+class Metacritic extends \yii\db\ActiveRecord
 {
     /**
      * @return array
@@ -38,13 +33,6 @@ class Platform extends ActiveRecord
                 ],
                 'value' => date("Y-m-d H:i:s"),
             ],
-            'sluggable' => [
-                'class' => SluggableBehavior::className(),
-                'attribute' => ['name'],
-                'slugAttribute' => 'slug',
-                'ensureUnique' => false,
-                'immutable' => true,
-            ],
         ];
     }
 
@@ -53,7 +41,7 @@ class Platform extends ActiveRecord
      */
     public static function tableName()
     {
-        return '{{%platform}}';
+        return '{{%metacritic}}';
     }
 
     /**
@@ -62,12 +50,9 @@ class Platform extends ActiveRecord
     public function rules()
     {
         return [
-            [['game_id'], 'integer'],
-            [['available'], 'boolean'],
-            [['game_id'], 'required'],
-            [['requirements_minimum', 'requirements_recommended'], 'string'],
+            [['score', 'game_id'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
-            [['name'], 'string', 'max' => 255],
+            [['url'], 'string', 'max' => 255],
             [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::className(), 'targetAttribute' => ['game_id' => 'id']],
         ];
     }
@@ -79,11 +64,9 @@ class Platform extends ActiveRecord
     {
         return [
             'id' => 'ID',
-            'name' => 'Name',
-            'available' => 'Available',
+            'score' => 'Score',
+            'url' => 'Url',
             'game_id' => 'Game ID',
-            'requirements_minimum' => 'Requirements Minimum',
-            'requirements_recommended' => 'Requirements Recommended',
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',
         ];
