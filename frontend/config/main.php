@@ -44,12 +44,18 @@ return [
             'showScriptName' => false,
             'rules' => [
                 '/' => 'homepage/home/index',
+                'game/<id>/<slug>' => 'game/game/view',
+                //'ticket/create/<type>/<object_id>' => 'ticket/create',
+                //'game/<action>' => 'game/game/<action>',
             ],
         ],
     ],
     'modules' => [
         'homepage' => [
             'class' => 'frontend\modules\homepage\Module',
+        ],
+        'game' => [
+            'class' => 'frontend\modules\game\Module',
         ],
     ],
     'params' => $params,

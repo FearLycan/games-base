@@ -22,7 +22,7 @@ class AppAsset extends AssetBundle
         'css/owl.carousel.min.css',
         'css/slicknav.min.css',
         'css/style.css',
-        //'css/site.css',
+        'css/site.css',
     ];
     public $js = [
         'js/jquery.nice-select.min.js',
@@ -32,6 +32,7 @@ class AppAsset extends AssetBundle
         'js/jquery.magnific-popup.min.js',
         'js/jquery.slicknav.js',
         'js/owl.carousel.min.js',
+        'js/jquery-read-more.min.js',
         'js/main.js',
     ];
     public $depends = [

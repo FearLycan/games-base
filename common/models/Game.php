@@ -35,11 +35,16 @@ use Yii;
  * @property Platform[] $platforms
  * @property Publisher[] $publishers
  * @property Metacritic $metacritic
+ * @property Review $review
  */
 class Game extends \yii\db\ActiveRecord
 {
     const  STATUS_ACTIVE = 1;
     const  STATUS_INACTIVE = 0;
+
+    private $_screenshots;
+    private $_icon;
+    private $_background;
 
     /**
      * @return array
@@ -180,6 +185,47 @@ class Game extends \yii\db\ActiveRecord
         return $this->hasMany(Publisher::className(), ['id' => 'publisher_id'])->viaTable('{{%game_publisher}}', ['game_id' => 'id']);
     }
 
+    /**
+     * Gets query for [[Review]].
+     *
+     * @return \yii\db\ActiveQuery
+     */
+    public function getReview()
+    {
+        return $this->hasOne(Review::className(), ['game_id' => 'id']);
+    }
+
+    public function setReview()
+    {
+        $client = new Client(['baseUrl' => 'https://store.steampowered.com/appreviews/' . $this->steam_appid]);
+
+        $request = $client->createRequest()
+            ->setHeaders(['Content-language' => 'en'])
+            ->setMethod('GET')
+            ->setData([
+                'json' => 1,
+                'start_offset' => 1,
+                'num_per_page' => 1
+            ]);
+
+        $response = $request->send();
+
+        if ($response->isOk && $response->data['success']) {
+            $review = Review::findOne(['game_id' => $this->id]);
+
+            if (!$review) {
+                $review = new Review();
+                $review->game_id = $this->id;
+            }
+
+            $review->total_negative = $response->data['query_summary']['total_negative'];
+            $review->total_positive = $response->data['query_summary']['total_positive'];
+            $review->total_reviews = $response->data['query_summary']['total_reviews'];
+
+            $review->save();
+        }
+    }
+
     public function createApp($app)
     {
         $game = self::findOne(['steam_appid' => $app['appid']]);
@@ -215,6 +261,7 @@ class Game extends \yii\db\ActiveRecord
         $this->setBackground($information['background']);
         $this->setIcons();
         $this->setPlatforms($information);
+        $this->setReview();
 
         if (isset($information['metacritic'])) {
             $this->setMetacritic($information['metacritic']);
@@ -334,16 +381,34 @@ class Game extends \yii\db\ActiveRecord
 
     public function getBackground()
     {
-        $background = $this->getImages()->where([
-            'status' => GameImage::STATUS_ACTIVE,
-            'type' => GameImage::TYPE_BACKGROUND,
-        ])->one();
+        if (empty($this->_background)) {
+            $this->_background = $this->getImages()->where([
+                'status' => GameImage::STATUS_ACTIVE,
+                'type' => GameImage::TYPE_BACKGROUND,
+            ])->one();
+        }
 
-        if (!$background) {
+        if (!$this->_background) {
             return '/img/background-default.jpg';
         }
 
-        return $background->url;
+        return $this->_background->url;
+    }
+
+    public function getIcon()
+    {
+        if (empty($this->_icon)) {
+            $this->_icon = $this->getImages()->where([
+                'status' => GameImage::STATUS_ACTIVE,
+                'type' => GameImage::TYPE_ICON,
+            ])->one();
+        }
+
+        if (!$this->_icon) {
+            return '/img/icon-default.png';
+        }
+
+        return $this->_icon->url;
     }
 
     public function setIcons()
@@ -374,6 +439,18 @@ class Game extends \yii\db\ActiveRecord
                 }
             }
         }
+    }
+
+    public function getScreenshots()
+    {
+        if (empty($this->_screenshots)) {
+            $this->_screenshots = $this->getImages()->where([
+                'status' => GameImage::STATUS_ACTIVE,
+                'type' => GameImage::TYPE_SCREENSHOT,
+            ])->all();
+        }
+
+        return $this->_screenshots;
     }
 
     public function setPlatforms($information)

@@ -37,3 +37,6 @@ $this->title = Yii::$app->name;
 </section>
 <!-- Hero Section End -->
 
+<p>
+    <a href="<?= \yii\helpers\Url::to(['/game/game/view', 'id' => 1259420, 'slug' => 'days-gone']) ?>">Days Gone</a>
+</p>

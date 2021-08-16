@@ -14,9 +14,8 @@ class SteamController extends Controller
     public $game;
 
     public function __construct($id, $module, $config = [])
-    {   //https://store.steampowered.com/api/appdetails?appids=1687270
+    {
         $this->client = new Client(['baseUrl' => 'https://store.steampowered.com/api/appdetails']);
-        //$this->game = new Game();
 
         parent::__construct($id, $module, $config);
     }
