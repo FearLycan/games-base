@@ -3,6 +3,7 @@
 use frontend\modules\game\models\Game;
 use yii\helpers\ArrayHelper;
 use yii\web\View;
+use frontend\components\Helper;
 
 /* @var $this View */
 /* @var $model Game */
@@ -57,8 +58,9 @@ $this->title = $model->title;
                 </div>
                 <div class="col-lg-4">
                     <div class="listing__hero__btns">
-                        <a href="#" class="primary-btn share-btn"><i class="fa fa-mail-reply"></i> Share</a>
-                        <a href="#" class="primary-btn"><i class="fa fa-bookmark"></i> Bookmark</a>
+                        <a href="<?= $model->getSteamUrl() ?>" rel="nofollow noopener external" target="_blank"
+                           class="primary-btn share-btn">
+                            <i class="fa fa-steam-square" aria-hidden="true"></i> View on Steam</a>
                     </div>
                 </div>
             </div>
@@ -91,7 +93,7 @@ $this->title = $model->title;
                                         <img class="listing__details__gallery__item__large"
                                              src="<?= $model->getScreenshots()[0]->url ?>"
                                              alt="">
-                                        <!--                                    <span><i class="fa fa-camera"></i> 170 Image</span>-->
+                                        <!--<span><i class="fa fa-camera"></i> 170 Image</span>-->
                                     </div>
                                     <div class="listing__details__gallery__slider owl-carousel">
 
@@ -105,96 +107,152 @@ $this->title = $model->title;
                                 </div>
                             </div>
                         <?php endif; ?>
+                        <!--
+                                                <div class="listing__details__amenities">
+                                                    <h4>Amenities</h4>
+                                                    <div class="row">
+                                                        <div class="col-lg-3 col-md-3 col-6">
+                                                            <div class="listing__details__amenities__item">
+                                                                <img src="img/listing/details/amenities/ame-1.png" alt="">
+                                                                <h6>Accept Credit Card</h6>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-lg-3 col-md-3 col-6">
+                                                            <div class="listing__details__amenities__item">
+                                                                <img src="img/listing/details/amenities/ame-2.png" alt="">
+                                                                <h6>Free Wifi</h6>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-lg-3 col-md-3 col-6">
+                                                            <div class="listing__details__amenities__item">
+                                                                <img src="img/listing/details/amenities/ame-3.png" alt="">
+                                                                <h6>Smoking Area</h6>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-lg-3 col-md-3 col-6">
+                                                            <div class="listing__details__amenities__item">
+                                                                <img src="img/listing/details/amenities/ame-4.png" alt="">
+                                                                <h6>Free Parking</h6>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-lg-3 col-md-3 col-6">
+                                                            <div class="listing__details__amenities__item">
+                                                                <img src="img/listing/details/amenities/ame-5.png" alt="">
+                                                                <h6>Family Friendly</h6>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-lg-3 col-md-3 col-6">
+                                                            <div class="listing__details__amenities__item">
+                                                                <img src="img/listing/details/amenities/ame-6.png" alt="">
+                                                                <h6>Coffee</h6>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-lg-3 col-md-3 col-6">
+                                                            <div class="listing__details__amenities__item">
+                                                                <img src="img/listing/details/amenities/ame-7.png" alt="">
+                                                                <h6>Massage</h6>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-lg-3 col-md-3 col-6">
+                                                            <div class="listing__details__amenities__item">
+                                                                <img src="img/listing/details/amenities/ame-8.png" alt="">
+                                                                <h6>Coupons</h6>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div> -->
 
-                        <div class="listing__details__amenities">
-                            <h4>Amenities</h4>
-                            <div class="row">
-                                <div class="col-lg-3 col-md-3 col-6">
-                                    <div class="listing__details__amenities__item">
-                                        <img src="img/listing/details/amenities/ame-1.png" alt="">
-                                        <h6>Accept Credit Card</h6>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-md-3 col-6">
-                                    <div class="listing__details__amenities__item">
-                                        <img src="img/listing/details/amenities/ame-2.png" alt="">
-                                        <h6>Free Wifi</h6>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-md-3 col-6">
-                                    <div class="listing__details__amenities__item">
-                                        <img src="img/listing/details/amenities/ame-3.png" alt="">
-                                        <h6>Smoking Area</h6>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-md-3 col-6">
-                                    <div class="listing__details__amenities__item">
-                                        <img src="img/listing/details/amenities/ame-4.png" alt="">
-                                        <h6>Free Parking</h6>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-md-3 col-6">
-                                    <div class="listing__details__amenities__item">
-                                        <img src="img/listing/details/amenities/ame-5.png" alt="">
-                                        <h6>Family Friendly</h6>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-md-3 col-6">
-                                    <div class="listing__details__amenities__item">
-                                        <img src="img/listing/details/amenities/ame-6.png" alt="">
-                                        <h6>Coffee</h6>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-md-3 col-6">
-                                    <div class="listing__details__amenities__item">
-                                        <img src="img/listing/details/amenities/ame-7.png" alt="">
-                                        <h6>Massage</h6>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-md-3 col-6">
-                                    <div class="listing__details__amenities__item">
-                                        <img src="img/listing/details/amenities/ame-8.png" alt="">
-                                        <h6>Coupons</h6>
-                                    </div>
+                    </div>
+
+                    <div class="listing__details__gallery">
+
+                        <div class="listing__details__about">
+                            <h4>SYSTEM REQUIREMENTS</h4>
+
+                            <div class="most__search__tab most__search__tab-requirements">
+
+                                <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+
+                                    <?php foreach ($model->getAvailablePlatforms() as $key => $platform): ?>
+                                        <li class="nav-item">
+                                            <a class="nav-link <?= $key == 0 ? 'active' : '' ?>"
+                                               id="pills-<?= $platform->slug ?>-tab" data-toggle="pill"
+                                               href="#<?= $platform->slug ?>" role="tab"
+                                               aria-controls="pills-<?= $platform->slug ?>" aria-selected="false">
+                                                <?= ucwords($platform->name) ?>
+                                            </a>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                                <div class="tab-content" id="pills-tabContent">
+
+                                    <?php foreach ($model->getAvailablePlatforms() as $key => $platform): ?>
+                                        <div class="tab-pane fade <?= $key == 0 ? 'show active' : '' ?>" id="pills-<?= $platform->slug ?>" role="tabpanel"
+                                             aria-labelledby="pills-<?= $platform->slug ?>-tab">
+
+                                            <div class="row mb-4">
+                                                <div class="col-md-6">
+                                                    <?= $platform->requirements_minimum ?>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <?= $platform->requirements_recommended ?>
+                                                </div>
+                                            </div>
+
+
+                                        </div>
+                                    <?php endforeach; ?>
+
                                 </div>
                             </div>
                         </div>
+
+
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="listing__sidebar">
-                        <div class="listing__sidebar__working__hours">
+                        <div class="listing__sidebar__working__hours mb-4">
                             <h4><?= $model->title ?></h4>
                             <ul>
-                                <li>Release Date: <span>
+                                <li>
+                                    Genre <span>
+                                        <?= Helper::getLinkList($model->genres, 'name', 'slug', '/genre/') ?>
+                                    </span>
+                                </li>
+                                <li>
+                                    Developer <span>
+                                        <?= Helper::getLinkList($model->developers, 'name', 'slug', '/developer/') ?>
+                                    </span>
+                                </li>
+                                <li>
+                                    Publisher <span>
+                                        <?= Helper::getLinkList($model->publishers, 'name', 'slug', '/publisher/') ?>
+                                    </span>
+                                </li>
+                                <li>
+                                    Release Date <span>
                                     <?= (new \DateTime($model->release_date))->format('d M, Y') ?></span>
-                                </li>
-                                <li>Developer: <span>
-                                    <?= implode(', ', ArrayHelper::map($model->developers, 'id', 'name')) ?></span>
-                                </li>
-                                <li>Publisher: <span>
-                                    <?= implode(', ', ArrayHelper::map($model->publishers, 'id', 'name')) ?></span>
                                 </li>
                             </ul>
                         </div>
-                        <div class="listing__sidebar__contact">
-                            <div class="listing__sidebar__contact__text">
-                                <h4>Contacts</h4>
-                                <ul>
-                                    <li><span class="icon_pin_alt"></span> 236 Littleton St. New Philadelphia, Ohio,
-                                        United States
+                        <div class="listing__sidebar__working__hours mb-4">
+
+                            <ul class="list-group category-list">
+                                <?php foreach ($model->categories as $category): ?>
+                                    <li class="list-group-item category-item">
+                                        <a href="#" class="category-link">
+                                            <div class="category-icon">
+                                                <img src="<?= $category->image ?>" class="img-fluid"
+                                                     alt="<?= $category->name ?>">
+                                            </div>
+
+                                            <?= $category->name ?>
+                                        </a>
                                     </li>
-                                    <li><span class="icon_phone"></span> (+12) 345-678-910</li>
-                                    <li><span class="icon_mail_alt"></span> Info.colorlib@gmail.com</li>
-                                    <li><span class="icon_globe-2"></span> https://colorlib.com</li>
-                                </ul>
-                                <div class="listing__sidebar__contact__social">
-                                    <a href="#"><i class="fa fa-facebook"></i></a>
-                                    <a href="#" class="linkedin"><i class="fa fa-linkedin"></i></a>
-                                    <a href="#" class="twitter"><i class="fa fa-twitter"></i></a>
-                                    <a href="#" class="google"><i class="fa fa-google"></i></a>
-                                </div>
-                            </div>
+                                <?php endforeach; ?>
+                            </ul>
+
                         </div>
                     </div>
                 </div>
@@ -202,7 +260,6 @@ $this->title = $model->title;
         </div>
     </section>
     <!-- Listing Details Section End -->
-<span class="fa-plus"></span>
 
 <?php
 

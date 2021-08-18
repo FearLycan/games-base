@@ -495,4 +495,14 @@ class Game extends \yii\db\ActiveRecord
         $meta->save();
 
     }
+
+    public function getSteamUrl()
+    {
+        return 'https://store.steampowered.com/app/' . $this->steam_appid;
+    }
+
+    public function getAvailablePlatforms()
+    {
+        return $this->getPlatforms()->where(['available' => true])->all();
+    }
 }

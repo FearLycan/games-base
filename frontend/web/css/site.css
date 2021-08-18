@@ -49,6 +49,48 @@ a#readMore {
     font-weight: bold;
 }
 
-a#readMore:hover{
+a#readMore:hover {
     cursor: pointer;
+}
+
+.share-btn, a {
+    transition: all .2s;
+}
+
+.share-btn:hover {
+    background: rgba(0, 0, 0, 0.2) !important;
+    color: #FFFFFF;
+}
+
+a:hover, a:focus {
+    color: #000000;
+}
+
+.list-group-item.category-item {
+    /*padding: 0.45rem 1.25rem;*/
+    padding: 1px;
+}
+
+.list-group.category-list {
+    line-height: 25px;
+}
+
+.category-icon {
+    position: absolute;
+    background: rgba(27, 40, 56, 0.95);
+}
+
+.category-link {
+    margin-left: 70px;
+    color: #323232;
+}
+
+.most__search__tab-requirements .nav {
+    justify-content: normal;
+}
+
+.bb_ul {
+    text-align: left;
+    list-style-type: none;
+    font-size: 14px;
 }

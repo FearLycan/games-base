@@ -25,6 +25,7 @@ class AppAsset extends AssetBundle
         'css/site.css',
     ];
     public $js = [
+        'js/bootstrap.min.js',
         'js/jquery.nice-select.min.js',
         'js/jquery-ui.min.js',
         'js/jquery.nicescroll.min.js',
