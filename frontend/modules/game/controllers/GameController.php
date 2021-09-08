@@ -5,7 +5,9 @@ namespace frontend\modules\game\controllers;
 use common\components\AccessControl;
 use frontend\components\Controller;
 use frontend\modules\game\models\Game;
+use Yii;
 use yii\web\NotFoundHttpException;
+use yii\web\Response;
 
 class GameController extends Controller
 {
@@ -18,7 +20,7 @@ class GameController extends Controller
                     [
                         'allow' => true,
                         'actions' => [
-                            'view',
+                            'view', 'search-list'
                         ],
                         'roles' => ['?'],
                     ],
@@ -38,6 +40,29 @@ class GameController extends Controller
         return $this->render('view', [
             'model' => $model,
         ]);
+    }
+
+    public function actionSearchList($phrase)
+    {
+        $games = Game::find()
+            ->select(['id','title'])
+            ->onlyWithTitle($phrase)
+            ->orderBy(['title' => SORT_ASC])
+            ->limit(10)
+            ->asArray()
+            ->all();
+
+//        $results = [];
+//        /* @var $game Game */
+//        foreach ($games as $game) {
+//            $results[] = [
+//                'id' => $game->id,
+//                'title' => $game->title,
+//            ];
+//        }
+
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        return $games;
     }
 
     /**

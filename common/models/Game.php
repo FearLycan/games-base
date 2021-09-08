@@ -2,12 +2,12 @@
 
 namespace common\models;
 
-use phpDocumentor\Reflection\Types\This;
+use common\components\GameQuery;
+use Yii;
 use yii\behaviors\SluggableBehavior;
 use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveRecord;
 use yii\httpclient\Client;
-use Yii;
 
 /**
  * This is the model class for table "{{%game}}".
@@ -113,6 +113,15 @@ class Game extends \yii\db\ActiveRecord
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',
         ];
+    }
+
+    /**
+     *
+     * @return GameQuery
+     */
+    public static function find()
+    {
+        return new GameQuery(get_called_class());
     }
 
     /**

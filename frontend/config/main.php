@@ -46,7 +46,7 @@ return [
                 '/' => 'homepage/home/index',
                 'game/<id>/<slug>' => 'game/game/view',
                 //'ticket/create/<type>/<object_id>' => 'ticket/create',
-                //'game/<action>' => 'game/game/<action>',
+                'game/<action>' => 'game/game/<action>',
             ],
         ],
     ],

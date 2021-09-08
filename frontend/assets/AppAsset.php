@@ -21,6 +21,8 @@ class AppAsset extends AssetBundle
         'css/jquery-ui.min.css',
         'css/owl.carousel.min.css',
         'css/slicknav.min.css',
+        'lib/easy-autocomplete/easy-autocomplete.min.css',
+        'lib/easy-autocomplete/easy-autocomplete.themes.min.css',
         'css/style.css',
         'css/site.css',
     ];
@@ -34,6 +36,7 @@ class AppAsset extends AssetBundle
         'js/jquery.slicknav.js',
         'js/owl.carousel.min.js',
         'js/jquery-read-more.min.js',
+        'lib/easy-autocomplete/jquery.easy-autocomplete.min.js',
         'js/main.js',
     ];
     public $depends = [

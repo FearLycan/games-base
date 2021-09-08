@@ -109,3 +109,7 @@ a:hover, a:focus {
 div.read-more img {
     background-color: rgba(0, 0, 0, 0.6);
 }
+
+#game-name-select {
+    border-radius: 0;
+}
