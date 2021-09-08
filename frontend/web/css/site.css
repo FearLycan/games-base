@@ -94,3 +94,18 @@ a:hover, a:focus {
     list-style-type: none;
     font-size: 14px;
 }
+
+.bb_tag {
+    color: #323232;
+    font-weight: 600;
+    margin-bottom: 18px;
+    font-size: 20px;
+}
+
+.listing__hero__icon img {
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+div.read-more img {
+    background-color: rgba(0, 0, 0, 0.6);
+}

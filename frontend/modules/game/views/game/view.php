@@ -24,7 +24,7 @@ $this->title = $model->title;
                                  style="height:132px;" class="rounded-circle" alt="<?= $model->title ?>">
                         </div>
                         <div class="listing__hero__text">
-                            <h2>Days Gone</h2>
+                            <h2><?= $model->title ?></h2>
                             <div class="listing__hero__widget" style="margin-top: -5px;">
                                 <div class="rating">
                                     <div class="rating-upper" style="width: <?= $model->review->getPercents() ?>%">
@@ -77,9 +77,9 @@ $this->title = $model->title;
                         <div class="listing__details__about">
                             <h4>ABOUT THIS GAME</h4>
 
-                            <p class="read-more" data-controller="#readMore">
+                            <div class="read-more" data-controller="#readMore">
                                 <?= $model->detailed_description ?>
-                            </p>
+                            </div>
 
                             <a id="readMore">Read more</a>
 
@@ -177,7 +177,7 @@ $this->title = $model->title;
                                         <li class="nav-item">
                                             <a class="nav-link <?= $key == 0 ? 'active' : '' ?>"
                                                id="pills-<?= $platform->slug ?>-tab" data-toggle="pill"
-                                               href="#<?= $platform->slug ?>" role="tab"
+                                               href="#pills-<?= $platform->slug ?>" role="tab"
                                                aria-controls="pills-<?= $platform->slug ?>" aria-selected="false">
                                                 <?= ucwords($platform->name) ?>
                                             </a>
@@ -187,7 +187,8 @@ $this->title = $model->title;
                                 <div class="tab-content" id="pills-tabContent">
 
                                     <?php foreach ($model->getAvailablePlatforms() as $key => $platform): ?>
-                                        <div class="tab-pane fade <?= $key == 0 ? 'show active' : '' ?>" id="pills-<?= $platform->slug ?>" role="tabpanel"
+                                        <div class="tab-pane fade <?= $key == 0 ? 'show active' : '' ?>"
+                                             id="pills-<?= $platform->slug ?>" role="tabpanel"
                                              aria-labelledby="pills-<?= $platform->slug ?>-tab">
 
                                             <div class="row mb-4">
@@ -266,7 +267,7 @@ $this->title = $model->title;
 $js = <<<JS
    
     $(function(){
-        $("p.read-more").readMore({
+        $("div.read-more").readMore({
             lines: 5,
             readMoreLabel:'<i class="fa fa-plus" aria-hidden="true"></i> Read more',
             readLessLabel:'<i class="fa fa-minus" aria-hidden="true"></i> Read less',

@@ -85,6 +85,10 @@ class Review extends \yii\db\ActiveRecord
 
     public function getPercents()
     {
+        if ($this->total_reviews == 0) {
+            return 0;
+        }
+
         return round(($this->total_positive / $this->total_reviews), 2) * 100;
     }
 }
