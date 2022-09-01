@@ -3,6 +3,7 @@
 namespace common\models;
 
 use common\components\GameQuery;
+use common\components\Helper;
 use Yii;
 use yii\behaviors\SluggableBehavior;
 use yii\behaviors\TimestampBehavior;
@@ -255,9 +256,9 @@ class Game extends \yii\db\ActiveRecord
         $this->required_age = (boolean)$information['required_age'];
         $this->is_free = $information['is_free'];
         $this->type = $information['type'];
-        $this->detailed_description = $information['detailed_description'];
-        $this->about_the_game = $information['about_the_game'];
-        $this->short_description = $information['short_description'];
+        $this->detailed_description = Helper::clearHtml($information['detailed_description']);
+        $this->about_the_game = Helper::clearHtml($information['about_the_game']);
+        $this->short_description = Helper::clearHtml($information['short_description']);
         $this->release_date = (new \DateTime($information['release_date']['date']))->format('Y-m-d 00:00:00');
         $this->website = $information['website'];
         $this->save();
@@ -482,8 +483,8 @@ class Game extends \yii\db\ActiveRecord
             $required = $platform == 'windows' ? 'pc_requirements' : $platform . '_requirements';
 
             if ($available) {
-                $requirements->requirements_minimum = $information[$required]['minimum'];
-                $requirements->requirements_recommended = $information[$required]['recommended'];
+                $requirements->requirements_minimum = isset($information[$required]['minimum']) ? $information[$required]['minimum'] : '';
+                $requirements->requirements_recommended = isset($information[$required]['recommended']) ? $information[$required]['recommended'] : '';
             }
 
             $requirements->save();

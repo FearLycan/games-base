@@ -6,7 +6,7 @@ namespace common\components;
 
 class Helper
 {
-    public static function getStatusLabel($model)
+    public static function getStatusLabel($model): string
     {
         switch ($model->status) {
             case 0:
@@ -20,5 +20,12 @@ class Helper
             default:
                 return '<span class="label label-table label-default">' . $model->getStatusName() . '</span>';
         }
+    }
+
+    public static function clearHtml($html): string
+    {
+        $html = str_replace("h1>", "h4>", $html);
+
+        return $html;
     }
 }

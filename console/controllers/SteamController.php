@@ -7,6 +7,7 @@ use yii\console\Controller;
 use yii\helpers\VarDumper;
 use yii\httpclient\Client;
 use yii\base\Exception;
+use Symfony\Component\DomCrawler\Crawler;
 
 class SteamController extends Controller
 {
@@ -47,5 +48,52 @@ class SteamController extends Controller
                 . VarDumper::dumpAsString($response->data)
             );
         }
+    }
+
+    public function actionGetComingSoon()
+    {
+        $this->client = new Client(['baseUrl' => 'https://store.steampowered.com/search/results/?query']);
+
+        $start = 0;
+        $query = [
+            'query',
+            'start' => -50,
+            'count' => 50,
+            'dynamic_data',
+            'sort_by' => '_ASC',
+            'signore_preferences' => 1,
+            'os' => 'win',
+            'filter' => 'comingsoon',
+            'infinite' => 1,
+        ];
+
+        do {
+            $start += 50;
+            $query['start'] = $start;
+
+            $request = $this->client->createRequest()
+                ->setHeaders(['Content-language' => 'en'])
+                ->setMethod('GET')
+                ->setData($query);
+
+            $response = $request->send();
+
+            if ($response->isOk && $response->data['success']) {
+                $crawler = new Crawler($response->data['results_html']);
+
+                $appids = $crawler->filter('a[data-ds-appid]')->extract(['data-ds-appid']);
+
+                foreach ($appids as $appid) {
+                    $game = Game::findOne(['steam_appid' => $appid]);
+                    echo $appid . "\n";
+                    if (!$game) {
+                        $game = new Game();
+                        $game->steam_appid = $appid;
+                        $game->save(false);
+                    }
+                }
+            }
+            sleep(rand(5, 15));
+        } while ($response->data['total_count'] > $start);
     }
 }
