@@ -43,9 +43,17 @@ class Game extends \yii\db\ActiveRecord
     const  STATUS_ACTIVE = 1;
     const  STATUS_INACTIVE = 0;
 
+    /** @var GameImage */
     private $_screenshots;
+
+    /** @var GameImage */
     private $_icon;
+
+    /** @var GameImage */
     private $_background;
+
+    /** @var GameImage */
+    private $_header;
 
     /**
      * @return array
@@ -269,6 +277,7 @@ class Game extends \yii\db\ActiveRecord
         $this->setGenres($information['genres']);
         $this->setScreenshots($information['screenshots']);
         $this->setBackground($information['background']);
+        $this->setHeader($information['header_image']);
         $this->setIcons();
         $this->setPlatforms($information);
         $this->setReview();
@@ -403,6 +412,40 @@ class Game extends \yii\db\ActiveRecord
         }
 
         return $this->_background->url;
+    }
+
+    public function setHeader($header)
+    {
+        $image = GameImage::findOne([
+            'url' => $header,
+            'type' => GameImage::TYPE_HEADER,
+            'game_id' => $this->id
+        ]);
+
+        if (!$image) {
+            $image = new GameImage();
+            $image->type = GameImage::TYPE_HEADER;
+            $image->url = $header;
+            $image->game_id = $this->id;
+            $image->status = GameImage::STATUS_ACTIVE;
+            $image->save();
+        }
+    }
+
+    public function getHeader()
+    {
+        if (empty($this->_header)) {
+            $this->_header = $this->getImages()->where([
+                'status' => GameImage::STATUS_ACTIVE,
+                'type' => GameImage::TYPE_HEADER,
+            ])->one();
+        }
+
+        if (!$this->_header) {
+            return '/img/header-default.png';
+        }
+
+        return $this->_header->url;
     }
 
     public function getIcon()

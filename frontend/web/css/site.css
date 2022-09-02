@@ -76,12 +76,12 @@ a:hover, a:focus {
 }
 
 .category-icon {
-    position: absolute;
     background: rgba(27, 40, 56, 0.95);
+    float: left;
 }
 
 .category-link {
-    margin-left: 70px;
+    margin-left: 30px;
     color: #323232;
 }
 

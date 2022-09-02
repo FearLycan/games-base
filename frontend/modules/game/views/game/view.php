@@ -1,9 +1,8 @@
 <?php
 
-use frontend\modules\game\models\Game;
-use yii\helpers\ArrayHelper;
-use yii\web\View;
 use frontend\components\Helper;
+use frontend\modules\game\models\Game;
+use yii\web\View;
 
 /* @var $this View */
 /* @var $model Game */
@@ -13,8 +12,7 @@ $this->title = $model->title;
 ?>
 
     <!-- Listing Section Begin -->
-    <section class="listing-hero set-bg"
-             data-setbg="<?= $model->getBackground() ?>">
+    <section class="listing-hero set-bg" data-setbg="<?= $model->getBackground() ?>">
         <div class="container">
             <div class="row">
                 <div class="col-lg-8">
@@ -92,76 +90,18 @@ $this->title = $model->title;
                                     <div class="listing__details__gallery__item">
                                         <img class="listing__details__gallery__item__large"
                                              src="<?= $model->getScreenshots()[0]->url ?>"
-                                             alt="">
-                                        <!--<span><i class="fa fa-camera"></i> 170 Image</span>-->
+                                             alt="<?= $model->title ?> #0" loading="lazy">
                                     </div>
                                     <div class="listing__details__gallery__slider owl-carousel">
-
                                         <?php foreach ($model->getScreenshots() as $key => $screenshot): ?>
                                             <img data-imgbigurl="<?= $screenshot->url ?>"
-                                                 src="<?= $screenshot->url ?>"
+                                                 src="<?= $screenshot->url ?>" loading="lazy"
                                                  alt="<?= $model->title ?> #<?= ($key + 1) ?>">
                                         <?php endforeach; ?>
-
                                     </div>
                                 </div>
                             </div>
                         <?php endif; ?>
-                        <!--
-                                                <div class="listing__details__amenities">
-                                                    <h4>Amenities</h4>
-                                                    <div class="row">
-                                                        <div class="col-lg-3 col-md-3 col-6">
-                                                            <div class="listing__details__amenities__item">
-                                                                <img src="img/listing/details/amenities/ame-1.png" alt="">
-                                                                <h6>Accept Credit Card</h6>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-lg-3 col-md-3 col-6">
-                                                            <div class="listing__details__amenities__item">
-                                                                <img src="img/listing/details/amenities/ame-2.png" alt="">
-                                                                <h6>Free Wifi</h6>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-lg-3 col-md-3 col-6">
-                                                            <div class="listing__details__amenities__item">
-                                                                <img src="img/listing/details/amenities/ame-3.png" alt="">
-                                                                <h6>Smoking Area</h6>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-lg-3 col-md-3 col-6">
-                                                            <div class="listing__details__amenities__item">
-                                                                <img src="img/listing/details/amenities/ame-4.png" alt="">
-                                                                <h6>Free Parking</h6>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-lg-3 col-md-3 col-6">
-                                                            <div class="listing__details__amenities__item">
-                                                                <img src="img/listing/details/amenities/ame-5.png" alt="">
-                                                                <h6>Family Friendly</h6>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-lg-3 col-md-3 col-6">
-                                                            <div class="listing__details__amenities__item">
-                                                                <img src="img/listing/details/amenities/ame-6.png" alt="">
-                                                                <h6>Coffee</h6>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-lg-3 col-md-3 col-6">
-                                                            <div class="listing__details__amenities__item">
-                                                                <img src="img/listing/details/amenities/ame-7.png" alt="">
-                                                                <h6>Massage</h6>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-lg-3 col-md-3 col-6">
-                                                            <div class="listing__details__amenities__item">
-                                                                <img src="img/listing/details/amenities/ame-8.png" alt="">
-                                                                <h6>Coupons</h6>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div> -->
-
                     </div>
 
                     <div class="listing__details__gallery">
@@ -215,7 +155,9 @@ $this->title = $model->title;
                     <div class="listing__sidebar">
                         <div class="listing__sidebar__working__hours mb-4">
                             <h4><?= $model->title ?></h4>
-                            <ul>
+                            <img class="img-fluid" loading="lazy" alt="<?= $model->title ?>"
+                                 src="<?= $model->getHeader() ?>">
+                            <ul style="margin-top: 16px;">
                                 <li>
                                     Genre <span>
                                         <?= Helper::getLinkList($model->genres, 'name', 'slug', '/genre/') ?>
