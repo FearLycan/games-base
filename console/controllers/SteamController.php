@@ -41,7 +41,6 @@ class SteamController extends Controller
 
             $game->setBaseInformation($response->data[$app_id]['data']);
 
-
         } else {
             throw new Exception(
                 "Request to $request->url failed with response: \n"

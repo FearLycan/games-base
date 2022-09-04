@@ -113,3 +113,15 @@ div.read-more img {
 #game-name-select {
     border-radius: 0;
 }
+
+p {
+    transition: all .2s;
+}
+
+p#showMore {
+    color: black;
+}
+
+p#showMore:hover {
+    cursor: pointer;
+}

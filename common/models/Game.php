@@ -4,11 +4,16 @@ namespace common\models;
 
 use common\components\GameQuery;
 use common\components\Helper;
+use Symfony\Component\DomCrawler\Crawler;
 use Yii;
 use yii\behaviors\SluggableBehavior;
 use yii\behaviors\TimestampBehavior;
+use yii\caching\DummyCache;
+use yii\db\ActiveQuery;
 use yii\db\ActiveRecord;
+use yii\helpers\VarDumper;
 use yii\httpclient\Client;
+use yii\web\Cookie;
 
 /**
  * This is the model class for table "{{%game}}".
@@ -33,6 +38,7 @@ use yii\httpclient\Client;
  * @property Developer[] $developers
  * @property GameImage[] $images
  * @property Genre[] $genres
+ * @property Tag[] $tags
  * @property Platform[] $platforms
  * @property Publisher[] $publishers
  * @property Metacritic $metacritic
@@ -174,9 +180,29 @@ class Game extends \yii\db\ActiveRecord
     }
 
     /**
-     * Gets query for [[Platforms]].
+     * Gets query for [[GameTags]].
      *
      * @return \yii\db\ActiveQuery
+     */
+    public function getGameTags()
+    {
+        return $this->hasMany(GameTag::className(), ['game_id' => 'id'])->orderBy(['order' => SORT_ASC]);
+    }
+
+    /**
+     * Gets query for [[Tags]].
+     *
+     * @return \yii\db\ActiveQuery
+     */
+    public function getTags()
+    {
+        return $this->hasMany(Tag::className(), ['id' => 'tag_id'])->via('gameTags');
+    }
+
+    /**
+     * Gets query for [[Platforms]].
+     *
+     * @return ActiveQuery
      */
     public function getPlatforms()
     {
@@ -286,6 +312,12 @@ class Game extends \yii\db\ActiveRecord
             $this->setMetacritic($information['metacritic']);
         }
 
+        $informationFromWeb = $this->setInformationFromWeb();
+        if ($informationFromWeb) {
+            $tags = $this->extraTags($informationFromWeb);
+            $this->setTags($tags);
+        }
+
         $this->status = self::STATUS_ACTIVE;
         $this->save();
     }
@@ -363,6 +395,27 @@ class Game extends \yii\db\ActiveRecord
             $genre->save();
 
             GameGenre::createConnection($this->id, $genre->id);
+        }
+    }
+
+    public function setTags($tags)
+    {
+        GameTag::removeConnectionsByGameID($this->id);
+
+        foreach ($tags as $key => $item) {
+
+            $item = trim($item);
+
+            $tag = Tag::findOne(['name' => $item]);
+
+            if (!$tag) {
+                $tag = new Tag();
+            }
+
+            $tag->name = $item;
+            $tag->save();
+
+            GameTag::createConnection($this->id, $tag->id, $key);
         }
     }
 
@@ -557,5 +610,37 @@ class Game extends \yii\db\ActiveRecord
     public function getAvailablePlatforms()
     {
         return $this->getPlatforms()->where(['available' => true])->all();
+    }
+
+    public function setInformationFromWeb()
+    {
+        $client = new Client(['baseUrl' => $this->getSteamUrl()]);
+
+        $request = $client->createRequest()
+            ->setCookies([
+                ['name' => 'birthtime', 'value' => 0],
+                ['name' => 'path', 'value' => '/'],//'path' => '/'
+            ])
+            ->setHeaders(['Content-language' => 'en'])
+            ->setMethod('GET');
+
+        $response = $request->send();
+
+        if ($response->isOk) {
+            return new Crawler($response->content);
+        }
+
+        return null;
+    }
+
+    public function extraTags(Crawler $html): array
+    {
+        $tags = [];
+        $crawler = $html->filter("a.app_tag");
+        $crawler->each(function (Crawler $tag) use (&$tags) {
+            $tags[] = trim($tag->text());
+        });
+
+        return $tags;
     }
 }

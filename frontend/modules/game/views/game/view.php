@@ -18,7 +18,7 @@ $this->title = $model->title;
                 <div class="col-lg-8">
                     <div class="listing__hero__option">
                         <div class="listing__hero__icon">
-                            <img src="<?= $model->getIcon() ?>"
+                            <img src="<?= $model->getIcon() ?>" loading="lazy"
                                  style="height:132px;" class="rounded-circle" alt="<?= $model->title ?>">
                         </div>
                         <div class="listing__hero__text">
@@ -180,13 +180,12 @@ $this->title = $model->title;
                             </ul>
                         </div>
                         <div class="listing__sidebar__working__hours mb-4">
-
                             <ul class="list-group category-list">
                                 <?php foreach ($model->categories as $category): ?>
                                     <li class="list-group-item category-item">
                                         <a href="#" class="category-link">
                                             <div class="category-icon">
-                                                <img src="<?= $category->image ?>" class="img-fluid"
+                                                <img src="<?= $category->image ?>" loading="lazy" class="img-fluid"
                                                      alt="<?= $category->name ?>">
                                             </div>
 
@@ -195,8 +194,23 @@ $this->title = $model->title;
                                     </li>
                                 <?php endforeach; ?>
                             </ul>
-
                         </div>
+
+                        <?php if ($model->tags): ?>
+                            <div class="blog__sidebar__tags">
+                                <h5>Popular Tag</h5>
+                                <?php foreach ($model->tags as $key => $tag): ?>
+                                    <a href="#" data-hide="<?= $key >= 6 ? 1 : 0 ?>"><?= $tag->name ?></a>
+                                <?php endforeach; ?>
+                                <div class="row">
+                                    <p class="text-right" id="showMore" style="width: 100%;">
+                                        <i class="fa fa-plus" aria-hidden="true"></i> Show more
+                                    </p>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
+
                     </div>
                 </div>
             </div>
@@ -213,7 +227,26 @@ $js = <<<JS
             lines: 5,
             readMoreLabel:'<i class="fa fa-plus" aria-hidden="true"></i> Read more',
             readLessLabel:'<i class="fa fa-minus" aria-hidden="true"></i> Read less',
-        })
+        });
+        
+        
+        $('a[data-hide="1"]').hide();
+        
+        $("p#showMore").on( "click", function() {
+            let p = this;
+            $('a[data-hide="1"]').each(function (index){
+                if($(this).is(":visible")){
+                    //$(this).hide( "fast", arguments.callee );
+                    $(this).fadeOut("fast");
+                    $(p).html('<i class="fa fa-plus" aria-hidden="true"></i> Show more')
+                }else{
+                    //$(this).show( "fast", arguments.callee );
+                    $(this).fadeIn("fast");
+                    $(p).html('<i class="fa fa-minus" aria-hidden="true"></i> Show less')
+                }
+            })
+        });
+        
     });
 
 JS;
