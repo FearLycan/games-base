@@ -95,4 +95,13 @@ class Category extends \yii\db\ActiveRecord
     {
         return $this->hasMany(Game::className(), ['id' => 'game_id'])->viaTable('{{%game_category}}', ['category_id' => 'id']);
     }
+
+    public function getImage()
+    {
+        if ($this->image) {
+            return $this->image;
+        }
+
+        return '/img/category-default.png';
+    }
 }

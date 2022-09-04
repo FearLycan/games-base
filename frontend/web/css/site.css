@@ -138,3 +138,7 @@ p#showMore:hover {
 .btn-steam-deck {
     padding: 0 0.75rem;
 }
+
+.btn-steam-deck:hover{
+    cursor: default !important;
+}

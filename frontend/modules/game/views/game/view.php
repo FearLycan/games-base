@@ -185,7 +185,7 @@ $this->title = $model->title;
                                     <li class="list-group-item category-item">
                                         <a href="#" class="category-link">
                                             <div class="category-icon">
-                                                <img src="<?= $category->image ?>" loading="lazy" class="img-fluid"
+                                                <img src="<?= $category->getImage() ?>" loading="lazy" class="img-fluid"
                                                      alt="<?= $category->name ?>">
                                             </div>
 
@@ -230,7 +230,6 @@ $this->title = $model->title;
 
                             </div>
                         <?php endif; ?>
-
 
                         <?php if ($model->tags): ?>
                             <div class="blog__sidebar__tags">
