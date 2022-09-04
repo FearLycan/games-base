@@ -196,11 +196,47 @@ $this->title = $model->title;
                             </ul>
                         </div>
 
+                        <?php if ($model->steam_deck): ?>
+                            <div class="blog__sidebar__recent">
+                                <h5>Steam Deck Compatibility</h5>
+
+                                <?php if ((int)$model->steam_deck === Game::STEAM_DECK_VERIFIED): ?>
+                                    <span class="btn btn-success btn-steam-deck">
+                                        <span class="btn-label">
+                                            <i class="fa fa-check-circle-o" aria-hidden="true"></i>
+                                        </span>
+                                        <?= $model->getSteamDecksStatusName() ?>
+                                    </span>
+                                <?php endif; ?>
+
+                                <?php if ((int)$model->steam_deck === Game::STEAM_DECK_UNSUPPORTED): ?>
+                                    <span class="btn btn-danger btn-steam-deck">
+                                        <span class="btn-label">
+                                            <i class="fa fa-ban" aria-hidden="true"></i>
+                                        </span>
+                                        <?= $model->getSteamDecksStatusName() ?>
+                                    </span>
+                                <?php endif; ?>
+
+                                <?php if ((int)$model->steam_deck === Game::STEAM_DECK_PLAYABLE): ?>
+                                    <span class="btn btn-warning btn-steam-deck">
+                                        <span class="btn-label">
+                                            <i class="fa fa-info-circle" aria-hidden="true"></i>
+                                        </span>
+                                        <?= $model->getSteamDecksStatusName() ?>
+                                    </span>
+                                <?php endif; ?>
+
+
+                            </div>
+                        <?php endif; ?>
+
+
                         <?php if ($model->tags): ?>
                             <div class="blog__sidebar__tags">
                                 <h5>Popular Tag</h5>
-                                <?php foreach ($model->tags as $key => $tag): ?>
-                                    <a href="#" data-hide="<?= $key >= 6 ? 1 : 0 ?>"><?= $tag->name ?></a>
+                                <?php foreach ($model->gameTags as $key => $gameTag): ?>
+                                    <a href="#" data-hide="<?= $key >= 6 ? 1 : 0 ?>"><?= $gameTag->tag->name ?></a>
                                 <?php endforeach; ?>
                                 <div class="row">
                                     <p class="text-right" id="showMore" style="width: 100%;">

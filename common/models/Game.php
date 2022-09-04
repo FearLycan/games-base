@@ -11,8 +11,11 @@ use yii\behaviors\TimestampBehavior;
 use yii\caching\DummyCache;
 use yii\db\ActiveQuery;
 use yii\db\ActiveRecord;
+use yii\db\Exception;
+use yii\helpers\Json;
 use yii\helpers\VarDumper;
 use yii\httpclient\Client;
+use yii\mutex\RetryAcquireTrait;
 use yii\web\Cookie;
 
 /**
@@ -31,6 +34,7 @@ use yii\web\Cookie;
  * @property string|null $short_description
  * @property string|null $release_date
  * @property string|null $website
+ * @property int|null $steam_deck
  * @property string $created_at
  * @property string|null $updated_at
  *
@@ -43,11 +47,16 @@ use yii\web\Cookie;
  * @property Publisher[] $publishers
  * @property Metacritic $metacritic
  * @property Review $review
+ * @property GameTag[] $gameTags
  */
 class Game extends \yii\db\ActiveRecord
 {
     const  STATUS_ACTIVE = 1;
     const  STATUS_INACTIVE = 0;
+
+    const STEAM_DECK_VERIFIED = 4;
+    const STEAM_DECK_PLAYABLE = 3;
+    const STEAM_DECK_UNSUPPORTED = 2;
 
     /** @var GameImage */
     private $_screenshots;
@@ -186,7 +195,7 @@ class Game extends \yii\db\ActiveRecord
      */
     public function getGameTags()
     {
-        return $this->hasMany(GameTag::className(), ['game_id' => 'id'])->orderBy(['order' => SORT_ASC]);
+        return $this->hasMany(GameTag::className(), ['game_id' => 'id'])->orderBy(['order' => SORT_DESC]);
     }
 
     /**
@@ -316,10 +325,33 @@ class Game extends \yii\db\ActiveRecord
         if ($informationFromWeb) {
             $tags = $this->extraTags($informationFromWeb);
             $this->setTags($tags);
+
+            $steamDeck = $this->extractSteamDeckInformation($informationFromWeb);
+            $this->setSteamDeck($steamDeck);
         }
 
         $this->status = self::STATUS_ACTIVE;
         $this->save();
+    }
+
+    public function setSteamDeck(array $steamDeck)
+    {
+        if (isset($steamDeck['resolved_items'])) {
+            foreach ($steamDeck['resolved_items'] as $options) {
+                if ((int)$options['display_type'] === self::STEAM_DECK_UNSUPPORTED) {
+                    $this->steam_deck = self::STEAM_DECK_UNSUPPORTED;
+                    return $this;
+                }
+
+                if ((int)$options['display_type'] === self::STEAM_DECK_PLAYABLE) {
+                    $this->steam_deck = self::STEAM_DECK_PLAYABLE;
+                    return $this;
+                }
+            }
+
+            $this->steam_deck = self::STEAM_DECK_VERIFIED;
+            return $this;
+        }
     }
 
     public function setCategories($categories)
@@ -403,19 +435,17 @@ class Game extends \yii\db\ActiveRecord
         GameTag::removeConnectionsByGameID($this->id);
 
         foreach ($tags as $key => $item) {
-
-            $item = trim($item);
-
-            $tag = Tag::findOne(['name' => $item]);
+            $tag = Tag::findOne(['id' => $item['tagid']]);
 
             if (!$tag) {
                 $tag = new Tag();
+                $tag->id = $item['tagid'];
             }
 
-            $tag->name = $item;
+            $tag->name = $item['name'];
             $tag->save();
 
-            GameTag::createConnection($this->id, $tag->id, $key);
+            GameTag::createConnection($this->id, $tag->id, $item['count']);
         }
     }
 
@@ -635,12 +665,45 @@ class Game extends \yii\db\ActiveRecord
 
     public function extraTags(Crawler $html): array
     {
-        $tags = [];
-        $crawler = $html->filter("a.app_tag");
-        $crawler->each(function (Crawler $tag) use (&$tags) {
-            $tags[] = trim($tag->text());
-        });
+        $tags = substr(Helper::getText($html->html(), '[{"tagid"', '}],'), 0, -1);
+
+        try {
+            $tags = Json::decode($tags, true);
+        } catch (\Exception $e) {
+            $tags = [];
+        }
 
         return $tags;
+    }
+
+    public function extractSteamDeckInformation(Crawler $html): array
+    {
+        $crawler = $html->filter("#application_config");
+
+        try {
+            $steamDeck = Json::decode($crawler->attr('data-deckcompatibility'));
+        } catch (\Exception $e) {
+            $steamDeck = [];
+        }
+
+        return $steamDeck;
+    }
+
+    public static function getSteamDecksStatuses(): array
+    {
+        return [
+            self::STEAM_DECK_VERIFIED => 'Verified',
+            self::STEAM_DECK_PLAYABLE => 'Playable',
+            self::STEAM_DECK_UNSUPPORTED => 'Unsupported',
+        ];
+    }
+
+    public function getSteamDecksStatusName()
+    {
+        if (isset(self::getSteamDecksStatuses()[$this->steam_deck])) {
+            return self::getSteamDecksStatuses()[$this->steam_deck];
+        }
+
+        return $this->steam_deck;
     }
 }

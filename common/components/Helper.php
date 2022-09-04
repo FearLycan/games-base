@@ -28,4 +28,19 @@ class Helper
 
         return $html;
     }
+
+    public static function getText($string, $start, $end): string
+    {
+        $pattern = sprintf(
+            '/%s(.+?)%s/ims',
+            preg_quote($start, '/'), preg_quote($end, '/')
+        );
+
+        if (preg_match($pattern, $string, $matches)) {
+            list(, $match) = $matches;
+            return $start . $match . $end;
+        }
+
+        return '';
+    }
 }
