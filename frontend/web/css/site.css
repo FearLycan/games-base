@@ -150,3 +150,11 @@ p#showMore:hover {
 .easy-autocomplete-container > ul > li {
     border-bottom: 1px solid rgba(221, 221, 221, 0.4);
 }
+
+.hero__text .hero__categories__tags li a {
+    transition: all .2s;
+}
+
+.hero__text .hero__categories__tags li a:hover {
+    border: 1px solid #8d8d8d;
+}

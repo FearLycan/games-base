@@ -3,6 +3,7 @@
 namespace frontend\modules\homepage\controllers;
 
 use common\components\AccessControl;
+use common\models\GameGenre;
 use frontend\components\Controller;
 
 class HomeController extends Controller
@@ -27,6 +28,15 @@ class HomeController extends Controller
 
     public function actionIndex()
     {
-        return $this->render('index');
+        $genres = GameGenre::find()
+            ->select('count(game_genre.genre_id) as count, game_genre.genre_id')
+            ->groupBy('game_genre.genre_id')
+            ->orderBy(['count' => SORT_DESC])
+            ->limit(10)
+            ->all();
+
+        return $this->render('index', [
+            'genres' => $genres,
+        ]);
     }
 }
