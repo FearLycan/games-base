@@ -3,6 +3,7 @@
 namespace frontend\modules\game\controllers;
 
 use common\components\AccessControl;
+use common\models\GameImage;
 use frontend\components\Controller;
 use frontend\modules\game\models\Game;
 use Yii;
@@ -45,21 +46,20 @@ class GameController extends Controller
     public function actionSearchList($phrase)
     {
         $games = Game::find()
-            ->select(['id','title'])
+            ->select([
+                'game.steam_appid as id',
+                'game.title as title',
+                'game.slug as slug',
+                'url' => GameImage::find()
+                    ->select('url')
+                    ->where("game_id = game.id AND type = 'header'"),
+            ])
+            ->alias('game')
             ->onlyWithTitle($phrase)
-            ->orderBy(['title' => SORT_ASC])
+            ->orderBy(['game.title' => SORT_ASC])
             ->limit(10)
             ->asArray()
             ->all();
-
-//        $results = [];
-//        /* @var $game Game */
-//        foreach ($games as $game) {
-//            $results[] = [
-//                'id' => $game->id,
-//                'title' => $game->title,
-//            ];
-//        }
 
         Yii::$app->response->format = Response::FORMAT_JSON;
         return $games;

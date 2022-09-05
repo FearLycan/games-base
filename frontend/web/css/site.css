@@ -139,6 +139,14 @@ p#showMore:hover {
     padding: 0 0.75rem;
 }
 
-.btn-steam-deck:hover{
+.btn-steam-deck:hover {
     cursor: default !important;
+}
+
+.game-search-link {
+    color: #000000;
+}
+
+.easy-autocomplete-container > ul > li {
+    border-bottom: 1px solid rgba(221, 221, 221, 0.4);
 }

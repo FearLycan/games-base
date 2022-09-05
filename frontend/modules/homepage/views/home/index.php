@@ -47,10 +47,30 @@ $js = <<<JS
    
    $('#game-name-select').easyAutocomplete({
         url: function (phrase) {
-            return '/game/search-list?phrase=' +encodeURIComponent(phrase);
+            return '/game/search-list?phrase=' + encodeURIComponent(phrase);
         },
         getValue: function (element) {
             return element.title;
+        },
+        template: {
+            type: "custom",
+            method: function (title, item) {
+                if(item.url) {
+                    return "" +
+                    "<div class='row'>" +      
+                        "<a class='game-search-link' href='/game/" + item.id + "/" + item.slug + "'>" + 
+                            "<div class='col-md-2 col-sm-2 col-xs-5' style='display:inline-block;'>" +
+                                "<img height='45' class='img-fluid' loading='lazy' src='" + item.url + "' />" +
+                            "</div>" +
+                            "<div class='col-md-8 col-sm-8 col-xs-5' style='display:inline-block;'>" +
+                                "<div class='search-title'>" + title + "</div>" +               
+                            "</div>" +
+                        "</a>" +
+                    "</div>";
+                } else {
+                    return title;
+                }
+            }
         },
         highlightPhrase: false,
         requestDelay: 350,       
@@ -58,13 +78,18 @@ $js = <<<JS
             match: {
                 enabled: true
             },
-            maxNumberOfElements: 10,        
+            maxNumberOfElements: 10,
+            onClickEvent: function () {
+                let input = $('#game-name-select');
+                console.log(input.getSelectedItemData().id)
+                /*$('#game-id').val(input.getSelectedItemData().id);
+                input.val('');
+                getData();*/
+            }
         }
     });
 
     $('.hero__search__form').find('.easy-autocomplete').css({'width': 'auto'});
-    // let button = $('.hero__search__form').find('button');
-    // console.log(button);
     $('.hero__search__form').find('.easy-autocomplete').prepend('<button type="submit">Explore Now</button>');
     
     
