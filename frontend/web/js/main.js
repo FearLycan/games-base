@@ -34,7 +34,7 @@
         prependTo: '#mobile-menu-wrap',
         allowParentLinks: true
     });
-    
+
     /*--------------------------
     Testimonial Slider
     ----------------------------*/
@@ -70,7 +70,7 @@
     /*-----------------------
 		Price Range Radius
 	------------------------ */
-    var rangeSlider = $(".price-range-radius"),
+    /*var rangeSlider = $(".price-range-radius"),
         radius = $("#radius");
     rangeSlider.slider({
         range: 'min',
@@ -81,14 +81,14 @@
             radius.val(ui.value + 'km');
         }
     });
-    radius.val(rangeSlider.slider("value") + 'km');
+    radius.val(rangeSlider.slider("value") + 'km');*/
 
     /*-----------------------
 		Price Range Slider
 	------------------------ */
-    var rangeSliderPrice = $(".price-range"),
+    /*var rangeSliderPrice = $(".price-range"),
         minamount = $("#minamount");
-        rangeSliderPrice.slider({
+    rangeSliderPrice.slider({
         range: 'min',
         min: 0,
         max: 80,
@@ -97,7 +97,7 @@
             minamount.val('$' + ui.value);
         }
     });
-    minamount.val('$' + rangeSliderPrice.slider("value"));
+    minamount.val('$' + rangeSliderPrice.slider("value"));*/
 
     /*--------------------------
         Select
@@ -167,6 +167,8 @@
 	--------------------*/
     $('.video-popup').magnificPopup({
         type: 'iframe'
-      });
+    });
+
+    $('[data-toggle="tooltip"]').tooltip();
 
 })(jQuery);

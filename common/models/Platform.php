@@ -98,4 +98,23 @@ class Platform extends ActiveRecord
     {
         return $this->hasOne(Game::className(), ['id' => 'game_id']);
     }
+
+    public function getIcon(): string
+    {
+        switch ($this->slug) {
+            case 'windows':
+                $icon = '<i class="fa fa-windows" aria-hidden="true"></i>';
+                break;
+            case 'linux':
+                $icon = '<i class="fa fa-linux" aria-hidden="true"></i>';
+                break;
+            case 'mac':
+                $icon = '<i class="fa fa-apple" aria-hidden="true"></i>';
+                break;
+            default:
+                $icon = '';
+        }
+
+        return $icon;
+    }
 }

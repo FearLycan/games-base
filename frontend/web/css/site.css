@@ -158,3 +158,19 @@ p#showMore:hover {
 .hero__text .hero__categories__tags li a:hover {
     border: 1px solid #8d8d8d;
 }
+
+.breadcrumb__option span {
+    color: #000000;
+}
+
+.blog__item {
+    transition: box-shadow 0.3s ease-in-out;
+}
+
+.blog__item:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.8);
+}
+
+.bs-tooltip-top .arrow, .bs-tooltip-auto[x-placement^="top"] .arrow {
+    bottom: 1px;
+}

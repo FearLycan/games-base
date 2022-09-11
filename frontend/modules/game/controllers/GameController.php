@@ -3,9 +3,12 @@
 namespace frontend\modules\game\controllers;
 
 use common\components\AccessControl;
+use common\models\Category;
 use common\models\GameImage;
+use common\models\Genre;
 use frontend\components\Controller;
 use frontend\modules\game\models\Game;
+use frontend\modules\game\models\searches\GameSearch;
 use Yii;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
@@ -21,13 +24,37 @@ class GameController extends Controller
                     [
                         'allow' => true,
                         'actions' => [
-                            'view', 'search-list'
+                            'view', 'search-list', 'list'
                         ],
                         'roles' => ['?'],
                     ],
                 ],
             ],
         ];
+    }
+
+    public function actionList($slug)
+    {
+        $model = $this->findCategoryOrGenre($slug);
+
+        $searchModel = new GameSearch();
+
+        if ($model instanceof Category) {
+            $searchModel->category_id = $model->id;
+        } elseif ($model instanceof Genre) {
+            $searchModel->genre_id = $model->id;
+        } else {
+            $this->notFound();
+        }
+
+        $dataProvider = $searchModel->search($this->request->queryParams);
+
+        return $this->render('list', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+            'model' => $model,
+        ]);
+
     }
 
     public function actionView($id, $slug)
@@ -77,6 +104,22 @@ class GameController extends Controller
         }
 
         throw new NotFoundHttpException('The requested page does not exist.');
+    }
+
+    protected function findCategoryOrGenre($slug)
+    {
+        $category = Category::findOne(['slug' => $slug]);
+
+        if (!$category) {
+            $genre = Genre::findOne(['slug' => $slug]);
+            if ($genre) {
+                return $genre;
+            }
+
+            throw new NotFoundHttpException('The requested page does not exist.');
+        } else {
+            return $category;
+        }
     }
 
 }

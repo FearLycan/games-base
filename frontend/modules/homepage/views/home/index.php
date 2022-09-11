@@ -1,6 +1,7 @@
 <?php
 
 use common\models\GameGenre;
+use yii\helpers\Url;
 
 /* @var $this yii\web\View */
 /* @var $genres GameGenre */
@@ -29,19 +30,16 @@ $this->title = Yii::$app->name;
 
                             <?php foreach ($genres as $genre): ?>
                                 <li data-item="<?= $genre->genre->id ?>">
-                                    <a href="#"><img src="/img/hero/cat-1.png" alt="<?= $genre->genre->name ?>">
+                                    <a href="<?= Url::to(['/games/' . $genre->genre->slug]) ?>">
+                                        <!-- <img src="/img/genre-icon-default.png" style="display: none;" loading="lazy"
+                                             alt="<?= $genre->genre->name ?>"> -->
                                         <?= $genre->genre->name ?>
                                     </a>
                                 </li>
                             <?php endforeach; ?>
-                            <li><a href="#"><img src="/img/hero/cat-6.png" alt=""> All Categories</a></li>
-
-                            <!--<li><a href="#"><img src="/img/hero/cat-1.png" alt=""> Restaurent</a></li>
-                            <li><a href="#"><img src="/img/hero/cat-2.png" alt=""> Food & Drink</a></li>
-                            <li><a href="#"><img src="/img/hero/cat-3.png" alt=""> Shopping</a></li>
-                            <li><a href="#"><img src="/img/hero/cat-4.png" alt=""> Beauty</a></li>
-                            <li><a href="#"><img src="/img/hero/cat-5.png" alt=""> Hotels</a></li>
-                            <li><a href="#"><img src="/img/hero/cat-6.png" alt=""> All Categories</a></li>-->
+                            <li>
+                                <a href="#"><img src="/img/hero/cat-6.png" loading="lazy" alt=""> All Categories</a>
+                            </li>
                         </ul>
                     </div>
                 </div>

@@ -48,6 +48,8 @@ use yii\web\Cookie;
  * @property Metacritic $metacritic
  * @property Review $review
  * @property GameTag[] $gameTags
+ * @property GameCategory[] $gameCategories
+ * @property GameGenre[] $gameGenres
  */
 class Game extends \yii\db\ActiveRecord
 {
@@ -181,7 +183,7 @@ class Game extends \yii\db\ActiveRecord
     /**
      * Gets query for [[Genres]].
      *
-     * @return \yii\db\ActiveQuery
+     * @return ActiveQuery
      */
     public function getGenres()
     {
@@ -189,9 +191,29 @@ class Game extends \yii\db\ActiveRecord
     }
 
     /**
+     * Gets query for [[GameCategories]].
+     *
+     * @return ActiveQuery
+     */
+    public function getGameCategories()
+    {
+        return $this->hasMany(GameCategory::className(), ['game_id' => 'id']);
+    }
+
+    /**
+     * Gets query for [[GameGenres]].
+     *
+     * @return ActiveQuery
+     */
+    public function getGameGenres()
+    {
+        return $this->hasMany(GameGenre::className(), ['game_id' => 'id']);
+    }
+
+    /**
      * Gets query for [[GameTags]].
      *
-     * @return \yii\db\ActiveQuery
+     * @return ActiveQuery
      */
     public function getGameTags()
     {

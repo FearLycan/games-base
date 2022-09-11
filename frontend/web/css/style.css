@@ -702,7 +702,7 @@ ol {
 	right: 0;
 	bottom: -58px;
 	margin: 0 auto;
-	font-family: "FontAwesome";
+	font-family: "FontAwesome", sans-serif;
 	content: "";
 	color: #f03250;
 	opacity: 0.2;
@@ -2129,7 +2129,7 @@ ol {
 	position: absolute;
 	right: -15px;
 	top: 0;
-	font-family: "FontAwesome";
+	font-family: "FontAwesome", sans-serif;
 	color: #ffffff;
 	content: "";
 }

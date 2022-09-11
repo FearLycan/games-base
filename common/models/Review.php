@@ -20,6 +20,9 @@ use yii\db\ActiveRecord;
  */
 class Review extends \yii\db\ActiveRecord
 {
+    private $_percent_positive;
+    private $_percent_negative;
+
     /**
      * @return array
      */
@@ -83,12 +86,45 @@ class Review extends \yii\db\ActiveRecord
         return $this->hasOne(Game::className(), ['id' => 'game_id']);
     }
 
-    public function getPercents()
+    public function getPercentsOfPositive(): int
     {
         if ($this->total_reviews == 0) {
             return 0;
         }
 
-        return round(($this->total_positive / $this->total_reviews), 2) * 100;
+        if (!$this->_percent_positive) {
+            $this->_percent_positive = round(($this->total_positive / $this->total_reviews), 2) * 100;
+        }
+
+        return $this->_percent_positive;
+    }
+
+    public function getPercentsOfNegative(): int
+    {
+        if ($this->total_reviews == 0) {
+            return 0;
+        }
+
+        if (!$this->_percent_negative) {
+            $this->_percent_negative = round(($this->total_negative / $this->total_reviews), 2) * 100;
+        }
+
+        return $this->_percent_negative;
+    }
+
+    public function getShortPositiveDescription(): string
+    {
+        $positive = number_format($this->total_positive);
+        $reviews = number_format($this->total_reviews);
+
+        return "{$positive} of the {$reviews} user reviews for this game are positive.";
+    }
+
+    public function getShortNegativeDescription(): string
+    {
+        $negative = number_format($this->total_negative);
+        $reviews = number_format($this->total_reviews);
+
+        return "{$negative} of the {$reviews} user reviews for this game are negative.";
     }
 }
