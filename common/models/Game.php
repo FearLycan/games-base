@@ -280,7 +280,8 @@ class Game extends \yii\db\ActiveRecord
             ->setData([
                 'json' => 1,
                 'start_offset' => 1,
-                'num_per_page' => 1
+                'num_per_page' => 1,
+                'language' => 'all',
             ]);
 
         $response = $request->send();
@@ -293,9 +294,10 @@ class Game extends \yii\db\ActiveRecord
                 $review->game_id = $this->id;
             }
 
-            $review->total_negative = $response->data['query_summary']['total_negative'];
-            $review->total_positive = $response->data['query_summary']['total_positive'];
-            $review->total_reviews = $response->data['query_summary']['total_reviews'];
+            $review->total_negative = $response->data['query_summary']['total_negative'] ?? 0;
+            $review->total_positive = $response->data['query_summary']['total_positive'] ?? 0;
+            $review->total_reviews = $response->data['query_summary']['total_reviews'] ?? 0;
+            $review->description = $response->data['query_summary']['review_score_desc'] ?? null;
 
             $review->save();
         }

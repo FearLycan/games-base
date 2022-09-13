@@ -15,6 +15,7 @@ use yii\db\ActiveRecord;
  * @property int|null $game_id
  * @property string $created_at
  * @property string|null $updated_at
+ * @property string|null $description
  *
  * @property Game $game
  */
@@ -56,6 +57,7 @@ class Review extends \yii\db\ActiveRecord
         return [
             [['total_positive', 'total_negative', 'total_reviews', 'game_id'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
+            [['description'], 'string', 'max' => 255],
             [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::className(), 'targetAttribute' => ['game_id' => 'id']],
         ];
     }
@@ -70,6 +72,7 @@ class Review extends \yii\db\ActiveRecord
             'total_positive' => 'Total Positive',
             'total_negative' => 'Total Negative',
             'total_reviews' => 'Total Reviews',
+            'description' => 'Description',
             'game_id' => 'Game ID',
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',

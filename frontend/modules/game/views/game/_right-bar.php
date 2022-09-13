@@ -2,6 +2,7 @@
 
 use frontend\components\Helper;
 use frontend\modules\game\models\Game;
+use yii\helpers\Html;
 use yii\helpers\Url;
 use yii\web\View;
 
@@ -46,7 +47,10 @@ use yii\web\View;
                 <hr>
                 <h5>Steam reviews</h5>
                 <ul style="margin-top: 16px;">
-                    <li>Mostly positive</li>
+                    <li>
+                        <?= Html::encode($model->review->description) ?>
+                        <small class="text-muted">(<?= $model->review->total_reviews ?>)</small>
+                    </li>
                     <li>
                         <div class="progress">
                             <div class="progress-bar bg-success" role="progressbar" data-toggle="tooltip"
