@@ -39,7 +39,7 @@ use yii\web\View;
                 </li>
                 <li>
                     Platforms <span>
-                        <?php foreach ($model->platforms as $platform) : ?>
+                        <?php foreach ($model->getAvailablePlatforms() as $platform) : ?>
                             <a href="#" class="platform-icon"><?= $platform->getIcon() ?></a>
                         <?php endforeach; ?>
                     </span>
@@ -49,7 +49,7 @@ use yii\web\View;
                 <ul style="margin-top: 16px;">
                     <li>
                         <?= Html::encode($model->review->description) ?>
-                        <small class="text-muted">(<?= $model->review->total_reviews ?>)</small>
+                        <small class="text-muted">(<?= number_format($model->review->total_reviews) ?>)</small>
                     </li>
                     <li>
                         <div class="progress">

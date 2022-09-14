@@ -103,13 +103,13 @@ class Platform extends ActiveRecord
     {
         switch ($this->slug) {
             case 'windows':
-                $icon = '<i class="fa fa-windows" aria-hidden="true"></i>';
+                $icon = '<i data-toggle="tooltip" data-placement="top" title="Playable on ' . ucfirst($this->name) . '" class="fa fa-windows" aria-hidden="true"></i>';
                 break;
             case 'linux':
-                $icon = '<i class="fa fa-linux" aria-hidden="true"></i>';
+                $icon = '<i data-toggle="tooltip" data-placement="top" title="Playable on ' . ucfirst($this->name) . '" class="fa fa-linux" aria-hidden="true"></i>';
                 break;
             case 'mac':
-                $icon = '<i class="fa fa-apple" aria-hidden="true"></i>';
+                $icon = '<i data-toggle="tooltip" data-placement="top" title="Playable on ' . ucfirst($this->name) . '" class="fa fa-apple" aria-hidden="true"></i>';
                 break;
             default:
                 $icon = '';
