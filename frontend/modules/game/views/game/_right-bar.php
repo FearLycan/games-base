@@ -45,6 +45,8 @@ $this->registerCssFile(Yii::getAlias('@web') . "/css/circular-progress-bar.css")
                         <?php endforeach; ?>
                     </span>
                 </li>
+            </ul>
+            <?php if ($model->review->total_reviews): ?>
                 <hr>
                 <h5>Steam reviews</h5>
                 <ul style="margin-top: 16px;">
@@ -72,25 +74,34 @@ $this->registerCssFile(Yii::getAlias('@web') . "/css/circular-progress-bar.css")
                         </div>
                     </li>
                 </ul>
+            <?php endif; ?>
+
+            <?php if ($model->metacritic): ?>
                 <hr>
                 <ul style="margin-top: 16px;">
                     <li>
                         <div class="row">
-                            <div class="col-5 col-md-5 text-center">
-                                Metacritic
-                                <div role="progressbar" aria-valuenow="<?= $model->metacritic->score ?>" aria-valuemin="0" aria-valuemax="100"
-                                     style="--value:<?= $model->metacritic->score ?>; --fg:<?= $model->metacritic->getScoreColor($model->metacritic->score) ?>"></div>
-                            </div>
-                            <div class="col-5 offset-2 col-md-5 offset-md-2 text-center">
-                                User score
-                                <div role="progressbar" aria-valuenow="<?= $model->metacritic->user_score ?>" aria-valuemin="0" aria-valuemax="100"
-                                     style="--value:<?= $model->metacritic->user_score ?>; --fg:<?= $model->metacritic->getScoreColor($model->metacritic->user_score) ?>"></div>
-                            </div>
+                            <?php if ($model->metacritic->score): ?>
+                                <div class="col-5 col-md-5 text-center">
+                                    Metacritic
+                                    <div role="progressbar" aria-valuenow="<?= $model->metacritic->score ?>"
+                                         aria-valuemin="0" aria-valuemax="100"
+                                         style="--value:<?= $model->metacritic->score ?>; --fg:<?= $model->metacritic->getScoreColor($model->metacritic->score) ?>"></div>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if ($model->metacritic->user_score): ?>
+                                <div class="col-5 offset-2 col-md-5 offset-md-2 text-center">
+                                    User score
+                                    <div role="progressbar" aria-valuenow="<?= $model->metacritic->user_score ?>"
+                                         aria-valuemin="0" aria-valuemax="100"
+                                         style="--value:<?= $model->metacritic->user_score ?>; --fg:<?= $model->metacritic->getScoreColor($model->metacritic->user_score) ?>"></div>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </li>
                 </ul>
-
-            </ul>
+            <?php endif; ?>
         </div>
         <div class="listing__sidebar__working__hours mb-4">
             <ul class="list-group category-list">
