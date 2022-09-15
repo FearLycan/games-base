@@ -645,12 +645,20 @@ class Game extends \yii\db\ActiveRecord
     {
         $meta = Metacritic::findOne(['game_id' => $this->id]);
 
+        $webInformation = $this->setInformationMetacriticWeb();
+
+        $user_score = 0;
+        if ($webInformation) {
+            $user_score = $this->extractMetacriticUserScore($webInformation);
+        }
+
         if (!$meta) {
             $meta = new Metacritic();
             $meta->game_id = $this->id;
         }
 
         $meta->score = $metacritic['score'];
+        $meta->user_score = $user_score;
         $meta->url = $metacritic['url'];
         $meta->save();
 
@@ -673,7 +681,7 @@ class Game extends \yii\db\ActiveRecord
         $request = $client->createRequest()
             ->setCookies([
                 ['name' => 'birthtime', 'value' => 0],
-                ['name' => 'path', 'value' => '/'],//'path' => '/'
+                ['name' => 'path', 'value' => '/'],
             ])
             ->setHeaders(['Content-language' => 'en'])
             ->setMethod('GET');
@@ -685,6 +693,37 @@ class Game extends \yii\db\ActiveRecord
         }
 
         return null;
+    }
+
+    public function setInformationMetacriticWeb()
+    {
+        $client = new Client(['baseUrl' => $this->metacritic->url]);
+
+        $request = $client->createRequest()
+            ->setHeaders(['Content-language' => 'en'])
+            ->setMethod('GET');
+
+        $response = $request->send();
+
+        if ($response->isOk) {
+            return new Crawler($response->content);
+        }
+
+        return null;
+    }
+
+    public function extractMetacriticUserScore(Crawler $html): int
+    {
+        $crawler = $html->filter("div.metascore_w.user");
+
+        try {
+            $score = $crawler->first()->text();
+            $score = str_replace(".", "", $score);
+        } catch (\Exception $e) {
+            $score = 0;
+        }
+
+        return (int)$score;
     }
 
     public function extraTags(Crawler $html): array

@@ -10,6 +10,7 @@ use yii\db\ActiveRecord;
  *
  * @property int $id
  * @property int|null $score
+ * @property int|null $user_score
  * @property string|null $url
  * @property int|null $game_id
  * @property string $created_at
@@ -50,7 +51,7 @@ class Metacritic extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['score', 'game_id'], 'integer'],
+            [['score', 'game_id', 'user_score'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
             [['url'], 'string', 'max' => 255],
             [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::className(), 'targetAttribute' => ['game_id' => 'id']],
@@ -80,5 +81,31 @@ class Metacritic extends \yii\db\ActiveRecord
     public function getGame()
     {
         return $this->hasOne(Game::className(), ['id' => 'game_id']);
+    }
+
+    public function getFormattedUserScore(): string
+    {
+        return number_format(($this->user_score / 10), 1, '.', '');
+    }
+
+    public function getScoreColor(int $value): string
+    {
+        if ((0 <= $value) && ($value <= 19)) {
+            return '#f00';
+        }
+        if ((20 <= $value) && ($value <= 49)) {
+            return '#f00';
+        }
+        if ((50 <= $value) && ($value <= 74)) {
+            return '#fc3';
+        }
+        if ((75 <= $value) && ($value <= 89)) {
+            return '#6c3';
+        }
+        if ((90 <= $value) && ($value <= 100)) {
+            return '#6c3';
+        }
+
+        return '#6c3';
     }
 }

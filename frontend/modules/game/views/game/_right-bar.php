@@ -9,6 +9,7 @@ use yii\web\View;
 /* @var $this View */
 /* @var $model Game */
 
+$this->registerCssFile(Yii::getAlias('@web') . "/css/circular-progress-bar.css");
 ?>
 
 <div class="col-lg-4">
@@ -53,20 +54,37 @@ use yii\web\View;
                     </li>
                     <li>
                         <div class="progress">
-                            <div class="progress-bar bg-success" role="progressbar" data-toggle="tooltip"
+                            <div class="progress-bar bg-success" data-toggle="tooltip"
                                  data-placement="top" title="<?= $model->review->getShortPositiveDescription() ?>"
                                  style="width: <?= $model->review->getPercentsOfPositive() . '%' ?>"
                                  aria-valuenow="<?= $model->review->getPercentsOfPositive() ?>" aria-valuemin="0"
                                  aria-valuemax="100">
                                 <?= $model->review->getPercentsOfPositive() . '%' ?>
                             </div>
-                            <div class="progress-bar bg-danger" role="progressbar" data-toggle="tooltip"
+                            <div class="progress-bar bg-danger" data-toggle="tooltip"
                                  data-placement="top" title="<?= $model->review->getShortNegativeDescription() ?>"
                                  style="width: <?= $model->review->getPercentsOfNegative() . '%' ?>"
                                  aria-valuenow="<?= $model->review->getPercentsOfPositive() ?>"
                                  aria-valuemin="0"
                                  aria-valuemax="100">
                                 <?= $model->review->getPercentsOfNegative() . '%' ?>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+                <hr>
+                <ul style="margin-top: 16px;">
+                    <li>
+                        <div class="row">
+                            <div class="col-5 col-md-5 text-center">
+                                Metacritic
+                                <div role="progressbar" aria-valuenow="<?= $model->metacritic->score ?>" aria-valuemin="0" aria-valuemax="100"
+                                     style="--value:<?= $model->metacritic->score ?>; --fg:<?= $model->metacritic->getScoreColor($model->metacritic->score) ?>"></div>
+                            </div>
+                            <div class="col-5 offset-2 col-md-5 offset-md-2 text-center">
+                                User score
+                                <div role="progressbar" aria-valuenow="<?= $model->metacritic->user_score ?>" aria-valuemin="0" aria-valuemax="100"
+                                     style="--value:<?= $model->metacritic->user_score ?>; --fg:<?= $model->metacritic->getScoreColor($model->metacritic->user_score) ?>"></div>
                             </div>
                         </div>
                     </li>

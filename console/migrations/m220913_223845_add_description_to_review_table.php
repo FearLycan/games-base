@@ -22,19 +22,4 @@ class m220913_223845_add_description_to_review_table extends Migration
     {
         $this->dropColumn('{{%review}}', 'description');
     }
-
-    /*
-    // Use up()/down() to run migration code without a transaction.
-    public function up()
-    {
-
-    }
-
-    public function down()
-    {
-        echo "m220913_223845_add_description_to_review_table cannot be reverted.\n";
-
-        return false;
-    }
-    */
 }
