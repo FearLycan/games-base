@@ -645,12 +645,6 @@ class Game extends \yii\db\ActiveRecord
     {
         $meta = Metacritic::findOne(['game_id' => $this->id]);
 
-        $webInformation = $this->setInformationMetacriticWeb();
-
-        $user_score = 0;
-        if ($webInformation) {
-            $user_score = $this->extractMetacriticUserScore($webInformation);
-        }
 
         if (!$meta) {
             $meta = new Metacritic();
@@ -658,9 +652,15 @@ class Game extends \yii\db\ActiveRecord
         }
 
         $meta->score = $metacritic['score'];
-        $meta->user_score = $user_score;
+        $meta->user_score = 0;
         $meta->url = $metacritic['url'];
         $meta->save();
+
+        $webInformation = $this->setInformationMetacriticWeb();
+        if ($webInformation) {
+            $meta->user_score = $this->extractMetacriticUserScore($webInformation);
+            $meta->update(false, ['user_score']);
+        }
 
     }
 
