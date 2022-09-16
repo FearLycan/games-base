@@ -18,5 +18,13 @@ use yii\helpers\Url;
         <h5>
             <a href="<?= Url::to(['/game/game/view', 'id' => $model->steam_appid, 'slug' => $model->slug]) ?>"><?= $model->title ?></a>
         </h5>
+        <div class="listing__item__text__rating">
+            <div class="listing__item__rating__star">
+            </div>
+
+            <?php if ($model->steam_price_initial): ?>
+                <h6><?= $model->getInitialPrice() ?></h6>
+            <?php endif; ?>
+        </div>
     </div>
 </div>

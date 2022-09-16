@@ -35,6 +35,8 @@ use yii\web\Cookie;
  * @property string|null $release_date
  * @property string|null $website
  * @property int|null $steam_deck
+ * @property int|null $steam_price_initial
+ * @property int|null $steam_price_final
  * @property string $created_at
  * @property string|null $updated_at
  *
@@ -110,7 +112,7 @@ class Game extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['steam_appid', 'status'], 'integer'],
+            [['steam_appid', 'status', 'steam_price_final', 'steam_price_initial'], 'integer'],
             [['required_age', 'is_free'], 'boolean'],
             [['detailed_description', 'about_the_game', 'short_description'], 'string'],
             [['release_date', 'created_at', 'updated_at'], 'safe'],
@@ -328,6 +330,8 @@ class Game extends \yii\db\ActiveRecord
         $this->short_description = Helper::clearHtml($information['short_description']);
         $this->release_date = (new \DateTime($information['release_date']['date']))->format('Y-m-d 00:00:00');
         $this->website = $information['website'];
+        $this->steam_price_initial = $information['price_overview']['initial'] ?? 0;
+        $this->steam_price_final = $information['price_overview']['final'] ?? 0;
         $this->save();
 
         $this->setCategories($information['categories']);
@@ -633,8 +637,8 @@ class Game extends \yii\db\ActiveRecord
             $required = $platform == 'windows' ? 'pc_requirements' : $platform . '_requirements';
 
             if ($available) {
-                $requirements->requirements_minimum = isset($information[$required]['minimum']) ? $information[$required]['minimum'] : '';
-                $requirements->requirements_recommended = isset($information[$required]['recommended']) ? $information[$required]['recommended'] : '';
+                $requirements->requirements_minimum = $information[$required]['minimum'] ?? '';
+                $requirements->requirements_recommended = $information[$required]['recommended'] ?? '';
             }
 
             $requirements->save();
@@ -768,5 +772,15 @@ class Game extends \yii\db\ActiveRecord
         }
 
         return $this->steam_deck;
+    }
+
+    public function getInitialPrice(): string
+    {
+        return '$' . number_format($this->steam_price_initial / 100, 2);
+    }
+
+    public function getFinalPrice(): string
+    {
+        return '$' . number_format($this->steam_price_final / 100, 2);
     }
 }

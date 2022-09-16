@@ -1,8 +1,6 @@
 <?php
 
-use frontend\components\Helper;
 use frontend\modules\game\models\Game;
-use yii\helpers\Url;
 use yii\web\View;
 
 /* @var $this View */
@@ -26,7 +24,8 @@ $this->title = $model->title;
                             <h2><?= $model->title ?></h2>
                             <div class="listing__hero__widget" style="margin-top: -5px;">
                                 <div class="rating">
-                                    <div class="rating-upper" style="width: <?= $model->review->getPercentsOfPositive() ?>%">
+                                    <div class="rating-upper"
+                                         style="width: <?= $model->review->getPercentsOfPositive() ?>%">
                                         <span>★</span>
                                         <span>★</span>
                                         <span>★</span>
@@ -42,7 +41,7 @@ $this->title = $model->title;
                                     </div>
                                 </div>
                                 <div>
-                                    <?= $model->review->total_reviews ?>
+                                    <?= number_format($model->review->total_reviews) ?>
                                     Review<?= $model->review->total_reviews > 1 ? 's' : '' ?>
                                 </div>
 
@@ -55,8 +54,20 @@ $this->title = $model->title;
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-4">
+                <div class="col-lg-3 offset-lg-1">
                     <div class="listing__hero__btns">
+                        <?php if ($model->steam_price_initial): ?>
+                            <div class="game-price">
+                                <span class="initial-price">
+                                    <?= $model->getInitialPrice() ?>
+                                </span>
+                                <?php if ($model->steam_price_final): ?>
+                                    <span class="final-price">
+                                    <?= $model->getFinalPrice() ?>
+                                </span>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
                         <a href="<?= $model->getSteamUrl() ?>" rel="nofollow noopener external" target="_blank"
                            class="primary-btn share-btn">
                             <i class="fa fa-steam-square" aria-hidden="true"></i> View on Steam</a>
@@ -163,12 +174,17 @@ $this->title = $model->title;
 $js = <<<JS
    
     $(function(){
+        
+        let finalPrice = $('span.final-price');
+        if(finalPrice){
+          $('span.initial-price').wrap('<s></s>')
+        }
+        
         $("div.read-more").readMore({
             lines: 5,
             readMoreLabel:'<i class="fa fa-plus" aria-hidden="true"></i> Read more',
             readLessLabel:'<i class="fa fa-minus" aria-hidden="true"></i> Read less',
         });
-        
         
         $('a[data-hide="1"]').hide();
         
@@ -176,11 +192,9 @@ $js = <<<JS
             let p = this;
             $('a[data-hide="1"]').each(function (index){
                 if($(this).is(":visible")){
-                    //$(this).hide( "fast", arguments.callee );
                     $(this).fadeOut("fast");
                     $(p).html('<i class="fa fa-plus" aria-hidden="true"></i> Show more')
                 }else{
-                    //$(this).show( "fast", arguments.callee );
                     $(this).fadeIn("fast");
                     $(p).html('<i class="fa fa-minus" aria-hidden="true"></i> Show less')
                 }
