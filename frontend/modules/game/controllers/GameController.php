@@ -72,7 +72,12 @@ class GameController extends Controller
 
     public function actionSearchList($phrase)
     {
-        $games = Game::find()
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        if (strlen($phrase) < 3) {
+            return [];
+        }
+
+        return Game::find()
             ->select([
                 'game.steam_appid as id',
                 'game.title as title',
@@ -83,13 +88,11 @@ class GameController extends Controller
             ])
             ->alias('game')
             ->onlyWithTitle($phrase)
-            ->orderBy(['game.title' => SORT_ASC])
+            ->joinWith(['review'])
+            ->orderBy(['review.total_reviews' => SORT_DESC, 'game.title' => SORT_ASC])
             ->limit(10)
             ->asArray()
             ->all();
-
-        Yii::$app->response->format = Response::FORMAT_JSON;
-        return $games;
     }
 
     /**
