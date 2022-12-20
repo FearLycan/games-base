@@ -2,6 +2,7 @@
 
 namespace frontend\modules\game\models\searches;
 
+use common\models\GameSale;
 use frontend\modules\game\models\Game;
 use yii\base\Model;
 use yii\data\ActiveDataProvider;
@@ -10,6 +11,7 @@ class GameSearch extends Game
 {
     public $category_id;
     public $genre_id;
+    public $sale;
 
     /**
      * {@inheritdoc}
@@ -48,6 +50,16 @@ class GameSearch extends Game
         if ($this->genre_id) {
             $query->joinWith(['genres']);
             $query->andWhere(['genre.id' => $this->genre_id]);
+        }
+
+        if ($this->sale === GameSale::TYPE_BESTSELLERS) {
+            $query->joinWith(['gameSales'])
+                ->where([
+                    'game_sale.type' => GameSale::TYPE_BESTSELLERS,
+                    'game.status' => self::STATUS_ACTIVE,
+                    'game.type' => 'game'
+                ])
+                ->orderBy(['game_sale.order' => SORT_ASC]);
         }
 
         $dataProvider = new ActiveDataProvider([

@@ -84,10 +84,12 @@ class GameController extends Controller
                 'game.slug as slug',
                 'url' => GameImage::find()
                     ->select('url')
-                    ->where("game_id = game.id AND type = 'header'"),
+                    ->where("game_id = game.id AND type = 'header'")
+                    ->limit(1),
             ])
             ->alias('game')
             ->onlyWithTitle($phrase)
+            ->andWhere(['status' => Game::STATUS_ACTIVE])
             ->joinWith(['review'])
             ->orderBy(['review.total_reviews' => SORT_DESC, 'game.title' => SORT_ASC])
             ->limit(10)

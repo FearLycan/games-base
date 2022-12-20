@@ -200,3 +200,50 @@ s:after, strike:after {
     margin-right: 6px;
     font-size: 30px;
 }
+
+.row {
+    transition: all .2s;
+}
+
+.row.game:hover {
+    background: #dddddd;
+}
+
+.blog__sidebar__recent {
+    padding: 25px 25px 10px 25px;
+}
+
+.blog__sidebar__recent__item__text p {
+    margin-bottom: 15px;
+}
+
+.blog__sidebar__recent__item__text span {
+    margin-bottom: 5px;
+}
+
+.listing__hero__text .label {
+    font-size: 13px;
+    color: #ffffff;
+    background: #f03250;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: inline-block;
+    padding: 4px 15px 4px;
+    border-radius: 2px;
+}
+
+.listing__hero__text .label .label-bestseller {
+    color: #ffffff;
+    background: #f03250;
+}
+
+.listing__hero__text .label .label-new-and-noteworthy {
+    color: #ffffff;
+    background: #00a7ea;
+}
+
+.listing__hero__text .label .label-popular-upcoming {
+    color: #000000;
+    background: #D9D137;
+}

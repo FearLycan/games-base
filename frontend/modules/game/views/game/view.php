@@ -21,6 +21,7 @@ $this->title = $model->title;
                                  style="height:132px;" class="rounded-circle" alt="<?= $model->title ?>">
                         </div>
                         <div class="listing__hero__text">
+                            <?= $model->getSaleLabel() ?>
                             <h2><?= $model->title ?></h2>
                             <div class="listing__hero__widget" style="margin-top: -5px;">
                                 <div class="rating">

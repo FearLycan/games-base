@@ -1,7 +1,5 @@
 <?php
 
-use common\models\Category;
-use common\models\Genre;
 use frontend\modules\game\models\searches\GameSearch;
 use yii\helpers\Url;
 use yii\widgets\ListView;
@@ -9,11 +7,9 @@ use yii\widgets\ListView;
 /* @var $this yii\web\View */
 /* @var $searchModel GameSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
-/* @var $model Genre|Category */
 
-$this->title = "Best {$model->name} games on Steam";
+$this->title = "Bestsellers games on Steam";
 $this->params['breadcrumbs'][] = 'Games';
-$this->params['breadcrumbs'][] = $model->name;
 ?>
 
 <div class="breadcrumb-area set-bg" data-setbg="/img/background-default.jpg">
@@ -26,7 +22,7 @@ $this->params['breadcrumbs'][] = $model->name;
                         <a href="<?= Url::to(['/game/index']) ?>">
                             <i class="fa fa-home"></i> Games
                         </a>
-                        <span><?= $model->name ?></span>
+                        <span>Bestsellers</span>
                     </div>
                 </div>
             </div>
@@ -41,7 +37,7 @@ $this->params['breadcrumbs'][] = $model->name;
                 <?= ListView::widget([
                     'dataProvider' => $dataProvider,
                     'itemOptions' => ['class' => 'col-lg-4 col-md-4'],
-                    'itemView' => '_item',
+                    'itemView' => 'game/_item',
                     'options' => ['class' => 'row'],
                     'summary' => false,
                 ]); ?>

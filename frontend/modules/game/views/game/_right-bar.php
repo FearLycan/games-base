@@ -20,26 +20,34 @@ $this->registerCssFile(Yii::getAlias('@web') . "/css/circular-progress-bar.css")
                  src="<?= $model->getHeader() ?>">
             <ul style="margin-top: 16px;">
                 <li>
-                    Genre <span>
-                                        <?= Helper::getLinkList($model->genres, 'name', 'slug', '/games/') ?>
-                                    </span>
+                    Genre
+                    <span>
+                        <?= Helper::getLinkList($model->genres, 'name', 'slug', '/games/') ?>
+                    </span>
                 </li>
                 <li>
-                    Developer <span>
-                                        <?= Helper::getLinkList($model->developers, 'name', 'slug', '/developer/') ?>
-                                    </span>
+                    Developer
+                    <span>
+                        <?= Helper::getLinkList($model->developers, 'name', 'slug', '/developer/') ?>
+                    </span>
                 </li>
                 <li>
-                    Publisher <span>
-                                        <?= Helper::getLinkList($model->publishers, 'name', 'slug', '/publisher/') ?>
-                                    </span>
+                    Publisher
+                    <span>
+                        <?= Helper::getLinkList($model->publishers, 'name', 'slug', '/publisher/') ?>
+                    </span>
                 </li>
+                <?php if ($model->release_date): ?>
+                    <li>
+                        Release Date
+                        <span>
+                            <?= (new DateTime($model->release_date))->format('d M, Y') ?>
+                        </span>
+                    </li>
+                <?php endif; ?>
                 <li>
-                    Release Date <span>
-                                    <?= (new DateTime($model->release_date))->format('d M, Y') ?></span>
-                </li>
-                <li>
-                    Platforms <span>
+                    Platforms
+                    <span>
                         <?php foreach ($model->getAvailablePlatforms() as $platform) : ?>
                             <a href="#" class="platform-icon"><?= $platform->getIcon() ?></a>
                         <?php endforeach; ?>

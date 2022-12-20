@@ -1,10 +1,14 @@
 <?php
 
+use common\models\Game;
 use common\models\GameGenre;
 use yii\helpers\Url;
 
 /* @var $this yii\web\View */
 /* @var $genres GameGenre */
+/* @var $bestsellers Game[] */
+/* @var $popular_upcoming Game[] */
+/* @var $new_and_noteworthy Game[] */
 
 $this->title = Yii::$app->name;
 ?>
@@ -16,8 +20,8 @@ $this->title = Yii::$app->name;
                 <div class="col-lg-12">
                     <div class="hero__text">
                         <div class="section-title">
-                            <h2>Discover The Best Services Near You</h2>
-                            <p>1.118.940.376 The best service package is waiting for you</p>
+                            <h2>Discover Games Special For You</h2>
+                            <p><?= Game::count() ?> The best games is waiting for you</p>
                         </div>
                         <div class="hero__search__form">
                             <form action="#">
@@ -48,9 +52,43 @@ $this->title = Yii::$app->name;
     </section>
     <!-- Hero Section End -->
 
-    <p>
-        <a href="<?= \yii\helpers\Url::to(['/game/game/view', 'id' => 1259420, 'slug' => 'days-gone']) ?>">Days Gone</a>
-    </p>
+    <section class="categories spad">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="section-title">
+                        <h2>Most Popular Categories</h2>
+                        <p>Velocity empowers travelers who are giving back on their trips in ways big and small</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="blog__sidebar__recent">
+                        <h5>Bestsellers</h5>
+                        <?php foreach ($bestsellers as $game): ?>
+                            <?= $this->render('_game-sale-item', ['game' => $game]) ?>
+                        <?php endforeach; ?>
+                    </div>
+
+                </div>
+                <div class="col-md-4">
+                    <div class="blog__sidebar__recent">
+                        <h5>New and noteworthy</h5>
+                        <?php foreach ($new_and_noteworthy as $game): ?>
+                            <?= $this->render('_game-sale-item', ['game' => $game]) ?>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="blog__sidebar__recent">
+                        <h5>Popular upcoming</h5>
+                        <?php foreach ($popular_upcoming as $game): ?>
+                            <?= $this->render('_game-sale-item', ['game' => $game]) ?>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
 
 <?php

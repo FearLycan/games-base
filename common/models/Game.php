@@ -4,19 +4,15 @@ namespace common\models;
 
 use common\components\GameQuery;
 use common\components\Helper;
+use DateTime;
 use Symfony\Component\DomCrawler\Crawler;
 use Yii;
 use yii\behaviors\SluggableBehavior;
 use yii\behaviors\TimestampBehavior;
-use yii\caching\DummyCache;
 use yii\db\ActiveQuery;
 use yii\db\ActiveRecord;
-use yii\db\Exception;
 use yii\helpers\Json;
-use yii\helpers\VarDumper;
 use yii\httpclient\Client;
-use yii\mutex\RetryAcquireTrait;
-use yii\web\Cookie;
 
 /**
  * This is the model class for table "{{%game}}".
@@ -52,6 +48,7 @@ use yii\web\Cookie;
  * @property GameTag[] $gameTags
  * @property GameCategory[] $gameCategories
  * @property GameGenre[] $gameGenres
+ * @property GameSale[] $gameSales
  */
 class Game extends \yii\db\ActiveRecord
 {
@@ -207,7 +204,7 @@ class Game extends \yii\db\ActiveRecord
      *
      * @return ActiveQuery
      */
-    public function getGameGenres()
+    public function getGameGenres(): ActiveQuery
     {
         return $this->hasMany(GameGenre::className(), ['game_id' => 'id']);
     }
@@ -217,7 +214,7 @@ class Game extends \yii\db\ActiveRecord
      *
      * @return ActiveQuery
      */
-    public function getGameTags()
+    public function getGameTags(): ActiveQuery
     {
         return $this->hasMany(GameTag::className(), ['game_id' => 'id'])->orderBy(['order' => SORT_DESC]);
     }
@@ -225,9 +222,9 @@ class Game extends \yii\db\ActiveRecord
     /**
      * Gets query for [[Tags]].
      *
-     * @return \yii\db\ActiveQuery
+     * @return ActiveQuery
      */
-    public function getTags()
+    public function getTags(): ActiveQuery
     {
         return $this->hasMany(Tag::className(), ['id' => 'tag_id'])->via('gameTags');
     }
@@ -237,7 +234,7 @@ class Game extends \yii\db\ActiveRecord
      *
      * @return ActiveQuery
      */
-    public function getPlatforms()
+    public function getPlatforms(): ActiveQuery
     {
         return $this->hasMany(Platform::className(), ['game_id' => 'id']);
     }
@@ -245,9 +242,9 @@ class Game extends \yii\db\ActiveRecord
     /**
      * Gets query for [[Metacritic]].
      *
-     * @return \yii\db\ActiveQuery
+     * @return ActiveQuery
      */
-    public function getMetacritic()
+    public function getMetacritic(): ActiveQuery
     {
         return $this->hasOne(Metacritic::className(), ['game_id' => 'id']);
     }
@@ -255,9 +252,9 @@ class Game extends \yii\db\ActiveRecord
     /**
      * Gets query for [[Publishers]].
      *
-     * @return \yii\db\ActiveQuery
+     * @return ActiveQuery
      */
-    public function getPublishers()
+    public function getPublishers(): ActiveQuery
     {
         return $this->hasMany(Publisher::className(), ['id' => 'publisher_id'])->viaTable('{{%game_publisher}}', ['game_id' => 'id']);
     }
@@ -265,11 +262,75 @@ class Game extends \yii\db\ActiveRecord
     /**
      * Gets query for [[Review]].
      *
-     * @return \yii\db\ActiveQuery
+     * @return ActiveQuery
      */
-    public function getReview()
+    public function getReview(): ActiveQuery
     {
         return $this->hasOne(Review::className(), ['game_id' => 'id']);
+    }
+
+    /**
+     * Gets query for [[GameSales]].
+     *
+     * @param int $type
+     * @param int $limit
+     * @return Game[]
+     */
+    public static function getSales(int $type, int $limit = 30): array
+    {
+        return Game::find()
+            ->joinWith(['gameSales'])
+            ->where([
+                'game_sale.type' => $type,
+                'game.status' => self::STATUS_ACTIVE,
+                'game.type' => 'game'
+            ])
+            ->orderBy(['game_sale.order' => SORT_ASC])
+            ->limit($limit)
+            ->all();
+    }
+
+    public function isBestseller(): bool
+    {
+        foreach ($this->gameSales as $sale) {
+            if ((int)$sale->type === GameSale::TYPE_BESTSELLERS) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function isPopularUpcoming(): bool
+    {
+        foreach ($this->gameSales as $sale) {
+            if ((int)$sale->type === GameSale::TYPE_POPULAR_UPCOMING) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function isNewAndNoteworthy(): bool
+    {
+        foreach ($this->gameSales as $sale) {
+            if ((int)$sale->type === GameSale::TYPE_NEW_AND_NOTEWORTHY) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Gets query for [[GameSales]].
+     *
+     * @return ActiveQuery
+     */
+    public function getGameSales(): ActiveQuery
+    {
+        return $this->hasMany(GameSale::className(), ['game_id' => 'id']);
     }
 
     public function setReview()
@@ -328,16 +389,16 @@ class Game extends \yii\db\ActiveRecord
         $this->detailed_description = Helper::clearHtml($information['detailed_description']);
         $this->about_the_game = Helper::clearHtml($information['about_the_game']);
         $this->short_description = Helper::clearHtml($information['short_description']);
-        $this->release_date = (new \DateTime($information['release_date']['date']))->format('Y-m-d 00:00:00');
+        $this->trySetReleaseDate($information['release_date']['date']);
         $this->website = $information['website'];
         $this->steam_price_initial = $information['price_overview']['initial'] ?? 0;
         $this->steam_price_final = $information['price_overview']['final'] ?? 0;
         $this->save();
 
-        $this->setCategories($information['categories']);
-        $this->setDevelopers($information['developers']);
-        $this->setPublisher($information['publishers']);
-        $this->setGenres($information['genres']);
+        $this->setCategories($information['categories'] ?? []);
+        $this->setDevelopers($information['developers'] ?? []);
+        $this->setPublisher($information['publishers'] ?? []);
+        $this->setGenres($information['genres'] ?? []);
         $this->setScreenshots($information['screenshots']);
         $this->setBackground($information['background']);
         $this->setHeader($information['header_image']);
@@ -360,6 +421,15 @@ class Game extends \yii\db\ActiveRecord
 
         $this->status = self::STATUS_ACTIVE;
         $this->save();
+    }
+
+    public function trySetReleaseDate($date)
+    {
+        $date = DateTime::createFromFormat('Y-m-d', $date);
+
+        if ($date) {
+            $this->release_date = (new DateTime($date))->format('Y-m-d 00:00:00');
+        }
     }
 
     public function setSteamDeck(array $steamDeck)
@@ -479,22 +549,23 @@ class Game extends \yii\db\ActiveRecord
 
     public function setScreenshots($screenshots)
     {
-        GameImage::deleteAll(['game_id' => $this->id, 'type' => GameImage::TYPE_SCREENSHOT]);
+        if ($screenshots) {
+            GameImage::deleteAll(['game_id' => $this->id, 'type' => GameImage::TYPE_SCREENSHOT]);
 
-        foreach ($screenshots as $screenshot) {
-            $image = new GameImage();
-            $image->type = GameImage::TYPE_SCREENSHOT;
-            $image->url = $screenshot['path_full'];
-            $image->game_id = $this->id;
-            $image->status = GameImage::STATUS_ACTIVE;
-            $image->save();
+            foreach ($screenshots as $screenshot) {
+                $image = new GameImage();
+                $image->type = GameImage::TYPE_SCREENSHOT;
+                $image->url = $screenshot['path_full'];
+                $image->game_id = $this->id;
+                $image->status = GameImage::STATUS_ACTIVE;
+                $image->save();
+            }
         }
     }
 
     public function setBackground($background)
     {
         $image = GameImage::findOne([
-            'url' => $background,
             'type' => GameImage::TYPE_BACKGROUND,
             'game_id' => $this->id
         ]);
@@ -528,7 +599,6 @@ class Game extends \yii\db\ActiveRecord
     public function setHeader($header)
     {
         $image = GameImage::findOne([
-            'url' => $header,
             'type' => GameImage::TYPE_HEADER,
             'game_id' => $this->id
         ]);
@@ -743,7 +813,7 @@ class Game extends \yii\db\ActiveRecord
         return $tags;
     }
 
-    public function extractSteamDeckInformation(Crawler $html): array
+    public function extractSteamDeckInformation(Crawler $html)
     {
         $crawler = $html->filter("#application_config");
 
@@ -753,7 +823,7 @@ class Game extends \yii\db\ActiveRecord
             $steamDeck = [];
         }
 
-        return $steamDeck;
+        return $steamDeck ?? [];
     }
 
     public static function getSteamDecksStatuses(): array
@@ -782,5 +852,42 @@ class Game extends \yii\db\ActiveRecord
     public function getFinalPrice(): string
     {
         return '$' . number_format($this->steam_price_final / 100, 2);
+    }
+
+    public function getMainGenre(): string
+    {
+        if (isset($this->genres[0])) {
+            return $this->genres[0]->name;
+        }
+
+        return '';
+    }
+
+    public function getSaleLabel(): string
+    {
+        if ($this->isBestseller()) {
+            return '<div class="label label-bestseller">Bestseller</div>';
+        }
+
+        if ($this->isNewAndNoteworthy()) {
+            return '<div class="label label-new-and-noteworthy">New And Noteworthy</div>';
+        }
+
+        if ($this->isPopularUpcoming()) {
+            return '<div class="label label-popular-upcoming">Popular Upcoming</div>';
+        }
+
+        return '';
+    }
+
+    public static function count(): string
+    {
+        $games = self::find()
+            ->where([
+                'status' => self::STATUS_ACTIVE,
+                'type' => 'game'
+            ])->count();
+
+        return number_format($games);
     }
 }

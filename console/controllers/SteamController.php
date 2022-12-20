@@ -33,7 +33,7 @@ class SteamController extends Controller
         $request = $this->client->createRequest()
             ->setHeaders(['Content-language' => 'en'])
             ->setMethod('GET')
-            ->setData(['appids' => $app_id]);
+            ->setData(['appids' => $app_id, 'cc' => 'us']);
 
         $response = $request->send();
 
@@ -64,6 +64,7 @@ class SteamController extends Controller
             'os' => 'win',
             'filter' => 'comingsoon',
             'infinite' => 1,
+            'cc' => 'us'
         ];
 
         do {

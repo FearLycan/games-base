@@ -35,7 +35,7 @@ class m220903_183644_create_tables_for_tags extends Migration
         $this->createTable('{{%game_tag}}', [
             'game_id' => $this->integer(),
             'tag_id' => $this->integer(),
-            'order' => $this->smallInteger()->defaultValue(0),
+            'order' => $this->integer()->defaultValue(0),
         ]);
 
         $this->addPrimaryKey('{{%game_tag_pk}}', '{{%game_tag}}', ['game_id', 'tag_id']);

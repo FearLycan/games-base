@@ -3,7 +3,9 @@
 namespace frontend\modules\homepage\controllers;
 
 use common\components\AccessControl;
+use common\models\Game;
 use common\models\GameGenre;
+use common\models\GameSale;
 use frontend\components\Controller;
 
 class HomeController extends Controller
@@ -23,6 +25,11 @@ class HomeController extends Controller
                     ],
                 ],
             ],
+            /*'pageCache' => [
+                'class' => 'yii\filters\PageCache',
+                'only' => ['index'],
+                'duration' => 6000,
+            ],*/
         ];
     }
 
@@ -35,8 +42,16 @@ class HomeController extends Controller
             ->limit(10)
             ->all();
 
+        $bestsellers = Game::getSales(GameSale::TYPE_BESTSELLERS);
+        $new_and_noteworthy = Game::getSales(GameSale::TYPE_NEW_AND_NOTEWORTHY);
+        $popular_upcoming = Game::getSales(GameSale::TYPE_POPULAR_UPCOMING);
+
+
         return $this->render('index', [
             'genres' => $genres,
+            'bestsellers' => $bestsellers,
+            'new_and_noteworthy' => $new_and_noteworthy,
+            'popular_upcoming' => $popular_upcoming,
         ]);
     }
 }
