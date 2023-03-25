@@ -10,6 +10,7 @@ use frontend\components\Controller;
 use frontend\modules\game\models\Game;
 use frontend\modules\game\models\searches\GameSearch;
 use Yii;
+use yii\web\BadRequestHttpException;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
@@ -24,11 +25,19 @@ class GameController extends Controller
                     [
                         'allow' => true,
                         'actions' => [
-                            'view', 'search-list', 'list'
+                            'view', 'search-list', 'list', 'details'
                         ],
                         'roles' => ['?'],
                     ],
                 ],
+            ],
+            [
+                'class' => 'yii\filters\PageCache',
+                'only' => ['view', 'details'],
+                'duration' => YII_DEBUG ? 1 : 3600,
+                'variations' => [
+                    Yii::$app->controller->action->id . Yii::$app->request->get('id')
+                ]
             ],
         ];
     }
@@ -59,11 +68,7 @@ class GameController extends Controller
 
     public function actionView($id, $slug)
     {
-        $model = $this->findModel($id);
-
-        if ($model->slug != $slug) {
-            return $this->redirect(['view', 'id' => $model->steam_appid, 'slug' => $model->slug]);
-        }
+        $model = $this->findModel($id, $slug);
 
         return $this->render('view', [
             'model' => $model,
@@ -97,14 +102,41 @@ class GameController extends Controller
             ->all();
     }
 
+    public function actionDetails($id)
+    {
+        if (Yii::$app->request->isAjax) {
+            $model = $this->findModelByMainId($id);
+            return $this->renderPartial('_right-bar', ['model' => $model, 'gameViewButton' => true]);
+        }
+
+        throw new BadRequestHttpException();
+    }
+
     /**
      * @param $id
      * @return Game|null
      * @throws NotFoundHttpException
      */
-    protected function findModel($id)
+    protected function findModel($id, $slug)
     {
-        if (($model = Game::findOne(['steam_appid' => $id])) !== null) {
+        if (($model = Game::findOne([
+                'steam_appid' => $id,
+                'slug' => $slug
+            ])) !== null) {
+            return $model;
+        }
+
+        throw new NotFoundHttpException('The requested page does not exist.');
+    }
+
+    /**
+     * @param $id
+     * @return Game|null
+     * @throws NotFoundHttpException
+     */
+    protected function findModelByMainId($id)
+    {
+        if (($model = Game::findOne(['id' => $id])) !== null) {
             return $model;
         }
 
@@ -126,5 +158,6 @@ class GameController extends Controller
             return $category;
         }
     }
+
 
 }

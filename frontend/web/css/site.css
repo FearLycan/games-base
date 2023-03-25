@@ -247,3 +247,12 @@ s:after, strike:after {
     color: #000000;
     background: #D9D137;
 }
+
+.game-details-loading {
+    opacity: 0.4;
+}
+
+.spad {
+    padding-top: 50px;
+    padding-bottom: 50px;
+}

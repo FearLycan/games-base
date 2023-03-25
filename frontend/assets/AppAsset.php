@@ -20,8 +20,11 @@ class AppAsset extends AssetBundle
         'css/magnific-popup.css',
         'css/owl.carousel.min.css',
         'css/slicknav.min.css',
+
         'lib/easy-autocomplete/easy-autocomplete.min.css',
         'lib/easy-autocomplete/easy-autocomplete.themes.min.css',
+
+        'css/circular-progress-bar.css',
         'css/style.css',
         'css/site.css',
     ];

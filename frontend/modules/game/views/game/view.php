@@ -83,7 +83,7 @@ $this->title = $model->title;
     <section class="listing-details spad">
         <div class="container">
             <div class="row">
-                <div class="col-lg-8">
+                <div class="col-12 col-sm-12 col-md-8 col-lg-8">
                     <div class="listing__details__text">
                         <div class="listing__details__about">
                             <h4>ABOUT THIS GAME</h4>
@@ -164,7 +164,9 @@ $this->title = $model->title;
 
                     </div>
                 </div>
-                <?= $this->render('_right-bar', ['model' => $model]) ?>
+                <div class="col-12 col-sm-12 col-md-8 col-lg-4">
+                    <?= $this->render('_right-bar', ['model' => $model]) ?>
+                </div>
             </div>
         </div>
     </section>
