@@ -1,5 +1,6 @@
 <?php
 
+use frontend\components\Helper;
 use frontend\modules\game\models\searches\GameSearch;
 use yii\helpers\Url;
 use yii\widgets\ListView;
@@ -36,11 +37,12 @@ $this->params['breadcrumbs'][] = 'Games';
             <div class="col-lg-12">
                 <?= ListView::widget([
                     'dataProvider' => $dataProvider,
-                    'itemOptions' => ['class' => 'col-lg-4 col-md-4'],
-                    'itemView' => 'game/_item',
-                    'options' => ['class' => 'row'],
-                    'summary' => false,
-                ]); ?>
+                    'pager'        => Helper::pager(),
+                    'itemOptions'  => ['class' => 'col-lg-4 col-md-4'],
+                    'itemView'     => 'game/_item',
+                    'options'      => ['class' => 'row'],
+                    'summary'      => false,
+                ]) ?>
             </div>
         </div>
     </div>

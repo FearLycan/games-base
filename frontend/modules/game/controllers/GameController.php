@@ -10,39 +10,50 @@ use frontend\components\Controller;
 use frontend\modules\game\models\Game;
 use frontend\modules\game\models\searches\GameSearch;
 use Yii;
+use yii\caching\Cache;
 use yii\web\BadRequestHttpException;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
+use yii\filters\PageCache;
 
 class GameController extends Controller
 {
-    public function behaviors()
+    /** @var Cache */
+    private $cache;
+
+    public function __construct($id, $module, $config = [])
+    {
+        $this->cache = Yii::$app->cache;
+        parent::__construct($id, $module, $config);
+    }
+
+    public function behaviors(): array
     {
         return [
             'access' => [
-                'class' => AccessControl::className(),
+                'class' => AccessControl::class,
                 'rules' => [
                     [
-                        'allow' => true,
+                        'allow'   => true,
                         'actions' => [
-                            'view', 'search-list', 'list', 'details'
+                            'view', 'search-list', 'list', 'details',
                         ],
-                        'roles' => ['?'],
+                        'roles'   => ['?'],
                     ],
                 ],
             ],
             [
-                'class' => 'yii\filters\PageCache',
-                'only' => ['view', 'details'],
-                'duration' => YII_DEBUG ? 1 : 3600,
+                'class'      => PageCache::class,
+                'only'       => ['view', 'details'],
+                'duration'   => YII_DEBUG ? 1 : 3600,
                 'variations' => [
-                    Yii::$app->controller->action->id . Yii::$app->request->get('id')
-                ]
+                    Yii::$app->controller->action->id . Yii::$app->request->get('id'),
+                ],
             ],
         ];
     }
 
-    public function actionList($slug)
+    public function actionList($slug): string
     {
         $model = $this->findCategoryOrGenre($slug);
 
@@ -50,7 +61,7 @@ class GameController extends Controller
 
         if ($model instanceof Category) {
             $searchModel->category_id = $model->id;
-        } elseif ($model instanceof Genre) {
+        } else if ($model instanceof Genre) {
             $searchModel->genre_id = $model->id;
         } else {
             $this->notFound();
@@ -59,9 +70,9 @@ class GameController extends Controller
         $dataProvider = $searchModel->search($this->request->queryParams);
 
         return $this->render('list', [
-            'searchModel' => $searchModel,
+            'searchModel'  => $searchModel,
             'dataProvider' => $dataProvider,
-            'model' => $model,
+            'model'        => $model,
         ]);
 
     }
@@ -119,10 +130,12 @@ class GameController extends Controller
      */
     protected function findModel($id, $slug)
     {
-        if (($model = Game::findOne([
-                'steam_appid' => $id,
-                'slug' => $slug
-            ])) !== null) {
+        $key = Yii::$app->controller->id . $id . $slug;
+        $model = $this->cache->getOrSet($key, function () use ($id, $slug) {
+            return Game::findOne(['steam_appid' => $id, 'slug' => $slug]);
+        }, 3600);
+
+        if ($model !== null) {
             return $model;
         }
 

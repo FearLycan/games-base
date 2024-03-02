@@ -35,7 +35,11 @@ class SteamController extends Controller
 
         foreach ($games->each() as $game) {
             /** @var Game $game */
-            $this->actionGetInfo($game->steam_appid);
+            try {
+                $this->actionGetInfo($game->steam_appid);
+            } catch (Exception $e) {
+                echo $e->getMessage() . "\n";
+            }
         }
     }
 

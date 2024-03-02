@@ -443,10 +443,10 @@ class Game extends ActiveRecord
 
     public function trySetReleaseDate($date)
     {
-        $date = DateTime::createFromFormat('Y-m-d', $date);
+        $date = DateTime::createFromFormat('M d, Y', $date);
 
         if ($date) {
-            $this->release_date = (new DateTime($date))->format('Y-m-d 00:00:00');
+            $this->release_date = $date->format('Y-m-d 00:00:00');
         }
     }
 

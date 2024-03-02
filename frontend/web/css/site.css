@@ -265,3 +265,24 @@ s:after, strike:after {
     width: 100%;
     float: none;
 }
+
+/*
+.blog__pagination a.active {
+    background: #f03250;
+    color: #ffffff;
+    border-color: #f03250;
+}
+
+.blog__pagination span.disabled, .blog__pagination li {
+    font-size: 15px;
+    color: #707070;
+    display: inline-block;
+    padding: 12px 20px 10px;
+    border: 1px solid #e4e4e4;
+    margin-right: -5px;
+    -webkit-transition: all, 0.3s;
+    -o-transition: all, 0.3s;
+    transition: all, 0.3s;
+
+    cursor: not-allowed;
+}*/

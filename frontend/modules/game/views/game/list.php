@@ -2,6 +2,8 @@
 
 use common\models\Category;
 use common\models\Genre;
+use frontend\components\Helper;
+use frontend\components\Pager;
 use frontend\modules\game\models\searches\GameSearch;
 use yii\helpers\Url;
 use yii\web\View;
@@ -43,13 +45,14 @@ $models = $dataProvider->getModels();
         <div class="row">
             <div class="col-12 col-sm-12 col-md-8 col-lg-8">
                 <?= ListView::widget([
-                    'id' => 'gameList',
+                    'id'           => 'gameList',
+                    'pager'        => Helper::pager(),
                     'dataProvider' => $dataProvider,
-                    'itemOptions' => ['class' => 'col-lg-6 col-md-6 game'],
-                    'itemView' => '_item',
-                    'options' => ['class' => 'row'],
-                    'summary' => false,
-                ]); ?>
+                    'itemOptions'  => ['class' => 'col-lg-6 col-md-6 game'],
+                    'itemView'     => '_item',
+                    'options'      => ['class' => 'row'],
+                    'summary'      => false,
+                ]) ?>
             </div>
 
             <div class="col-12 col-sm-12 col-md-4 col-lg-4" id="gameDetailsBox">

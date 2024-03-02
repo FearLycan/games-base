@@ -2338,10 +2338,13 @@ ol {
     margin-top: 20px;
 }
 
-.blog__pagination a {
+.blog__pagination li {
+    display: inline-block;
+}
+
+.blog__pagination li a, .blog__pagination li span {
     font-size: 15px;
     color: #707070;
-    display: inline-block;
     padding: 12px 20px 10px;
     border: 1px solid #e4e4e4;
     margin-right: -5px;
@@ -2350,7 +2353,17 @@ ol {
     transition: all, 0.3s;
 }
 
-.blog__pagination a:hover {
+.blog__pagination li.disabled span {
+    cursor: not-allowed;
+}
+
+.blog__pagination li.active a {
+    background: #f03250;
+    color: #ffffff;
+    border-color: #f03250;
+}
+
+.blog__pagination li a:hover {
     background: #f03250;
     color: #ffffff;
     border-color: #f03250;
