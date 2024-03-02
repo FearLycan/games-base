@@ -16,7 +16,7 @@ class GameSearch extends Game
     /**
      * {@inheritdoc}
      */
-    public function rules()
+    public function rules(): array
     {
         return [];
     }
@@ -56,8 +56,8 @@ class GameSearch extends Game
             $query->joinWith(['gameSales'])
                 ->where([
                     'game_sale.type' => GameSale::TYPE_BESTSELLERS,
-                    'game.status' => self::STATUS_ACTIVE,
-                    'game.type' => 'game'
+                    'game.status'    => self::STATUS_ACTIVE,
+                    'game.type'      => 'game',
                 ])
                 ->orderBy(['game_sale.order' => SORT_ASC]);
         }

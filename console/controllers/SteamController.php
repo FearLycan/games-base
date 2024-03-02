@@ -21,6 +21,11 @@ class SteamController extends Controller
         parent::__construct($id, $module, $config);
     }
 
+    public function actionSync()
+    {
+        
+    }
+
     public function actionGetInfo($app_id)
     {
         $game = Game::findOne(['steam_appid' => $app_id]);

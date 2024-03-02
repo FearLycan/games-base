@@ -3,6 +3,7 @@
 use common\models\Game;
 use common\models\GameGenre;
 use yii\helpers\Url;
+use yii\web\View;
 
 /* @var $this yii\web\View */
 /* @var $genres GameGenre */
@@ -19,15 +20,13 @@ $this->title = Yii::$app->name;
             <div class="row">
                 <div class="col-lg-12">
                     <div class="hero__text">
-                        <div class="section-title">
-                            <h2>Discover Games Special For You</h2>
-                            <p><?= Game::count() ?> The best games is waiting for you</p>
-                        </div>
+                        <!-- <div class="section-title">
+                            <h2>Discover Games</h2>
+                            <p><?= Game::count() ?> games waiting to be discovered</p>
+                        </div> -->
                         <div class="hero__search__form">
                             <form action="#">
                                 <input type="text" id="game-name-select" placeholder="Search...">
-
-
                             </form>
                         </div>
                         <ul class="hero__categories__tags">
@@ -129,8 +128,8 @@ $js = <<<JS
             },
             maxNumberOfElements: 10,
             onClickEvent: function () {
-                let input = $('#game-name-select');
-                console.log(input.getSelectedItemData().id)
+                //let input = $('#game-name-select');
+                //console.log(input.getSelectedItemData().id)
                 /*$('#game-id').val(input.getSelectedItemData().id);
                 input.val('');
                 getData();*/
@@ -138,11 +137,11 @@ $js = <<<JS
         }
     });
 
-    $('.hero__search__form').find('.easy-autocomplete').css({'width': 'auto'});
-    $('.hero__search__form').find('.easy-autocomplete').prepend('<button type="submit">Explore Now</button>');
+    /*$('.hero__search__form').find('.easy-autocomplete').css({'width': 'auto'});
+    $('.hero__search__form').find('.easy-autocomplete').prepend('<button class="" type="submit">Explore Now</button>');*/
     
     
 JS;
 
-$this->registerJs($js, \yii\web\View::POS_READY);
+$this->registerJs($js);
 ?>

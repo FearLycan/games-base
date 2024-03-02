@@ -25,6 +25,7 @@ class Helper
     public static function clearHtml($html): string
     {
         $html = str_replace("h1>", "h4>", $html);
+        $html = str_replace("<img src=", "<img loading=\"lazy\" src=", $html);
 
         return $html;
     }

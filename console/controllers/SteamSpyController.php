@@ -37,7 +37,7 @@ class SteamSpyController extends Controller
 
                 foreach ($response->data as $game) {
                     $this->game->createApp($game);
-                    //echo $game['name'] . "\n";
+                    echo $game['name'] . "\n";
                 }
 
             } else {

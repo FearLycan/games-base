@@ -256,3 +256,12 @@ s:after, strike:after {
     padding-top: 50px;
     padding-bottom: 50px;
 }
+
+.hero {
+    padding: 100px 0;
+}
+
+.hero__search__form form input {
+    width: 100%;
+    float: none;
+}

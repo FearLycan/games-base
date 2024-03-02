@@ -49,8 +49,8 @@ AppAsset::register($this);
                     <div class="header__nav">
                         <nav class="header__menu mobile-menu">
                             <ul>
-                                <li class="active"><a href="./index.html">Home</a></li>
-                                <li><a href="./listing.html">Listing</a></li>
+                                <!--<li class="active"><a href="./index.html">Home</a></li>-->
+                                <!--<li><a href="./listing.html">Listing</a></li>
                                 <li><a href="#">Categories</a></li>
                                 <li><a href="#">Pages</a>
                                     <ul class="dropdown">
@@ -61,13 +61,13 @@ AppAsset::register($this);
                                     </ul>
                                 </li>
                                 <li><a href="./blog.html">Blog</a></li>
-                                <li><a href="#">Shop</a></li>
+                                <li><a href="#">Shop</a></li>-->
                             </ul>
                         </nav>
-                        <div class="header__menu__right">
+                        <!--<div class="header__menu__right">
                             <a href="#" class="primary-btn"><i class="fa fa-plus"></i>Add Listing</a>
                             <a href="#" class="login-btn"><i class="fa fa-user"></i></a>
-                        </div>
+                        </div>-->
                     </div>
                 </div>
             </div>

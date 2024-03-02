@@ -165,7 +165,7 @@ $this->title = $model->title;
                     </div>
                 </div>
                 <div class="col-12 col-sm-12 col-md-8 col-lg-4">
-                    <?= $this->render('_right-bar', ['model' => $model]) ?>
+                    <?= $this->render('_right-bar', ['model' => $model, 'gameViewButton' => false]) ?>
                 </div>
             </div>
         </div>

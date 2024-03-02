@@ -27,7 +27,7 @@ $models = $dataProvider->getModels();
                 <div class="breadcrumb__text">
                     <h2><?= $this->title ?></h2>
                     <div class="breadcrumb__option">
-                        <a href="<?= Url::to(['/game/index']) ?>">
+                        <a href="<?= Url::to(['/games']) ?>">
                             <i class="fa fa-home"></i> Games
                         </a>
                         <span><?= $model->name ?></span>
