@@ -91,9 +91,9 @@ AppAsset::register($this);
                             </p>
                         </div>
                         <div class="footer__copyright__links">
-                            <a href="#">Terms</a>
+                            <!--<a href="#">Terms</a>
                             <a href="#">Privacy Policy</a>
-                            <a href="#">Cookie Policy</a>
+                            <a href="#">Cookie Policy</a>-->
                         </div>
                     </div>
                 </div>

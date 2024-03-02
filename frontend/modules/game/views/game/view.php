@@ -57,6 +57,8 @@ $this->title = $model->title;
                 </div>
                 <div class="col-lg-3 offset-lg-1">
                     <div class="listing__hero__btns">
+
+                        <!--
                         <?php if ($model->steam_price_initial): ?>
                             <div class="game-price">
                                 <span class="initial-price">
@@ -69,6 +71,7 @@ $this->title = $model->title;
                                 <?php endif; ?>
                             </div>
                         <?php endif; ?>
+                        -->
                         <a href="<?= $model->getSteamUrl() ?>" rel="nofollow noopener external" target="_blank"
                            class="primary-btn share-btn">
                             <i class="fa fa-steam-square" aria-hidden="true"></i> View on Steam</a>

@@ -22,9 +22,12 @@ use yii\helpers\Url;
             <div class="listing__item__rating__star">
             </div>
 
+            <!--
             <?php if ($model->steam_price_initial): ?>
                 <h6><?= $model->getInitialPrice() ?></h6>
             <?php endif; ?>
+            -->
+
         </div>
     </div>
 </div>
