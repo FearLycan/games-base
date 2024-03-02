@@ -123,7 +123,7 @@ class Game extends ActiveRecord
     /**
      * {@inheritdoc}
      */
-    public function attributeLabels():array
+    public function attributeLabels(): array
     {
         return [
             'id'                   => 'ID',
@@ -431,7 +431,11 @@ class Game extends ActiveRecord
             $this->setSteamDeck($steamDeck);
         }
 
-        $this->status = self::STATUS_ACTIVE;
+        if ((int)$this->status === self::STATUS_WAIT_TO_SYNC) {
+            $this->status = self::STATUS_ACTIVE;
+        }
+
+        $this->synchronized_at = date("Y-m-d H:i:s");
         $this->save();
 
         return $this;

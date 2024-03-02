@@ -4,6 +4,7 @@ namespace console\controllers;
 
 use common\models\Game;
 use yii\console\Controller;
+use yii\db\Expression;
 use yii\helpers\VarDumper;
 use yii\httpclient\Client;
 use yii\base\Exception;
@@ -21,9 +22,21 @@ class SteamController extends Controller
         parent::__construct($id, $module, $config);
     }
 
-    public function actionSync()
+    public function actionSync($limit = 0)
     {
-        
+        $games = Game::find()
+            ->orWhere(['status' => Game::STATUS_WAIT_TO_SYNC])
+            ->orWhere(['force_sync' => true])
+            ->orWhere(['>', 'synchronized_at', new Expression('NOW()')]);
+
+        if ($limit) {
+            $games->limit = $limit;
+        }
+
+        foreach ($games->each() as $game) {
+            /** @var Game $game */
+            $this->actionGetInfo($game->steam_appid);
+        }
     }
 
     public function actionGetInfo($app_id)
@@ -43,9 +56,7 @@ class SteamController extends Controller
         $response = $request->send();
 
         if ($response->isOk && $response->data[$app_id]['success']) {
-
             $game->setBaseInformation($response->data[$app_id]['data']);
-
         } else {
             throw new Exception(
                 "Request to $request->url failed with response: \n"
@@ -61,15 +72,15 @@ class SteamController extends Controller
         $start = 0;
         $query = [
             'query',
-            'start' => -50,
-            'count' => 50,
+            'start'               => -50,
+            'count'               => 50,
             'dynamic_data',
-            'sort_by' => '_ASC',
+            'sort_by'             => '_ASC',
             'signore_preferences' => 1,
-            'os' => 'win',
-            'filter' => 'comingsoon',
-            'infinite' => 1,
-            'cc' => 'us'
+            'os'                  => 'win',
+            'filter'              => 'comingsoon',
+            'infinite'            => 1,
+            'cc'                  => 'us',
         ];
 
         do {
@@ -98,7 +109,7 @@ class SteamController extends Controller
                     }
                 }
             }
-            sleep(rand(5, 15));
+            sleep(random_int(5, 15));
         } while ($response->data['total_count'] > $start);
     }
 }
