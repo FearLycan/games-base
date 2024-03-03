@@ -7,10 +7,10 @@ use Yii;
 /**
  * This is the model class for table "{{%game_genre}}".
  *
- * @property int $game_id
- * @property int $genre_id
+ * @property int   $game_id
+ * @property int   $genre_id
  *
- * @property Game $game
+ * @property Game  $game
  * @property Genre $genre
  */
 class GameGenre extends \yii\db\ActiveRecord
@@ -43,7 +43,7 @@ class GameGenre extends \yii\db\ActiveRecord
     public function attributeLabels()
     {
         return [
-            'game_id' => 'Game ID',
+            'game_id'  => 'Game ID',
             'genre_id' => 'Genre ID',
         ];
     }
@@ -78,11 +78,15 @@ class GameGenre extends \yii\db\ActiveRecord
         self::deleteAll(['genre_id' => $genre_id]);
     }
 
-    public static function createConnection($game_id, $genre_id)
+    public static function createConnection($game_id, $genre_id): void
     {
-        $connection = new self();
-        $connection->genre_id = $genre_id;
-        $connection->game_id = $game_id;
-        $connection->save();
+        $connection = self::findOne(['game_id' => $game_id, 'genre_id' => $genre_id]);
+
+        if (!$connection) {
+            $connection = new self();
+            $connection->genre_id = $genre_id;
+            $connection->game_id = $game_id;
+            $connection->save();
+        }
     }
 }
