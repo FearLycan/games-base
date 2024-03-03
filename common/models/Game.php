@@ -412,9 +412,9 @@ class Game extends ActiveRecord
         $this->setDevelopers($information['developers'] ?? []);
         $this->setPublisher($information['publishers'] ?? []);
         $this->setGenres($information['genres'] ?? []);
-        $this->setScreenshots($information['screenshots']);
-        $this->setBackground($information['background']);
-        $this->setHeader($information['header_image']);
+        $this->setScreenshots($information['screenshots'] ?? []);
+        $this->setBackground($information['background'] ?? '');
+        $this->setHeader($information['header_image'] ?? '');
         $this->setIcons();
         $this->setPlatforms($information);
         $this->setReview();
