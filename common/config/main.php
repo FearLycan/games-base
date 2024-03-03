@@ -1,10 +1,6 @@
 <?php
 
-/* Include debug functions */
-
 use yii\caching\FileCache;
-
-require_once(__DIR__ . '/functions.php');
 
 return [
     'timeZone'   => 'Europe/Warsaw',

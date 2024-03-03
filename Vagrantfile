@@ -41,7 +41,11 @@ end
 # vagrant configurate
 Vagrant.configure(2) do |config|
   # select the box
-  config.vm.box = 'bento/ubuntu-16.04'
+  config.vm.box = 'bento/ubuntu-22.04'
+
+  if Vagrant.has_plugin?("vagrant-vbguest")
+      config.vbguest.auto_update = false
+  end
 
   # should we ask about box updates?
   config.vm.box_check_update = options['box_check_update']
