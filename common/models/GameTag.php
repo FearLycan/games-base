@@ -7,12 +7,12 @@ use Yii;
 /**
  * This is the model class for table "{{%game_tag}}".
  *
- * @property int $game_id
- * @property int $tag_id
+ * @property int      $game_id
+ * @property int      $tag_id
  * @property int|null $order
  *
- * @property Game $game
- * @property Tag $tag
+ * @property Game     $game
+ * @property Tag      $tag
  */
 class GameTag extends \yii\db\ActiveRecord
 {
@@ -45,8 +45,8 @@ class GameTag extends \yii\db\ActiveRecord
     {
         return [
             'game_id' => 'Game ID',
-            'tag_id' => 'Tag ID',
-            'order' => 'Order',
+            'tag_id'  => 'Tag ID',
+            'order'   => 'Order',
         ];
     }
 
@@ -75,12 +75,15 @@ class GameTag extends \yii\db\ActiveRecord
         self::deleteAll(['game_id' => $game_id]);
     }
 
-    public static function createConnection(int $game_id, int $genre_id, int $order)
+    public static function createConnection(int $game_id, int $tag_id, int $order)
     {
-        $connection = new self();
-        $connection->tag_id = $genre_id;
-        $connection->game_id = $game_id;
-        $connection->order = $order;
-        $connection->save();
+        $connection = self::findOne(['tag_id' => $tag_id, 'game_id' => $game_id]);
+        if (!$connection) {
+            $connection = new self();
+            $connection->tag_id = $tag_id;
+            $connection->game_id = $game_id;
+            $connection->order = $order;
+            $connection->save();
+        }
     }
 }
