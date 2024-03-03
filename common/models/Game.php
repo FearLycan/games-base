@@ -547,8 +547,13 @@ class Game extends ActiveRecord
         }
     }
 
-    public function setTags($tags)
+    public function setTags(?array $tags)
     {
+        if (!$tags) {
+            return;
+        }
+
+
         GameTag::removeConnectionsByGameID($this->id);
 
         foreach ($tags as $key => $item) {
@@ -819,7 +824,7 @@ class Game extends ActiveRecord
         return (int)$score;
     }
 
-    public function extraTags(Crawler $html): array
+    public function extraTags(Crawler $html): ?array
     {
         $tags = substr(Helper::getText($html->html(), '[{"tagid"', '}],'), 0, -1);
 
