@@ -2,7 +2,6 @@
 
 namespace common\models;
 
-use Yii;
 use yii\behaviors\SluggableBehavior;
 use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveRecord;
@@ -10,39 +9,39 @@ use yii\db\ActiveRecord;
 /**
  * This is the model class for table "{{%category}}".
  *
- * @property int $id
- * @property string $name
+ * @property int         $id
+ * @property string      $name
  * @property string|null $description
  * @property string|null $image
  * @property string|null $slug
- * @property int|null $status
- * @property string $created_at
+ * @property int|null    $status
+ * @property string      $created_at
  * @property string|null $updated_at
  *
- * @property Game[] $games
+ * @property Game[]      $games
  */
-class Category extends \yii\db\ActiveRecord
+class Category extends ActiveRecord
 {
     /**
      * @return array
      */
-    public function behaviors()
+    public function behaviors(): array
     {
         return [
             'timestamp' => [
-                'class' => TimestampBehavior::className(),
+                'class'      => TimestampBehavior::class,
                 'attributes' => [
                     ActiveRecord::EVENT_BEFORE_INSERT => ['created_at'],
                     ActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
                 ],
-                'value' => date("Y-m-d H:i:s"),
+                'value'      => date("Y-m-d H:i:s"),
             ],
             'sluggable' => [
-                'class' => SluggableBehavior::className(),
-                'attribute' => ['name'],
+                'class'         => SluggableBehavior::class,
+                'attribute'     => ['name'],
                 'slugAttribute' => 'slug',
-                'ensureUnique' => false,
-                'immutable' => true,
+                'ensureUnique'  => false,
+                'immutable'     => true,
             ],
         ];
     }
@@ -50,7 +49,7 @@ class Category extends \yii\db\ActiveRecord
     /**
      * {@inheritdoc}
      */
-    public static function tableName()
+    public static function tableName(): string
     {
         return '{{%category}}';
     }
@@ -58,7 +57,7 @@ class Category extends \yii\db\ActiveRecord
     /**
      * {@inheritdoc}
      */
-    public function rules()
+    public function rules(): array
     {
         return [
             [['name'], 'required'],
@@ -72,16 +71,16 @@ class Category extends \yii\db\ActiveRecord
     /**
      * {@inheritdoc}
      */
-    public function attributeLabels()
+    public function attributeLabels(): array
     {
         return [
-            'id' => 'ID',
-            'name' => 'Name',
+            'id'          => 'ID',
+            'name'        => 'Name',
             'description' => 'Description',
-            'image' => 'Image',
-            'status' => 'Status',
-            'created_at' => 'Created At',
-            'updated_at' => 'Updated At',
+            'image'       => 'Image',
+            'status'      => 'Status',
+            'created_at'  => 'Created At',
+            'updated_at'  => 'Updated At',
         ];
     }
 

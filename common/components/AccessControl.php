@@ -11,6 +11,6 @@ class AccessControl extends \yii\filters\AccessControl
      * {@inheritdoc}
      */
     public $ruleConfig = [
-        'class' => 'common\components\AccessRule',
+        'class' => AccessRule::class,
     ];
 }
