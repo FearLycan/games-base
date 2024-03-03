@@ -2,23 +2,24 @@
 
 namespace common\models;
 
-use Yii;
+use yii\db\ActiveQuery;
+use yii\db\ActiveRecord;
 
 /**
  * This is the model class for table "{{%game_category}}".
  *
- * @property int $game_id
- * @property int $category_id
+ * @property int      $game_id
+ * @property int      $category_id
  *
  * @property Category $category
- * @property Game $game
+ * @property Game     $game
  */
-class GameCategory extends \yii\db\ActiveRecord
+class GameCategory extends ActiveRecord
 {
     /**
      * {@inheritdoc}
      */
-    public static function tableName()
+    public static function tableName(): string
     {
         return '{{%game_category}}';
     }
@@ -26,24 +27,24 @@ class GameCategory extends \yii\db\ActiveRecord
     /**
      * {@inheritdoc}
      */
-    public function rules()
+    public function rules(): array
     {
         return [
             [['game_id', 'category_id'], 'required'],
             [['game_id', 'category_id'], 'integer'],
             [['game_id', 'category_id'], 'unique', 'targetAttribute' => ['game_id', 'category_id']],
-            [['category_id'], 'exist', 'skipOnError' => true, 'targetClass' => Category::className(), 'targetAttribute' => ['category_id' => 'id']],
-            [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::className(), 'targetAttribute' => ['game_id' => 'id']],
+            [['category_id'], 'exist', 'skipOnError' => true, 'targetClass' => Category::class, 'targetAttribute' => ['category_id' => 'id']],
+            [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::class, 'targetAttribute' => ['game_id' => 'id']],
         ];
     }
 
     /**
      * {@inheritdoc}
      */
-    public function attributeLabels()
+    public function attributeLabels(): array
     {
         return [
-            'game_id' => 'Game ID',
+            'game_id'     => 'Game ID',
             'category_id' => 'Category ID',
         ];
     }
@@ -51,9 +52,9 @@ class GameCategory extends \yii\db\ActiveRecord
     /**
      * Gets query for [[Category]].
      *
-     * @return \yii\db\ActiveQuery
+     * @return ActiveQuery
      */
-    public function getCategory()
+    public function getCategory(): ActiveQuery
     {
         return $this->hasOne(Category::className(), ['id' => 'category_id']);
     }
@@ -61,28 +62,32 @@ class GameCategory extends \yii\db\ActiveRecord
     /**
      * Gets query for [[Game]].
      *
-     * @return \yii\db\ActiveQuery
+     * @return ActiveQuery
      */
-    public function getGame()
+    public function getGame(): ActiveQuery
     {
-        return $this->hasOne(Game::className(), ['id' => 'game_id']);
+        return $this->hasOne(Game::class, ['id' => 'game_id']);
     }
 
-    public static function removeConnectionsByGameID($game_id)
+    public static function removeConnectionsByGameID($game_id): void
     {
         self::deleteAll(['game_id' => $game_id]);
     }
 
-    public static function removeConnectionsByCategoryID($category_id)
+    public static function removeConnectionsByCategoryID($category_id): void
     {
         self::deleteAll(['category_id' => $category_id]);
     }
 
-    public static function createConnection($game_id, $category_id)
+    public static function createConnection($game_id, $category_id): void
     {
-        $connection = new self();
-        $connection->category_id = $category_id;
-        $connection->game_id = $game_id;
-        $connection->save();
+        $connection = self::findOne(['category_id' => $category_id, 'game_id' => $game_id]);
+
+        if (!$connection) {
+            $connection = new self();
+            $connection->category_id = $category_id;
+            $connection->game_id = $game_id;
+            $connection->save();
+        }
     }
 }

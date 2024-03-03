@@ -471,7 +471,7 @@ class Game extends ActiveRecord
         return $this;
     }
 
-    public function setCategories($categories)
+    public function setCategories($categories): void
     {
         GameCategory::removeConnectionsByGameID($this->id);
 
