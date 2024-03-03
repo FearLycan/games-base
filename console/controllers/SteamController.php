@@ -59,7 +59,13 @@ class SteamController extends Controller
 
         $response = $request->send();
 
-        if ($response->isOk && $response->data[$app_id]['success']) {
+        if ($response->isOk) {
+            if ($response->data[$app_id]['success'] === false) {
+                $game->status = Game::STATUS_SUCCESS_FALSE;
+                $game->save(false);
+                return;
+            }
+
             $game->setBaseInformation($response->data[$app_id]['data']);
         } else {
             throw new Exception(

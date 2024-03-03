@@ -54,9 +54,10 @@ use yii\httpclient\Client;
  */
 class Game extends ActiveRecord
 {
-    const  STATUS_ACTIVE       = 1;
-    const  STATUS_WAIT_TO_SYNC = 0;
-    const  STATUS_INACTIVE     = 3;
+    const  STATUS_ACTIVE        = 1;
+    const  STATUS_WAIT_TO_SYNC  = 0;
+    const  STATUS_INACTIVE      = 3;
+    const  STATUS_SUCCESS_FALSE = 10;
 
     const STEAM_DECK_VERIFIED    = 4;
     const STEAM_DECK_PLAYABLE    = 3;
