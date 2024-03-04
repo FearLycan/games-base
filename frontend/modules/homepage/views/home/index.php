@@ -11,7 +11,7 @@ use yii\web\View;
 /* @var $popular_upcoming Game[] */
 /* @var $new_and_noteworthy Game[] */
 
-$this->title = Yii::$app->name;
+$this->title = Yii::$app->params['meta-title'];
 ?>
 
     <!-- Hero Section Begin -->

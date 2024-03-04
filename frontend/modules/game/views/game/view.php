@@ -6,7 +6,7 @@ use yii\web\View;
 /* @var $this View */
 /* @var $model Game */
 
-$this->title = $model->title;
+$this->title = $model->title . " - " . Yii::$app->params['meta-title'];
 
 ?>
 

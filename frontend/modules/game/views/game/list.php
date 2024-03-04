@@ -15,7 +15,7 @@ use yii\data\ActiveDataProvider;
 /* @var $dataProvider ActiveDataProvider */
 /* @var $model Genre|Category */
 
-$this->title = "Best {$model->name} games on Steam";
+$this->title = "Best {$model->name} games on Steam" . " - " . Yii::$app->params['meta-title'];
 $this->params['breadcrumbs'][] = 'Games';
 $this->params['breadcrumbs'][] = $model->name;
 

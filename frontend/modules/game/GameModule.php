@@ -1,16 +1,16 @@
 <?php
 
-namespace frontend\modules\homepage;
+namespace frontend\modules\game;
 
 /**
  * Homepage module definition class
  */
-class Module extends \yii\base\Module
+class GameModule extends \yii\base\Module
 {
     /**
      * @inheritdoc
      */
-    public $controllerNamespace = 'frontend\modules\homepage\controllers';
+    public $controllerNamespace = 'frontend\modules\game\controllers';
 
     /**
      * @inheritdoc

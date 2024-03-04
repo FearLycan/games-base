@@ -9,7 +9,7 @@ use yii\widgets\ListView;
 /* @var $searchModel GameSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
 
-$this->title = "Bestsellers games on Steam";
+$this->title = "Bestsellers games on Steam" . " - " . Yii::$app->params['meta-title'];
 $this->params['breadcrumbs'][] = 'Games';
 ?>
 
