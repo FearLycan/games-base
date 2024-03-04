@@ -26,6 +26,7 @@ class SteamSpyController extends Controller
         $page = 1;
         $repeat = true;
         do {
+            echo "Strona {$page}\n";
 
             $request = $this->client->createRequest()
                 ->setMethod('GET')
@@ -36,8 +37,11 @@ class SteamSpyController extends Controller
             if ($response->isOk) {
 
                 foreach ($response->data as $game) {
-                    $this->game->createApp($game);
-                    echo $game['name'] . "\n";
+                    $app = $this->game->createApp($game);
+
+                    if ($app->status === Game::STATUS_WAIT_TO_SYNC) {
+                        echo "Nowa gra " . $game['name'] . "\n";
+                    }
                 }
 
             } else {
@@ -48,7 +52,6 @@ class SteamSpyController extends Controller
             }
 
             $page++;
-            sleep(60);
         } while ($repeat);
     }
 }
