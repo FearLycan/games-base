@@ -39,11 +39,11 @@ class SteamSpyController extends Controller
                 foreach ($response->data as $game) {
                     $app = $this->game->createApp($game);
 
-                    if ($app->status === Game::STATUS_WAIT_TO_SYNC) {
+                    if ($app->isNewRecord) {
                         echo "Nowa gra " . $game['name'] . "\n";
                     }
                 }
-
+                echo "Następna strona to {$page}\n";
             } else {
                 throw new Exception(
                     "Request to $request->url failed with response: \n"
