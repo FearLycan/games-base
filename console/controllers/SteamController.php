@@ -39,7 +39,7 @@ class SteamController extends Controller
             try {
                 $this->actionGetInfo($game->steam_appid);
             } catch (Exception $e) {
-                echo $e->getMessage() . "\n";
+                echo $e->getMessage() . " - appid: {$game->steam_appid} \n";
             }
         }
     }
