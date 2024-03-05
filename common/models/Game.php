@@ -686,13 +686,13 @@ class Game extends ActiveRecord
                 $image = GameImage::findOne([
                     'game_id' => $this->id,
                     'type'    => GameImage::TYPE_ICON,
-                    'url'     => $icon['url'],
+                    'url'     => $icon['url'] ?? null,
                 ]);
 
                 if (!$image) {
                     $image = new GameImage();
                     $image->type = GameImage::TYPE_ICON;
-                    $image->url = $icon['url'];
+                    $image->url = $icon['url'] ?? null;
                     $image->game_id = $this->id;
                     $image->status = GameImage::STATUS_ACTIVE;
                     $image->save();
@@ -745,7 +745,6 @@ class Game extends ActiveRecord
     {
         $meta = Metacritic::findOne(['game_id' => $this->id]);
 
-
         if (!$meta) {
             $meta = new Metacritic();
             $meta->game_id = $this->id;
@@ -753,7 +752,7 @@ class Game extends ActiveRecord
 
         $meta->score = $metacritic['score'];
         $meta->user_score = 0;
-        $meta->url = $metacritic['url'];
+        $meta->url = $metacritic['url'] ?? null;
         $meta->save();
 
         $webInformation = $this->setInformationMetacriticWeb();
