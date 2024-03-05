@@ -3,6 +3,7 @@
 namespace console\controllers;
 
 use common\models\Game;
+use Yii;
 use yii\console\Controller;
 use yii\db\Expression;
 use yii\helpers\VarDumper;
@@ -12,13 +13,13 @@ use Symfony\Component\DomCrawler\Crawler;
 
 class SteamController extends Controller
 {
-    public $client;
-    public $game;
+    public Client $client;
+    public Game   $game;
 
     public function __construct($id, $module, $config = [])
     {
         $this->client = new Client(['baseUrl' => 'https://store.steampowered.com/api/appdetails']);
-
+        $this->game = new Game();
         parent::__construct($id, $module, $config);
     }
 
@@ -121,5 +122,29 @@ class SteamController extends Controller
             }
             sleep(random_int(5, 15));
         } while ($response->data['total_count'] > $start);
+    }
+
+    public function actionCreateAppList()
+    {
+        $this->client = new Client(['baseUrl' => 'http://api.steampowered.com/ISteamApps/GetAppList/v0002']);
+
+        $request = $this->client->createRequest()
+            ->setMethod('GET')
+            ->setData([
+                'key'    => Yii::$app->params['steamkey'],
+                'format' => 'json',
+            ]);
+
+        $response = $request->send();
+
+        if ($response->isOk) {
+            foreach ($response->data['applist']['apps'] as $game) {
+                $app = $this->game->createApp($game);
+
+                if ($app->isNewRecord) {
+                    echo "Nowa gra " . $game['name'] . "\n";
+                }
+            }
+        }
     }
 }
