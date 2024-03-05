@@ -27,8 +27,8 @@ class SteamController extends Controller
     {
         $games = Game::find()
             ->orWhere(['status' => Game::STATUS_WAIT_TO_SYNC])
-            ->orWhere(['force_sync' => true])
-            ->orWhere(['>', 'synchronized_at', new Expression('NOW()')]);
+            ->orWhere(['force_sync' => true]);
+            //->orWhere(['<=', 'synchronized_at', new Expression('NOW()')]);
 
         if ($limit) {
             $games->limit = $limit;

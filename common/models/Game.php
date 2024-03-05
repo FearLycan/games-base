@@ -436,6 +436,7 @@ class Game extends ActiveRecord
             $this->status = self::STATUS_ACTIVE;
         }
 
+        $this->force_sync = false;
         $this->synchronized_at = date("Y-m-d H:i:s");
         $this->save();
 
