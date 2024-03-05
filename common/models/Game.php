@@ -796,6 +796,10 @@ class Game extends ActiveRecord
 
     public function setInformationMetacriticWeb()
     {
+        if (!$this->metacritic->url) {
+            return null;
+        }
+
         $client = new Client(['baseUrl' => $this->metacritic->url]);
 
         $request = $client->createRequest()
