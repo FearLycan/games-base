@@ -84,7 +84,9 @@ AppAsset::register($this);
             <div class="row">
                 <div class="col-lg-3 col-md-3">
                     <div class="header__logo">
-                        <a href="<?= Yii::$app->homeUrl ?>"><img src="/img/logo.png" alt="<?= Yii::$app->name ?>"></a>
+                        <a href="<?= Yii::$app->homeUrl ?>">
+                            <img src="/img/logo.png" alt="<?= Yii::$app->name ?>" loading="lazy">
+                        </a>
                     </div>
                 </div>
                 <div class="col-lg-9 col-md-9">
