@@ -68,16 +68,10 @@ class Game extends ActiveRecord
     public const TYPE_MUSIC = 'music';
     public const TYPE_DEMO  = 'demo';
 
-    private array $_screenshots;
-
-    /** @var GameImage */
-    private GameImage $_icon;
-
-    /** @var GameImage */
-    private GameImage $_background;
-
-    /** @var GameImage */
-    private GameImage $_header;
+    private array      $_screenshots;
+    private ?GameImage $_icon;
+    private ?GameImage $_background;
+    private ?GameImage $_header;
 
     /**
      * @return array
