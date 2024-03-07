@@ -54,26 +54,30 @@ use yii\httpclient\Client;
  */
 class Game extends ActiveRecord
 {
-    const  STATUS_ACTIVE        = 1;
-    const  STATUS_WAIT_TO_SYNC  = 0;
-    const  STATUS_INACTIVE      = 3;
-    const  STATUS_SUCCESS_FALSE = 10;
+    public const  STATUS_ACTIVE        = 1;
+    public const  STATUS_WAIT_TO_SYNC  = 0;
+    public const  STATUS_INACTIVE      = 3;
+    public const  STATUS_SUCCESS_FALSE = 10;
 
-    const STEAM_DECK_VERIFIED    = 4;
-    const STEAM_DECK_PLAYABLE    = 3;
-    const STEAM_DECK_UNSUPPORTED = 2;
+    public const STEAM_DECK_VERIFIED    = 4;
+    public const STEAM_DECK_PLAYABLE    = 3;
+    public const STEAM_DECK_UNSUPPORTED = 2;
 
-    /** @var GameImage */
-    private $_screenshots;
+    public const TYPE_GAME  = 'game';
+    public const TYPE_DLC   = 'dlc';
+    public const TYPE_MUSIC = 'music';
+    public const TYPE_DEMO  = 'demo';
 
-    /** @var GameImage */
-    private $_icon;
-
-    /** @var GameImage */
-    private $_background;
+    private array $_screenshots;
 
     /** @var GameImage */
-    private $_header;
+    private GameImage $_icon;
+
+    /** @var GameImage */
+    private GameImage $_background;
+
+    /** @var GameImage */
+    private GameImage $_header;
 
     /**
      * @return array
@@ -157,7 +161,7 @@ class Game extends ActiveRecord
      *
      * @return GameQuery
      */
-    public static function find()
+    public static function find(): GameQuery
     {
         return new GameQuery(static::class);
     }

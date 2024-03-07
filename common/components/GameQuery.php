@@ -2,6 +2,7 @@
 
 namespace common\components;
 
+use common\models\Game;
 use yii\db\ActiveQuery;
 
 /**
@@ -44,6 +45,18 @@ class GameQuery extends ActiveQuery
         '+',
     ];
 
+    public function where($condition, $params = []): GameQuery
+    {
+        $this->where = $condition;
+
+        $this->where['game.status'] = Game::STATUS_ACTIVE;
+        //$this->where['game.required_age'] = 0;
+        $this->where['game.type'] = GAME::TYPE_GAME;
+
+        $this->addParams($params);
+        return $this;
+    }
+
     /**
      * Scope - filter results by given game title.
      *
@@ -60,7 +73,7 @@ class GameQuery extends ActiveQuery
         // handle more specific searches
         if (substr($title, 0, 1) === '=') {
             return $this->andWhere(['game.title' => substr($title, 1)]);
-        } elseif (substr($title, 0, 1) === '"') {
+        } else if (substr($title, 0, 1) === '"') {
             return $this->andFilterWhere(['like', 'game.title', trim($title, '"')]);
         }
 
@@ -73,7 +86,7 @@ class GameQuery extends ActiveQuery
                 $where[] = ['like', 'game.title', $word];
             }
         }
-        
+
         return $this->andFilterWhere([
             'or',
             ['like', 'game.title', $title],
