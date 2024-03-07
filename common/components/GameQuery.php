@@ -52,6 +52,7 @@ class GameQuery extends ActiveQuery
         $this->where['game.status'] = Game::STATUS_ACTIVE;
         //$this->where['game.required_age'] = 0;
         $this->where['game.type'] = GAME::TYPE_GAME;
+        $this->where['game.is_free'] = 0;
 
         $this->addParams($params);
         return $this;
