@@ -7,29 +7,39 @@ use common\models\Game;
 use common\models\GameGenre;
 use common\models\GameSale;
 use frontend\components\Controller;
+use Yii;
+use yii\caching\Cache;
 
 class HomeController extends Controller
 {
+    private Cache $cache;
+
+    public function __construct($id, $module, $config = [])
+    {
+        $this->cache = Yii::$app->cache;
+        parent::__construct($id, $module, $config);
+    }
+
     public function behaviors()
     {
         return [
-            'access' => [
+            'access'    => [
                 'class' => AccessControl::className(),
                 'rules' => [
                     [
-                        'allow' => true,
+                        'allow'   => true,
                         'actions' => [
                             'index',
                         ],
-                        'roles' => ['?'],
+                        'roles'   => ['?'],
                     ],
                 ],
             ],
-            /*'pageCache' => [
-                'class' => 'yii\filters\PageCache',
-                'only' => ['index'],
-                'duration' => 6000,
-            ],*/
+            'pageCache' => [
+                'class'    => 'yii\filters\PageCache',
+                'only'     => ['index'],
+                'duration' => YII_DEBUG ? 1 : 3600,
+            ],
         ];
     }
 
@@ -48,10 +58,10 @@ class HomeController extends Controller
 
 
         return $this->render('index', [
-            'genres' => $genres,
-            'bestsellers' => $bestsellers,
+            'genres'             => $genres,
+            'bestsellers'        => $bestsellers,
             'new_and_noteworthy' => $new_and_noteworthy,
-            'popular_upcoming' => $popular_upcoming,
+            'popular_upcoming'   => $popular_upcoming,
         ]);
     }
 }

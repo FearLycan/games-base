@@ -151,6 +151,27 @@ class Game extends ActiveRecord
         return parent::beforeSave($insert);
     }
 
+    public function afterFind()
+    {
+        $this->checkSyncDate();
+
+        parent::afterFind();
+    }
+
+    public function checkSyncDate(): void
+    {
+        if ($this->synchronized_at && (int)$this->force_sync === 0) {
+            $synchronizedAt = new DateTime($this->synchronized_at);
+            $now = new DateTime('now');
+            $now->modify('-1 day');
+
+            if ($now > $synchronizedAt) {
+                $this->force_sync = 1;
+                $this->save(false);
+            }
+        }
+    }
+
     /**
      *
      * @return GameQuery
