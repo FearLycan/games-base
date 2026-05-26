@@ -90,17 +90,13 @@ class Category extends ActiveRecord
      * @return \yii\db\ActiveQuery
      * @throws \yii\base\InvalidConfigException
      */
-    public function getGames()
+    public function getGames(): \yii\db\ActiveQuery
     {
-        return $this->hasMany(Game::className(), ['id' => 'game_id'])->viaTable('{{%game_category}}', ['category_id' => 'id']);
+        return $this->hasMany(Game::class, ['id' => 'game_id'])->viaTable('{{%game_category}}', ['category_id' => 'id']);
     }
 
-    public function getImage()
+    public function getImage(): string
     {
-        if ($this->image) {
-            return $this->image;
-        }
-
-        return '/img/category-default.png';
+        return $this->image ?: '/img/category-default.png';
     }
 }

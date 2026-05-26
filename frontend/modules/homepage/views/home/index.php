@@ -18,7 +18,11 @@ $columns = [
     ['dot' => 'bg-indigo-500',  'eyebrow' => 'Soon to ship',     'label' => 'Upcoming',         'games' => $popular_upcoming,   'tagline' => 'On the horizon. Wishlist material.'],
 ];
 
-$preview_games = array_slice($bestsellers, 0, 4);
+$preview_tabs = [
+    'trending' => ['label' => 'Trending', 'games' => array_slice($bestsellers, 0, 4)],
+    'new'      => ['label' => 'New',      'games' => array_slice($new_and_noteworthy, 0, 4)],
+    'upcoming' => ['label' => 'Upcoming', 'games' => array_slice($popular_upcoming, 0, 4)],
+];
 ?>
 
 <section class="relative left-1/2 w-screen -ml-[50vw] -mt-10 sm:-mt-14 overflow-hidden bg-gradient-to-b from-cyan-50/40 via-slate-50/20 to-canvas pt-12 pb-20 sm:pt-20 sm:pb-28">
@@ -93,20 +97,47 @@ $preview_games = array_slice($bestsellers, 0, 4);
                         <span class="h-3 w-3 rounded-full bg-amber-400"></span>
                         <span class="h-3 w-3 rounded-full bg-emerald-400"></span>
                     </div>
-                    <div class="flex gap-1 text-xs font-medium">
-                        <span class="rounded-md bg-canvas text-fg px-2.5 py-1 ring-1 ring-line shadow-sm">Trending</span>
-                        <span class="rounded-md text-fg-muted px-2.5 py-1 cursor-default">New</span>
-                        <span class="rounded-md text-fg-muted px-2.5 py-1 cursor-default">Upcoming</span>
+                    <div class="flex gap-1 text-xs font-medium" role="tablist">
+                        <?php foreach ($preview_tabs as $key => $tab): ?>
+                            <button type="button"
+                                    role="tab"
+                                    data-preview-tab="<?= $key ?>"
+                                    data-active="<?= $key === 'trending' ? 'true' : 'false' ?>"
+                                    aria-selected="<?= $key === 'trending' ? 'true' : 'false' ?>"
+                                    aria-controls="preview-panel-<?= $key ?>"
+                                    class="rounded-md px-2.5 py-1 transition cursor-pointer
+                                           text-fg-muted hover:text-fg hover:bg-canvas/60
+                                           data-[active=true]:bg-canvas
+                                           data-[active=true]:text-fg
+                                           data-[active=true]:ring-1
+                                           data-[active=true]:ring-line
+                                           data-[active=true]:shadow-sm
+                                           data-[active=true]:hover:bg-canvas">
+                                <?= Html::encode($tab['label']) ?>
+                            </button>
+                        <?php endforeach; ?>
                     </div>
                     <span class="ml-auto font-mono text-[10px] text-fg-subtle">gamentator.app</span>
                 </div>
 
-                <!-- Window content: game list -->
-                <div class="divide-y divide-line px-2 py-1">
-                    <?php foreach ($preview_games as $i => $game): ?>
-                        <?= $this->render('_game-sale-item', ['game' => $game, 'rank' => $i + 1]) ?>
-                    <?php endforeach; ?>
-                </div>
+                <!-- Window content: game lists, one panel per tab -->
+                <?php foreach ($preview_tabs as $key => $tab): ?>
+                    <div data-preview-panel="<?= $key ?>"
+                         id="preview-panel-<?= $key ?>"
+                         role="tabpanel"
+                         class="divide-y divide-line px-2 py-1"
+                         <?= $key === 'trending' ? '' : 'hidden' ?>>
+                        <?php if (empty($tab['games'])): ?>
+                            <p class="px-2 py-8 text-center text-sm text-fg-subtle">
+                                Nothing in this list yet.
+                            </p>
+                        <?php else: ?>
+                            <?php foreach ($tab['games'] as $i => $game): ?>
+                                <?= $this->render('_game-sale-item', ['game' => $game, 'rank' => $i + 1]) ?>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
             </div>
         </div>
         </div>
@@ -114,27 +145,6 @@ $preview_games = array_slice($bestsellers, 0, 4);
 </section>
 
 <section class="relative -mt-4 mb-16">
-    <form action="<?= Url::to(['/game/search']) ?>" method="get" class="relative max-w-2xl mx-auto">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-             class="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-fg-subtle pointer-events-none">
-            <path fill-rule="evenodd"
-                  d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
-                  clip-rule="evenodd"/>
-        </svg>
-        <input
-            type="text"
-            id="game-name-select"
-            name="phrase"
-            placeholder="Search by title, genre, or studio…"
-            class="w-full rounded-full bg-canvas border border-line pl-12 pr-32 py-3.5 text-base text-fg placeholder:text-fg-subtle shadow-sm focus:border-accent focus:outline-hidden focus:ring-4 focus:ring-accent/15 transition"
-            autocomplete="off"
-        >
-        <button type="submit"
-                class="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full bg-fg text-canvas px-5 py-2 text-sm font-semibold hover:bg-fg/90 transition shadow-sm">
-            Search
-        </button>
-    </form>
-
     <div class="mt-6 flex flex-wrap items-center justify-center gap-2 max-w-3xl mx-auto px-4">
         <span class="text-xs text-fg-subtle font-mono mr-1">Browse:</span>
         <?php foreach (array_slice($genres, 0, 8) as $genre): ?>
@@ -192,3 +202,27 @@ $preview_games = array_slice($bestsellers, 0, 4);
         <?php endforeach; ?>
     </div>
 </section>
+
+<?php
+$js = <<<'JS'
+(function () {
+    var tabs = document.querySelectorAll('[data-preview-tab]');
+    var panels = document.querySelectorAll('[data-preview-panel]');
+    if (!tabs.length || !panels.length) return;
+
+    tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            var target = tab.getAttribute('data-preview-tab');
+            tabs.forEach(function (t) {
+                var active = t === tab;
+                t.setAttribute('data-active', active ? 'true' : 'false');
+                t.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            panels.forEach(function (p) {
+                p.hidden = (p.getAttribute('data-preview-panel') !== target);
+            });
+        });
+    });
+})();
+JS;
+$this->registerJs($js, \yii\web\View::POS_END);

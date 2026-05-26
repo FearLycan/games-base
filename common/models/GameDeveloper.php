@@ -2,83 +2,65 @@
 
 namespace common\models;
 
-use Yii;
+use yii\db\ActiveQuery;
+use yii\db\ActiveRecord;
 
 /**
  * This is the model class for table "{{%game_developer}}".
  *
- * @property int $game_id
- * @property int $developer_id
+ * @property int       $game_id
+ * @property int       $developer_id
  *
  * @property Developer $developer
- * @property Game $game
+ * @property Game      $game
  */
-class GameDeveloper extends \yii\db\ActiveRecord
+class GameDeveloper extends ActiveRecord
 {
-    /**
-     * {@inheritdoc}
-     */
-    public static function tableName()
+    public static function tableName(): string
     {
         return '{{%game_developer}}';
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function rules()
+    public function rules(): array
     {
         return [
             [['game_id', 'developer_id'], 'required'],
             [['game_id', 'developer_id'], 'integer'],
             [['game_id', 'developer_id'], 'unique', 'targetAttribute' => ['game_id', 'developer_id']],
-            [['developer_id'], 'exist', 'skipOnError' => true, 'targetClass' => Developer::className(), 'targetAttribute' => ['developer_id' => 'id']],
-            [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::className(), 'targetAttribute' => ['game_id' => 'id']],
+            [['developer_id'], 'exist', 'skipOnError' => true, 'targetClass' => Developer::class, 'targetAttribute' => ['developer_id' => 'id']],
+            [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::class, 'targetAttribute' => ['game_id' => 'id']],
         ];
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function attributeLabels()
+    public function attributeLabels(): array
     {
         return [
-            'game_id' => 'Game ID',
+            'game_id'      => 'Game ID',
             'developer_id' => 'Developer ID',
         ];
     }
 
-    /**
-     * Gets query for [[Developer]].
-     *
-     * @return \yii\db\ActiveQuery
-     */
-    public function getDeveloper()
+    public function getDeveloper(): ActiveQuery
     {
-        return $this->hasOne(Developer::className(), ['id' => 'developer_id']);
+        return $this->hasOne(Developer::class, ['id' => 'developer_id']);
     }
 
-    /**
-     * Gets query for [[Game]].
-     *
-     * @return \yii\db\ActiveQuery
-     */
-    public function getGame()
+    public function getGame(): ActiveQuery
     {
-        return $this->hasOne(Game::className(), ['id' => 'game_id']);
+        return $this->hasOne(Game::class, ['id' => 'game_id']);
     }
 
-    public static function removeConnectionsByGameID($game_id)
+    public static function removeConnectionsByGameID(int $game_id): void
     {
         self::deleteAll(['game_id' => $game_id]);
     }
 
-    public static function removeConnectionsByDeveloperID($developer_id)
+    public static function removeConnectionsByDeveloperID(int $developer_id): void
     {
         self::deleteAll(['developer_id' => $developer_id]);
     }
 
-    public static function createConnection($game_id, $developer_id)
+    public static function createConnection(int $game_id, int $developer_id): void
     {
         $connection = new self();
         $connection->developer_id = $developer_id;

@@ -2,64 +2,55 @@
 
 namespace common\models;
 
-use Yii;
 use yii\behaviors\SluggableBehavior;
 use yii\behaviors\TimestampBehavior;
+use yii\db\ActiveQuery;
 use yii\db\ActiveRecord;
 
 /**
  * This is the model class for table "{{%platform}}".
  *
- * @property int $id
+ * @property int         $id
  * @property string|null $name
- * @property int|null $available
- * @property int $game_id
+ * @property int|null    $available
+ * @property int         $game_id
  * @property string|null $slug
  * @property string|null $requirements_minimum
  * @property string|null $requirements_recommended
- * @property string $created_at
+ * @property string      $created_at
  * @property string|null $updated_at
  *
- * @property Game $game
+ * @property Game        $game
  */
 class Platform extends ActiveRecord
 {
-    /**
-     * @return array
-     */
-    public function behaviors()
+    public function behaviors(): array
     {
         return [
             'timestamp' => [
-                'class' => TimestampBehavior::className(),
+                'class'      => TimestampBehavior::class,
                 'attributes' => [
                     ActiveRecord::EVENT_BEFORE_INSERT => ['created_at'],
                     ActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
                 ],
-                'value' => date("Y-m-d H:i:s"),
+                'value'      => date("Y-m-d H:i:s"),
             ],
             'sluggable' => [
-                'class' => SluggableBehavior::className(),
-                'attribute' => ['name'],
+                'class'         => SluggableBehavior::class,
+                'attribute'     => ['name'],
                 'slugAttribute' => 'slug',
-                'ensureUnique' => false,
-                'immutable' => true,
+                'ensureUnique'  => false,
+                'immutable'     => true,
             ],
         ];
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function tableName()
+    public static function tableName(): string
     {
         return '{{%platform}}';
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function rules()
+    public function rules(): array
     {
         return [
             [['game_id'], 'integer'],
@@ -68,53 +59,38 @@ class Platform extends ActiveRecord
             [['requirements_minimum', 'requirements_recommended'], 'string'],
             [['created_at', 'updated_at'], 'safe'],
             [['name'], 'string', 'max' => 255],
-            [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::className(), 'targetAttribute' => ['game_id' => 'id']],
+            [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::class, 'targetAttribute' => ['game_id' => 'id']],
         ];
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function attributeLabels()
+    public function attributeLabels(): array
     {
         return [
-            'id' => 'ID',
-            'name' => 'Name',
-            'available' => 'Available',
-            'game_id' => 'Game ID',
-            'requirements_minimum' => 'Requirements Minimum',
+            'id'                       => 'ID',
+            'name'                     => 'Name',
+            'available'                => 'Available',
+            'game_id'                  => 'Game ID',
+            'requirements_minimum'     => 'Requirements Minimum',
             'requirements_recommended' => 'Requirements Recommended',
-            'created_at' => 'Created At',
-            'updated_at' => 'Updated At',
+            'created_at'               => 'Created At',
+            'updated_at'               => 'Updated At',
         ];
     }
 
-    /**
-     * Gets query for [[Game]].
-     *
-     * @return \yii\db\ActiveQuery
-     */
-    public function getGame()
+    public function getGame(): ActiveQuery
     {
-        return $this->hasOne(Game::className(), ['id' => 'game_id']);
+        return $this->hasOne(Game::class, ['id' => 'game_id']);
     }
 
     public function getIcon(): string
     {
-        switch ($this->slug) {
-            case 'windows':
-                $icon = '<i data-toggle="tooltip" data-placement="top" title="Playable on ' . ucfirst($this->name) . '" class="fa fa-windows" aria-hidden="true"></i>';
-                break;
-            case 'linux':
-                $icon = '<i data-toggle="tooltip" data-placement="top" title="Playable on ' . ucfirst($this->name) . '" class="fa fa-linux" aria-hidden="true"></i>';
-                break;
-            case 'mac':
-                $icon = '<i data-toggle="tooltip" data-placement="top" title="Playable on ' . ucfirst($this->name) . '" class="fa fa-apple" aria-hidden="true"></i>';
-                break;
-            default:
-                $icon = '';
-        }
+        $name = ucfirst((string)$this->name);
 
-        return $icon;
+        return match ($this->slug) {
+            'windows' => '<i data-toggle="tooltip" data-placement="top" title="Playable on ' . $name . '" class="fa fa-windows" aria-hidden="true"></i>',
+            'linux'   => '<i data-toggle="tooltip" data-placement="top" title="Playable on ' . $name . '" class="fa fa-linux" aria-hidden="true"></i>',
+            'mac'     => '<i data-toggle="tooltip" data-placement="top" title="Playable on ' . $name . '" class="fa fa-apple" aria-hidden="true"></i>',
+            default   => '',
+        };
     }
 }

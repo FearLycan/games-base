@@ -3,130 +3,106 @@
 namespace common\models;
 
 use yii\behaviors\TimestampBehavior;
+use yii\db\ActiveQuery;
 use yii\db\ActiveRecord;
 
 /**
  * This is the model class for table "{{%review}}".
  *
- * @property int $id
- * @property int|null $total_positive
- * @property int|null $total_negative
- * @property int|null $total_reviews
- * @property int|null $game_id
- * @property string $created_at
+ * @property int         $id
+ * @property int|null    $total_positive
+ * @property int|null    $total_negative
+ * @property int|null    $total_reviews
+ * @property int|null    $game_id
+ * @property string      $created_at
  * @property string|null $updated_at
  * @property string|null $description
  *
- * @property Game $game
+ * @property Game        $game
  */
-class Review extends \yii\db\ActiveRecord
+class Review extends ActiveRecord
 {
-    private $_percent_positive;
-    private $_percent_negative;
+    private ?int $_percent_positive = null;
+    private ?int $_percent_negative = null;
 
-    /**
-     * @return array
-     */
-    public function behaviors()
+    public function behaviors(): array
     {
         return [
             'timestamp' => [
-                'class' => TimestampBehavior::className(),
+                'class'      => TimestampBehavior::class,
                 'attributes' => [
                     ActiveRecord::EVENT_BEFORE_INSERT => ['created_at'],
                     ActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
                 ],
-                'value' => date("Y-m-d H:i:s"),
+                'value'      => date("Y-m-d H:i:s"),
             ],
         ];
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function tableName()
+    public static function tableName(): string
     {
         return '{{%review}}';
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function rules()
+    public function rules(): array
     {
         return [
             [['total_positive', 'total_negative', 'total_reviews', 'game_id'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
             [['description'], 'string', 'max' => 255],
-            [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::className(), 'targetAttribute' => ['game_id' => 'id']],
+            [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::class, 'targetAttribute' => ['game_id' => 'id']],
         ];
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function attributeLabels()
+    public function attributeLabels(): array
     {
         return [
-            'id' => 'ID',
+            'id'             => 'ID',
             'total_positive' => 'Total Positive',
             'total_negative' => 'Total Negative',
-            'total_reviews' => 'Total Reviews',
-            'description' => 'Description',
-            'game_id' => 'Game ID',
-            'created_at' => 'Created At',
-            'updated_at' => 'Updated At',
+            'total_reviews'  => 'Total Reviews',
+            'description'    => 'Description',
+            'game_id'        => 'Game ID',
+            'created_at'     => 'Created At',
+            'updated_at'     => 'Updated At',
         ];
     }
 
-    /**
-     * Gets query for [[Game]].
-     *
-     * @return \yii\db\ActiveQuery
-     */
-    public function getGame()
+    public function getGame(): ActiveQuery
     {
-        return $this->hasOne(Game::className(), ['id' => 'game_id']);
+        return $this->hasOne(Game::class, ['id' => 'game_id']);
     }
 
     public function getPercentsOfPositive(): int
     {
-        if ($this->total_reviews == 0) {
+        if (empty($this->total_reviews)) {
             return 0;
         }
 
-        if (!$this->_percent_positive) {
-            $this->_percent_positive = (int)round(($this->total_positive / $this->total_reviews) * 100);
-        }
-
-        return $this->_percent_positive;
+        return $this->_percent_positive ??= (int)round(($this->total_positive / $this->total_reviews) * 100);
     }
 
     public function getPercentsOfNegative(): int
     {
-        if ($this->total_reviews == 0) {
+        if (empty($this->total_reviews)) {
             return 0;
         }
 
-        if (!$this->_percent_negative) {
-            $this->_percent_negative = (int)round(($this->total_negative / $this->total_reviews) * 100);
-        }
-
-        return $this->_percent_negative;
+        return $this->_percent_negative ??= (int)round(($this->total_negative / $this->total_reviews) * 100);
     }
 
     public function getShortPositiveDescription(): string
     {
-        $positive = number_format($this->total_positive);
-        $reviews = number_format($this->total_reviews);
+        $positive = number_format((int)$this->total_positive);
+        $reviews = number_format((int)$this->total_reviews);
 
         return "{$positive} of the {$reviews} user reviews for this game are positive.";
     }
 
     public function getShortNegativeDescription(): string
     {
-        $negative = number_format($this->total_negative);
-        $reviews = number_format($this->total_reviews);
+        $negative = number_format((int)$this->total_negative);
+        $reviews = number_format((int)$this->total_reviews);
 
         return "{$negative} of the {$reviews} user reviews for this game are negative.";
     }

@@ -2,7 +2,8 @@
 
 namespace common\models;
 
-use Yii;
+use yii\db\ActiveQuery;
+use yii\db\ActiveRecord;
 
 /**
  * This is the model class for table "{{%game_genre}}".
@@ -13,34 +14,25 @@ use Yii;
  * @property Game  $game
  * @property Genre $genre
  */
-class GameGenre extends \yii\db\ActiveRecord
+class GameGenre extends ActiveRecord
 {
-    /**
-     * {@inheritdoc}
-     */
-    public static function tableName()
+    public static function tableName(): string
     {
         return '{{%game_genre}}';
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function rules()
+    public function rules(): array
     {
         return [
             [['game_id', 'genre_id'], 'required'],
             [['game_id', 'genre_id'], 'integer'],
             [['game_id', 'genre_id'], 'unique', 'targetAttribute' => ['game_id', 'genre_id']],
-            [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::className(), 'targetAttribute' => ['game_id' => 'id']],
-            [['genre_id'], 'exist', 'skipOnError' => true, 'targetClass' => Genre::className(), 'targetAttribute' => ['genre_id' => 'id']],
+            [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::class, 'targetAttribute' => ['game_id' => 'id']],
+            [['genre_id'], 'exist', 'skipOnError' => true, 'targetClass' => Genre::class, 'targetAttribute' => ['genre_id' => 'id']],
         ];
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function attributeLabels()
+    public function attributeLabels(): array
     {
         return [
             'game_id'  => 'Game ID',
@@ -48,37 +40,27 @@ class GameGenre extends \yii\db\ActiveRecord
         ];
     }
 
-    /**
-     * Gets query for [[Game]].
-     *
-     * @return \yii\db\ActiveQuery
-     */
-    public function getGame()
+    public function getGame(): ActiveQuery
     {
-        return $this->hasOne(Game::className(), ['id' => 'game_id']);
+        return $this->hasOne(Game::class, ['id' => 'game_id']);
     }
 
-    /**
-     * Gets query for [[Genre]].
-     *
-     * @return \yii\db\ActiveQuery
-     */
-    public function getGenre()
+    public function getGenre(): ActiveQuery
     {
-        return $this->hasOne(Genre::className(), ['id' => 'genre_id']);
+        return $this->hasOne(Genre::class, ['id' => 'genre_id']);
     }
 
-    public static function removeConnectionsByGameID($game_id)
+    public static function removeConnectionsByGameID(int $game_id): void
     {
         self::deleteAll(['game_id' => $game_id]);
     }
 
-    public static function removeConnectionsByGenreID($genre_id)
+    public static function removeConnectionsByGenreID(int $genre_id): void
     {
         self::deleteAll(['genre_id' => $genre_id]);
     }
 
-    public static function createConnection($game_id, $genre_id): void
+    public static function createConnection(int $game_id, int $genre_id): void
     {
         $connection = self::findOne(['game_id' => $game_id, 'genre_id' => $genre_id]);
 

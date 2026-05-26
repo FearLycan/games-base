@@ -2,76 +2,63 @@
 
 namespace common\models;
 
-use Yii;
+use yii\db\ActiveQuery;
+use yii\db\ActiveRecord;
 
 /**
  * This is the model class for table "{{%game_image}}".
  *
- * @property int $id
- * @property string $url
- * @property int $game_id
- * @property string $type
- * @property int|null $status
- * @property string $created_at
+ * @property int         $id
+ * @property string      $url
+ * @property int         $game_id
+ * @property string      $type
+ * @property int|null    $status
+ * @property string      $created_at
  * @property string|null $updated_at
  *
- * @property Game $game
+ * @property Game        $game
  */
-class GameImage extends \yii\db\ActiveRecord
+class GameImage extends ActiveRecord
 {
-    const TYPE_SCREENSHOT = 'screenshot';
-    const TYPE_ICON = 'icon';
-    const TYPE_BACKGROUND = 'background';
-    const TYPE_HEADER = 'header';
+    public const string TYPE_SCREENSHOT = 'screenshot';
+    public const string TYPE_ICON       = 'icon';
+    public const string TYPE_BACKGROUND = 'background';
+    public const string TYPE_HEADER     = 'header';
 
-    const STATUS_ACTIVE = 1;
-    const STATUS_INACTIVE = 0;
+    public const int STATUS_ACTIVE   = 1;
+    public const int STATUS_INACTIVE = 0;
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function tableName()
+    public static function tableName(): string
     {
         return '{{%game_image}}';
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function rules()
+    public function rules(): array
     {
         return [
             [['url', 'game_id', 'type'], 'required'],
             [['game_id', 'status'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
             [['url', 'type'], 'string', 'max' => 255],
-            [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::className(), 'targetAttribute' => ['game_id' => 'id']],
+            [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::class, 'targetAttribute' => ['game_id' => 'id']],
         ];
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function attributeLabels()
+    public function attributeLabels(): array
     {
         return [
-            'id' => 'ID',
-            'url' => 'Url',
-            'game_id' => 'Game ID',
-            'type' => 'Type',
-            'status' => 'Status',
+            'id'         => 'ID',
+            'url'        => 'Url',
+            'game_id'    => 'Game ID',
+            'type'       => 'Type',
+            'status'     => 'Status',
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',
         ];
     }
 
-    /**
-     * Gets query for [[Game]].
-     *
-     * @return \yii\db\ActiveQuery
-     */
-    public function getGame()
+    public function getGame(): ActiveQuery
     {
-        return $this->hasOne(Game::className(), ['id' => 'game_id']);
+        return $this->hasOne(Game::class, ['id' => 'game_id']);
     }
 }

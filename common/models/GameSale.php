@@ -9,93 +9,76 @@ use yii\db\ActiveRecord;
 /**
  * This is the model class for table "{{%game_sale}}".
  *
- * @property int $id
- * @property int|null $game_id
- * @property int|null $type
- * @property int|null $order
- * @property string $created_at
+ * @property int         $id
+ * @property int|null    $game_id
+ * @property int|null    $type
+ * @property int|null    $order
+ * @property string      $created_at
  * @property string|null $updated_at
  *
- * @property Game $game
+ * @property Game        $game
  */
 class GameSale extends ActiveRecord
 {
-    const TYPE_BESTSELLERS = 1;
-    const TYPE_NEW_AND_NOTEWORTHY = 2;
-    const TYPE_POPULAR_UPCOMING = 3;
+    public const int TYPE_BESTSELLERS        = 1;
+    public const int TYPE_NEW_AND_NOTEWORTHY = 2;
+    public const int TYPE_POPULAR_UPCOMING   = 3;
 
-    const STEAM_FILTER_BESTSELLERS = 'topsellers';
-    const STEAM_FILTER_NEW_AND_NOTEWORTHY = 'popularnew';
-    const STEAM_FILTER_POPULAR_UPCOMING = 'popularcomingsoon';
+    public const string STEAM_FILTER_BESTSELLERS        = 'topsellers';
+    public const string STEAM_FILTER_NEW_AND_NOTEWORTHY = 'popularnew';
+    public const string STEAM_FILTER_POPULAR_UPCOMING   = 'popularcomingsoon';
 
-    /**
-     * @return array
-     */
-    public function behaviors()
+    public function behaviors(): array
     {
         return [
             'timestamp' => [
-                'class' => TimestampBehavior::className(),
+                'class'      => TimestampBehavior::class,
                 'attributes' => [
                     ActiveRecord::EVENT_BEFORE_INSERT => ['created_at'],
                     ActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
                 ],
-                'value' => date("Y-m-d H:i:s"),
+                'value'      => date("Y-m-d H:i:s"),
             ],
         ];
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function tableName()
+    public static function tableName(): string
     {
         return '{{%game_sale}}';
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function rules()
+    public function rules(): array
     {
         return [
             [['game_id', 'type', 'order'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
-            [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::className(), 'targetAttribute' => ['game_id' => 'id']],
+            [['game_id'], 'exist', 'skipOnError' => true, 'targetClass' => Game::class, 'targetAttribute' => ['game_id' => 'id']],
         ];
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function attributeLabels()
+    public function attributeLabels(): array
     {
         return [
-            'id' => 'ID',
-            'game_id' => 'Game ID',
-            'type' => 'Type',
-            'order' => 'Order',
+            'id'         => 'ID',
+            'game_id'    => 'Game ID',
+            'type'       => 'Type',
+            'order'      => 'Order',
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',
         ];
     }
 
-    /**
-     * Gets query for [[Game]].
-     *
-     * @return ActiveQuery
-     */
     public function getGame(): ActiveQuery
     {
-        return $this->hasOne(Game::className(), ['id' => 'game_id']);
+        return $this->hasOne(Game::class, ['id' => 'game_id']);
     }
 
     public static function getSteamFilters(): array
     {
         return [
-            self::TYPE_BESTSELLERS => self::STEAM_FILTER_BESTSELLERS,
+            self::TYPE_BESTSELLERS        => self::STEAM_FILTER_BESTSELLERS,
             self::TYPE_NEW_AND_NOTEWORTHY => self::STEAM_FILTER_NEW_AND_NOTEWORTHY,
-            self::TYPE_POPULAR_UPCOMING => self::STEAM_FILTER_POPULAR_UPCOMING
+            self::TYPE_POPULAR_UPCOMING   => self::STEAM_FILTER_POPULAR_UPCOMING,
         ];
     }
 }

@@ -56,7 +56,7 @@ class GameCategory extends ActiveRecord
      */
     public function getCategory(): ActiveQuery
     {
-        return $this->hasOne(Category::className(), ['id' => 'category_id']);
+        return $this->hasOne(Category::class, ['id' => 'category_id']);
     }
 
     /**
@@ -69,17 +69,17 @@ class GameCategory extends ActiveRecord
         return $this->hasOne(Game::class, ['id' => 'game_id']);
     }
 
-    public static function removeConnectionsByGameID($game_id): void
+    public static function removeConnectionsByGameID(int $game_id): void
     {
         self::deleteAll(['game_id' => $game_id]);
     }
 
-    public static function removeConnectionsByCategoryID($category_id): void
+    public static function removeConnectionsByCategoryID(int $category_id): void
     {
         self::deleteAll(['category_id' => $category_id]);
     }
 
-    public static function createConnection($game_id, $category_id): void
+    public static function createConnection(int $game_id, int $category_id): void
     {
         $connection = self::findOne(['category_id' => $category_id, 'game_id' => $game_id]);
 

@@ -54,24 +54,30 @@ use yii\httpclient\Client;
  */
 class Game extends ActiveRecord
 {
-    public const  STATUS_ACTIVE        = 1;
-    public const  STATUS_WAIT_TO_SYNC  = 0;
-    public const  STATUS_INACTIVE      = 3;
-    public const  STATUS_SUCCESS_FALSE = 10;
+    public const int STATUS_ACTIVE        = 1;
+    public const int STATUS_WAIT_TO_SYNC  = 0;
+    public const int STATUS_INACTIVE      = 3;
+    public const int STATUS_SUCCESS_FALSE = 10;
 
-    public const STEAM_DECK_VERIFIED    = 4;
-    public const STEAM_DECK_PLAYABLE    = 3;
-    public const STEAM_DECK_UNSUPPORTED = 2;
+    public const int STEAM_DECK_VERIFIED    = 4;
+    public const int STEAM_DECK_PLAYABLE    = 3;
+    public const int STEAM_DECK_UNSUPPORTED = 2;
 
-    public const TYPE_GAME  = 'game';
-    public const TYPE_DLC   = 'dlc';
-    public const TYPE_MUSIC = 'music';
-    public const TYPE_DEMO  = 'demo';
+    public const string TYPE_GAME  = 'game';
+    public const string TYPE_DLC   = 'dlc';
+    public const string TYPE_MUSIC = 'music';
+    public const string TYPE_DEMO  = 'demo';
 
-    private array      $_screenshots;
-    private ?GameImage $_icon;
-    private ?GameImage $_background;
-    private ?GameImage $_header;
+    private const int SALES_CACHE_TTL = 3600;
+
+    private ?array     $_screenshots = null;
+    private ?GameImage $_icon = null;
+    private ?GameImage $_background = null;
+    private ?GameImage $_header = null;
+    private ?array     $_availablePlatforms = null;
+    private ?string    $_mainGenre = null;
+    /** @var array<int, true>|null map of sale type IDs this game belongs to */
+    private ?array     $_saleTypes = null;
 
     /**
      * @return array
@@ -302,57 +308,55 @@ class Game extends ActiveRecord
     }
 
     /**
-     * Gets query for [[GameSales]].
-     *
-     * @param int $type
-     * @param int $limit
      * @return Game[]
      */
     public static function getSales(int $type, int $limit = 30): array
     {
-        return Game::find()
+        $key = ['game.sales', $type, $limit];
+
+        return Yii::$app->cache->getOrSet($key, static fn(): array => self::find()
             ->joinWith(['gameSales'])
             ->where([
                 'game_sale.type' => $type,
                 'game.status'    => self::STATUS_ACTIVE,
-                'game.type'      => 'game',
+                'game.type'      => self::TYPE_GAME,
             ])
             ->orderBy(['game_sale.order' => SORT_ASC])
             ->limit($limit)
-            ->all();
+            ->all(), self::SALES_CACHE_TTL);
+    }
+
+    /**
+     * Resolves which sale types this game belongs to in a single pass.
+     * Subsequent is*() calls are O(1) lookups against the cached map.
+     *
+     * @return array<int, true>
+     */
+    private function saleTypes(): array
+    {
+        if ($this->_saleTypes === null) {
+            $this->_saleTypes = [];
+            foreach ($this->gameSales as $sale) {
+                $this->_saleTypes[(int)$sale->type] = true;
+            }
+        }
+
+        return $this->_saleTypes;
     }
 
     public function isBestseller(): bool
     {
-        foreach ($this->gameSales as $sale) {
-            if ((int)$sale->type === GameSale::TYPE_BESTSELLERS) {
-                return true;
-            }
-        }
-
-        return false;
+        return isset($this->saleTypes()[GameSale::TYPE_BESTSELLERS]);
     }
 
     public function isPopularUpcoming(): bool
     {
-        foreach ($this->gameSales as $sale) {
-            if ((int)$sale->type === GameSale::TYPE_POPULAR_UPCOMING) {
-                return true;
-            }
-        }
-
-        return false;
+        return isset($this->saleTypes()[GameSale::TYPE_POPULAR_UPCOMING]);
     }
 
     public function isNewAndNoteworthy(): bool
     {
-        foreach ($this->gameSales as $sale) {
-            if ((int)$sale->type === GameSale::TYPE_NEW_AND_NOTEWORTHY) {
-                return true;
-            }
-        }
-
-        return false;
+        return isset($this->saleTypes()[GameSale::TYPE_NEW_AND_NOTEWORTHY]);
     }
 
     /**
@@ -787,9 +791,14 @@ class Game extends ActiveRecord
         return 'https://store.steampowered.com/app/' . $this->steam_appid;
     }
 
+    /**
+     * @return Platform[]
+     */
     public function getAvailablePlatforms(): array
     {
-        return $this->getPlatforms()->where(['available' => true])->all();
+        return $this->_availablePlatforms ??= $this->getPlatforms()
+            ->where(['available' => true])
+            ->all();
     }
 
     public function setInformationFromWeb()
@@ -904,11 +913,7 @@ class Game extends ActiveRecord
 
     public function getMainGenre(): string
     {
-        if (isset($this->genres[0])) {
-            return $this->genres[0]->name;
-        }
-
-        return '';
+        return $this->_mainGenre ??= ($this->genres[0]->name ?? '');
     }
 
     public function getSaleLabel(): string

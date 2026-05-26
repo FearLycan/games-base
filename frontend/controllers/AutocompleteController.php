@@ -20,7 +20,7 @@ class AutocompleteController extends Controller
     private const int MIN_LENGTH = 2;
     private const int LIMIT_GAMES = 6;
     private const int LIMIT_OTHER = 4;
-    private const int CACHE_TTL = 300;
+    private const int CACHE_TTL = 1800;
 
     private Cache $cache;
 
