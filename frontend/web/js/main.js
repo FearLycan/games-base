@@ -1,174 +1,289 @@
-/*  ---------------------------------------------------
-    Template Name: Directing
-    Description:  Directing directory listing HTML Template
-    Author: Colorlib
-    Author URI: https://colorlib.com
-    Version: 1.0
-    Created: Colorlib
----------------------------------------------------------  */
-
 'use strict';
 
-(function ($) {
+(function () {
+    const modal = document.querySelector('[data-search-modal]');
+    if (!modal) {
+        return;
+    }
 
-    /*------------------
-        Preloader
-    --------------------*/
-    $(window).on('load', function () {
-        $(".loader").fadeOut();
-        $("#preloder").delay(200).fadeOut("slow");
-    });
+    const triggers = document.querySelectorAll('[data-search-trigger]');
+    const panel = modal.querySelector('[data-search-panel]');
+    const input = modal.querySelector('[data-search-input]');
+    const spinner = modal.querySelector('[data-search-spinner]');
+    const closeBtn = modal.querySelector('[data-search-close]');
+    const resultsEl = modal.querySelector('[data-search-results]');
+    const idleEl = modal.querySelector('[data-search-state="idle"]');
+    const emptyEl = modal.querySelector('[data-search-state="empty"]');
+    const endpoint = modal.dataset.searchUrl || '/autocomplete/search';
 
-    /*------------------
-        Background Set
-    --------------------*/
-    $('.set-bg').each(function () {
-        var bg = $(this).data('setbg');
-        $(this).css('background-image', 'url(' + bg + ')');
-    });
+    const DEBOUNCE_MS = 180;
+    const MIN_CHARS = 2;
 
-    /*------------------
-		Navigation
-	--------------------*/
-    $(".mobile-menu").slicknav({
-        prependTo: '#mobile-menu-wrap',
-        allowParentLinks: true
-    });
+    let debounceTimer = null;
+    let inflight = null;
+    let currentToken = 0;
+    let items = [];
+    let activeIndex = -1;
+    let lastQuery = '';
 
-    /*--------------------------
-    Testimonial Slider
-    ----------------------------*/
-    var testimonialSlider = $(".testimonial__slider");
-    testimonialSlider.owlCarousel({
-        loop: true,
-        margin: 0,
-        items: 1,
-        dots: false,
-        nav: true,
-        navText: ["<span class='arrow_left'><span/>", "<span class='arrow_right'><span/>"],
-        smartSpeed: 1200,
-        autoHeight: false,
-        autoplay: false,
-        startPosition: 'URLHash',
-        animateOut: 'fadeOut',
-        animateIn: 'fadeIn',
-    });
-
-    /*-----------------------------
-        Listing Details Slider
-    -------------------------------*/
-    $(".listing__details__gallery__slider").owlCarousel({
-        loop: true,
-        margin: 20,
-        items: 4,
-        dots: true,
-        smartSpeed: 1200,
-        autoHeight: false,
-        autoplay: true,
-    });
-
-    /*-----------------------
-		Price Range Radius
-	------------------------ */
-    /*var rangeSlider = $(".price-range-radius"),
-        radius = $("#radius");
-    rangeSlider.slider({
-        range: 'min',
-        min: 0,
-        max: 2,
-        value: 1,
-        slide: function (event, ui) {
-            radius.val(ui.value + 'km');
+    function openModal() {
+        if (!modal.hidden) return;
+        modal.hidden = false;
+        document.documentElement.style.overflow = 'hidden';
+        requestAnimationFrame(() => input.focus());
+        if (input.value.trim().length >= MIN_CHARS) {
+            scheduleSearch(input.value);
         }
-    });
-    radius.val(rangeSlider.slider("value") + 'km');*/
+    }
 
-    /*-----------------------
-		Price Range Slider
-	------------------------ */
-    /*var rangeSliderPrice = $(".price-range"),
-        minamount = $("#minamount");
-    rangeSliderPrice.slider({
-        range: 'min',
-        min: 0,
-        max: 80,
-        value: 20,
-        slide: function (event, ui) {
-            minamount.val('$' + ui.value);
+    function closeModal() {
+        if (modal.hidden) return;
+        modal.hidden = true;
+        document.documentElement.style.overflow = '';
+    }
+
+    function setSpinner(on) {
+        if (on) spinner.hidden = false;
+        else spinner.hidden = true;
+    }
+
+    function setState(state) {
+        idleEl.hidden = state !== 'idle';
+        emptyEl.hidden = state !== 'empty';
+        resultsEl.hidden = state !== 'results';
+    }
+
+    function escapeHtml(value) {
+        if (value == null) return '';
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function highlight(text, query) {
+        if (!text) return '';
+        const safe = escapeHtml(text);
+        if (!query) return safe;
+        const tokens = query
+            .split(/\s+/)
+            .filter((t) => t.length >= 2)
+            .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        if (!tokens.length) return safe;
+        const re = new RegExp('(' + tokens.join('|') + ')', 'ig');
+        return safe.replace(re, '<mark class="bg-transparent text-accent font-semibold">$1</mark>');
+    }
+
+    function buildResults(data) {
+        items = [];
+        const query = data.query || '';
+        const groups = data.groups || [];
+
+        if (!groups.length) {
+            resultsEl.innerHTML = '';
+            setState('empty');
+            return;
         }
-    });
-    minamount.val('$' + rangeSliderPrice.slider("value"));*/
 
-    /*--------------------------
-        Select
-    ----------------------------*/
-    $("select").niceSelect();
+        const html = groups.map((group) => {
+            const groupHtml = group.items.map((item) => {
+                const index = items.length;
+                items.push(item);
 
-    /*------------------
-		Single Product
-	--------------------*/
-    $('.listing__details__gallery__slider img').on('click', function () {
+                const visual = item.image
+                    ? `<img src="${escapeHtml(item.image)}" alt="" loading="lazy" class="h-10 w-16 object-cover rounded-md bg-surface-2 shrink-0">`
+                    : `<span class="h-10 w-10 grid place-items-center rounded-md bg-surface-2 text-fg-subtle shrink-0">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M4 7h16M4 12h10M4 17h16"></path>
+                            </svg>
+                       </span>`;
 
-        var imgurl = $(this).data('imgbigurl');
-        var bigImg = $('.listing__details__gallery__item__large').attr('src');
-        if (imgurl != bigImg) {
-            $('.listing__details__gallery__item__large').attr({
-                src: imgurl
+                const subtitle = item.subtitle
+                    ? `<div class="text-xs text-fg-subtle truncate">${escapeHtml(item.subtitle)}</div>`
+                    : '';
+
+                const badge = item.badge
+                    ? `<span class="ml-auto text-[11px] font-mono text-fg-subtle shrink-0">${escapeHtml(item.badge)}</span>`
+                    : '';
+
+                return `
+                    <a href="${escapeHtml(item.url)}"
+                       data-search-result
+                       data-index="${index}"
+                       class="flex items-center gap-3 px-5 py-2.5 transition group">
+                        ${visual}
+                        <div class="min-w-0 flex-1">
+                            <div class="result-title text-sm font-medium text-fg truncate transition-colors">${highlight(item.title, query)}</div>
+                            ${subtitle}
+                        </div>
+                        ${badge}
+                        <svg class="result-arrow h-4 w-4 text-accent shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </a>
+                `;
+            }).join('');
+
+            return `
+                <section class="py-2">
+                    <div class="px-5 pt-2 pb-1 text-[10px] font-mono font-medium uppercase tracking-[0.18em] text-fg-subtle">${escapeHtml(group.label)}</div>
+                    <div class="flex flex-col">${groupHtml}</div>
+                </section>
+            `;
+        }).join('<div class="border-t border-line/70 mx-5"></div>');
+
+        resultsEl.innerHTML = html;
+        setState('results');
+        setActive(0);
+    }
+
+    function setActive(index) {
+        const nodes = resultsEl.querySelectorAll('[data-search-result]');
+        if (!nodes.length) {
+            activeIndex = -1;
+            return;
+        }
+        if (index < 0) index = nodes.length - 1;
+        if (index >= nodes.length) index = 0;
+        activeIndex = index;
+
+        nodes.forEach((node) => node.removeAttribute('data-active'));
+        const active = nodes[activeIndex];
+        if (active) {
+            active.setAttribute('data-active', 'true');
+            active.scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    function moveActive(delta) {
+        if (activeIndex === -1) {
+            setActive(delta > 0 ? 0 : -1);
+        } else {
+            setActive(activeIndex + delta);
+        }
+    }
+
+    function openActive() {
+        const nodes = resultsEl.querySelectorAll('[data-search-result]');
+        const active = nodes[activeIndex];
+        if (active) {
+            window.location.href = active.getAttribute('href');
+        }
+    }
+
+    function scheduleSearch(value) {
+        clearTimeout(debounceTimer);
+        const q = value.trim();
+
+        if (q.length < MIN_CHARS) {
+            cancelInflight();
+            setSpinner(false);
+            setState('idle');
+            items = [];
+            activeIndex = -1;
+            lastQuery = '';
+            return;
+        }
+
+        debounceTimer = setTimeout(() => runSearch(q), DEBOUNCE_MS);
+    }
+
+    function cancelInflight() {
+        if (inflight && typeof inflight.abort === 'function') {
+            inflight.abort();
+        }
+        inflight = null;
+    }
+
+    function runSearch(q) {
+        if (q === lastQuery) return;
+        lastQuery = q;
+        cancelInflight();
+
+        const token = ++currentToken;
+        setSpinner(true);
+
+        const url = endpoint + (endpoint.indexOf('?') === -1 ? '?' : '&') + 'q=' + encodeURIComponent(q);
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        inflight = controller;
+
+        fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+            credentials: 'same-origin',
+            signal: controller ? controller.signal : undefined,
+        })
+            .then((res) => res.ok ? res.json() : Promise.reject(new Error('Network error')))
+            .then((data) => {
+                if (token !== currentToken) return;
+                setSpinner(false);
+                buildResults(data);
+            })
+            .catch((err) => {
+                if (err && err.name === 'AbortError') return;
+                if (token !== currentToken) return;
+                setSpinner(false);
+                setState('empty');
             });
+    }
+
+    triggers.forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openModal();
+        });
+    });
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+    }
+
+    modal.addEventListener('mousedown', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    input.addEventListener('input', (e) => {
+        scheduleSearch(e.target.value);
+    });
+
+    resultsEl.addEventListener('mousemove', (e) => {
+        const link = e.target.closest('[data-search-result]');
+        if (!link) return;
+        const idx = parseInt(link.getAttribute('data-index'), 10);
+        if (!Number.isNaN(idx) && idx !== activeIndex) {
+            setActive(idx);
         }
     });
 
-    /*-------------------
-		Quantity change
-	--------------------- */
-    $(".nice-scroll").niceScroll({
-        cursorcolor: "#a8a8a8",
-        cursorwidth: "8px",
-        background: "rgba(168, 168, 168, 0.3)",
-        cursorborder: "",
-        autohidemode: false,
-        horizrailenabled: false
+    document.addEventListener('keydown', (e) => {
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const cmd = isMac ? e.metaKey : e.ctrlKey;
+
+        if (cmd && (e.key === 'k' || e.key === 'K')) {
+            e.preventDefault();
+            if (modal.hidden) openModal();
+            else closeModal();
+            return;
+        }
+
+        if (modal.hidden) return;
+
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closeModal();
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            moveActive(1);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            moveActive(-1);
+        } else if (e.key === 'Enter') {
+            if (activeIndex >= 0) {
+                e.preventDefault();
+                openActive();
+            }
+        }
     });
-
-    $(".filter.nice-scroll").niceScroll({
-        cursorcolor: "#a8a8a8",
-        cursorwidth: "8px",
-        background: "rgba(168, 168, 168, 0.3)",
-        cursorborder: "",
-        autohidemode: true,
-        horizrailenabled: false
-    });
-
-    /*------------------
-		Barfiller
-	--------------------*/
-    $('#bar1').barfiller({
-        barColor: "#f03250",
-    });
-
-    $('#bar2').barfiller({
-        barColor: "#f03250",
-    });
-
-    $('#bar3').barfiller({
-        barColor: "#f03250",
-    });
-
-    $('#bar4').barfiller({
-        barColor: "#f03250",
-    });
-
-    $('#bar5').barfiller({
-        barColor: "#f03250",
-    });
-
-    /*------------------
-		Magnific
-	--------------------*/
-    $('.video-popup').magnificPopup({
-        type: 'iframe'
-    });
-
-    $('[data-toggle="tooltip"]').tooltip();
-
-})(jQuery);
+})();

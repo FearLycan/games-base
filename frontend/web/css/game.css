@@ -1,0 +1,350 @@
+/* ----------------------------------------------------------------------
+ * Single-view styles for /game/<id>/<slug> (view.php + _right-bar.php).
+ * Registered from frontend/modules/game/views/game/view.php only.
+ * --------------------------------------------------------------------*/
+
+/* --- Hero backdrop --------------------------------------------------- */
+
+.game-hero {
+    background-color: #0b1220;
+    background-size: cover;
+    background-position: center 25%;
+    background-repeat: no-repeat;
+}
+
+.game-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(95deg,
+            rgba(11, 18, 32, 0.55) 0%,
+            rgba(11, 18, 32, 0.42) 30%,
+            rgba(11, 18, 32, 0.16) 60%,
+            rgba(11, 18, 32, 0.06) 100%),
+        linear-gradient(180deg,
+            rgba(11, 18, 32, 0.16) 0%,
+            rgba(11, 18, 32, 0.10) 50%,
+            rgba(11, 18, 32, 0.20) 100%);
+    pointer-events: none;
+}
+
+.game-hero-text {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* --- Star rating ----------------------------------------------------- */
+
+.rating {
+    position: relative;
+    display: inline-block;
+    font-size: 14px;
+    line-height: 1;
+    letter-spacing: 2px;
+    height: 1em;
+}
+
+.rating-lower,
+.rating-upper {
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.rating-lower {
+    color: rgba(255, 255, 255, 0.25);
+}
+
+.rating-upper {
+    color: #f59e0b;
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+}
+
+/* --- Read-more about block ------------------------------------------ */
+
+.about-text {
+    position: relative;
+    color: var(--color-fg-muted, #475569);
+    line-height: 1.7;
+    font-size: 15px;
+}
+
+.about-text :is(p, li) {
+    margin: 0 0 0.9em;
+}
+
+.about-text :is(h1, h2, h3, h4) {
+    color: var(--color-fg, #0f172a);
+    font-weight: 600;
+    margin: 1.4em 0 0.6em;
+}
+
+.about-text a {
+    color: var(--color-accent, #059669);
+}
+
+.about-text.is-collapsed {
+    max-height: 11em;
+    overflow: hidden;
+    mask-image: linear-gradient(180deg, #000 60%, transparent 100%);
+}
+
+/* --- Gallery -------------------------------------------------------- */
+
+.gallery-main {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 14px;
+    background: var(--color-surface-2, #f1f5f9);
+}
+
+.gallery-main img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: opacity 220ms ease;
+}
+
+.gallery-thumb {
+    flex: 0 0 auto;
+    position: relative;
+    width: 130px;
+    aspect-ratio: 16 / 9;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity 160ms ease, transform 160ms ease, outline-color 160ms ease;
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+}
+
+.gallery-thumb:hover {
+    opacity: 0.9;
+}
+
+.gallery-thumb[data-active="true"] {
+    opacity: 1;
+    outline-color: var(--color-accent, #059669);
+}
+
+.gallery-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.gallery-strip {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-strong, #cbd5e1) transparent;
+}
+
+.gallery-strip::-webkit-scrollbar {
+    height: 8px;
+}
+
+.gallery-strip::-webkit-scrollbar-thumb {
+    background: var(--color-line-strong, #cbd5e1);
+    border-radius: 999px;
+}
+
+/* --- Platform tabs / requirements ----------------------------------- */
+
+.platform-tab {
+    transition: background-color 160ms ease, color 160ms ease;
+}
+
+.platform-tab[data-active="true"] {
+    background: var(--color-fg, #0f172a);
+    color: var(--color-canvas, #ffffff);
+}
+
+.requirements-panel {
+    display: none;
+}
+
+.requirements-panel[data-active="true"] {
+    display: grid;
+}
+
+.requirements-body :is(ul, ol) {
+    padding-left: 1.1em;
+    margin: 0;
+}
+
+.requirements-body :is(li, p) {
+    margin: 0 0 0.4em;
+    font-size: 13px;
+    color: var(--color-fg-muted, #475569);
+    line-height: 1.55;
+}
+
+.requirements-body strong {
+    color: var(--color-fg, #0f172a);
+    font-weight: 600;
+}
+
+/* --- Sidebar score rings -------------------------------------------- */
+
+.score-ring {
+    --value: 0;
+    --color: #16a34a;
+    --size: 72px;
+    --thickness: 7px;
+    position: relative;
+    width: var(--size);
+    height: var(--size);
+    border-radius: 50%;
+    background: conic-gradient(var(--color) calc(var(--value) * 1%), #e5e7eb 0);
+    display: grid;
+    place-items: center;
+}
+
+.score-ring::before {
+    content: "";
+    position: absolute;
+    inset: var(--thickness);
+    background: var(--color-canvas, #ffffff);
+    border-radius: 50%;
+}
+
+.score-ring span {
+    position: relative;
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-weight: 600;
+    color: var(--color);
+    font-size: 18px;
+    letter-spacing: -0.02em;
+}
+
+/* --- Steam reviews bar ---------------------------------------------- */
+
+.reviews-bar {
+    position: relative;
+    display: flex;
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--color-surface-2, #f1f5f9);
+}
+
+.reviews-bar-positive {
+    background: var(--color-accent, #059669);
+}
+
+.reviews-bar-negative {
+    background: #dc2626;
+}
+
+/* --- Tag chips ------------------------------------------------------- */
+
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-fg-muted, #475569);
+    background: var(--color-surface, #f8fafc);
+    border: 1px solid var(--color-line, #e2e8f0);
+    border-radius: 6px;
+    padding: 4px 8px;
+    transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.tag-chip:hover {
+    background: var(--color-canvas, #ffffff);
+    color: var(--color-fg, #0f172a);
+    border-color: var(--color-line-strong, #cbd5e1);
+}
+
+.tag-chip[hidden] {
+    display: none;
+}
+
+/* --- List page: game card hover + active state --------------------- */
+
+.game-card-image {
+    transition: box-shadow 220ms ease, transform 220ms ease;
+}
+
+.game-list-item:hover .game-card-image {
+    box-shadow: 0 8px 24px -10px rgba(15, 23, 42, 0.18);
+    transform: translateY(-2px);
+}
+
+.game-list-item[data-active="true"] .game-card-image {
+    box-shadow:
+        0 0 0 2px var(--color-accent, #059669),
+        0 12px 32px -12px rgba(5, 150, 105, 0.35);
+    transform: translateY(-2px);
+}
+
+.game-list-item[data-active="true"] .game-card h3 {
+    color: var(--color-accent, #059669);
+}
+
+/* Loading state for the sticky sidebar while AJAX is in flight.
+ * We deliberately do NOT change opacity or layout of the existing content
+ * while loading — otherwise sticky positioning + content-height changes make
+ * the sidebar appear to drop/jump. Just overlay a small spinner in the corner.
+ *
+ * `position: relative` is only needed below the lg breakpoint, where the box
+ * is not yet `position: sticky` (sticky itself provides the positioning
+ * context for the absolute spinner). Using an ID selector globally would beat
+ * the `lg:sticky` class on specificity and break sticky behaviour. */
+@media (max-width: 1023.98px) {
+    #gameDetailsBox {
+        position: relative;
+    }
+}
+
+#gameDetailsBox > * {
+    transition: opacity 200ms ease;
+}
+
+#gameDetailsBox.game-details-loading > * {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+#gameDetailsBox.game-details-loading::after {
+    content: "";
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid rgba(15, 23, 42, 0.15);
+    border-top-color: var(--color-accent, #059669);
+    animation: search-spin 0.8s linear infinite;
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* --- List page: pagination ----------------------------------------- */
+
+.pager-active a,
+.pager-active a:hover {
+    background: var(--color-fg, #0f172a);
+    border-color: var(--color-fg, #0f172a);
+    color: var(--color-canvas, #ffffff);
+    cursor: default;
+}
+
+.pager-disabled a,
+.pager-disabled a:hover {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: transparent;
+    border-color: var(--color-line, #e2e8f0);
+    color: var(--color-fg-subtle, #94a3b8);
+}

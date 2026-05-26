@@ -1,288 +1,134 @@
-/*-----------------------------------------------------------*/
-.rating {
-    display: inline-block !important;
-    unicode-bidi: bidi-override;
-    color: transparent !important;
-    font-size: 22px !important;
-    /*height: 25px;*/
-    width: auto;
-    margin: 0 40px 0 0;
-    position: relative;
-    padding: 0;
-    /*margin-right: 40px;*/
+/* Custom overrides for frontend (Tailwind via Play CDN handles the rest). */
+
+/* ----------------------------------------------------------------------
+ * Global search modal (used in frontend/views/layouts/main.php).
+ * --------------------------------------------------------------------*/
+
+@keyframes search-backdrop-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }
 
-.rating:before {
-    position: absolute;
-    right: -27px;
-    top: 19px;
-    height: 1px;
-    width: 4px;
-    background: #E1DEDE;
-    content: "";
+@keyframes search-panel-in {
+    from { opacity: 0; transform: translateY(-12px) scale(0.985); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.rating-upper {
-    color: #F09D17 !important;
-    padding: 0;
-    position: absolute;
-    z-index: 1;
-    display: flex !important;;
-    top: 0;
-    left: 0;
-    overflow: hidden;
-    font-size: 22px !important;
+@keyframes search-spin {
+    to { transform: rotate(360deg); }
 }
 
-.rating-lower {
-    padding: 0;
-    display: flex !important;
-    z-index: 0;
-    font-size: 22px !important;
+[data-search-modal][hidden] {
+    display: none !important;
 }
 
-/*-----------------------------------------------------------*/
-
-a#readMore {
-    line-height: 18px;
-    margin-top: 10px;
-    font-weight: bold;
+[data-search-modal] {
+    animation: search-backdrop-in 180ms ease-out;
 }
 
-a#readMore:hover {
-    cursor: pointer;
+[data-search-modal] [data-search-panel] {
+    animation: search-panel-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.share-btn, a {
-    transition: all .2s;
+[data-search-spinner] {
+    animation: search-spin 0.8s linear infinite;
 }
 
-.share-btn:hover {
-    background: rgba(0, 0, 0, 0.2) !important;
-    color: #FFFFFF;
+[data-search-result][data-active="true"] {
+    background-color: var(--color-accent-soft, #ecfdf5);
 }
 
-a:hover, a:focus {
-    color: #000000;
+[data-search-result][data-active="true"] .result-title {
+    color: var(--color-accent, #059669);
 }
 
-.list-group-item.category-item {
-    /*padding: 0.45rem 1.25rem;*/
-    padding: 1px;
+[data-search-result][data-active="true"] .result-arrow {
+    opacity: 1;
+    transform: translateX(0);
 }
 
-.list-group.category-list {
-    line-height: 25px;
+.result-arrow {
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity 160ms ease, transform 160ms ease;
 }
 
-.category-icon {
-    background: rgba(27, 40, 56, 0.95);
-    float: left;
+.search-kbd {
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1;
+    padding: 3px 6px;
+    border-radius: 5px;
+    border: 1px solid var(--color-line-strong, #cbd5e1);
+    background: var(--color-canvas, #ffffff);
+    color: var(--color-fg-muted, #475569);
+    box-shadow: 0 1px 0 var(--color-line-strong, #cbd5e1);
+    letter-spacing: 0.04em;
 }
 
-.category-link {
-    margin-left: 30px;
-    color: #323232;
+/* ----------------------------------------------------------------------
+ * Breadcrumbs (rendered in frontend/views/layouts/main.php).
+ * --------------------------------------------------------------------*/
+
+.crumbs {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 6px;
+    padding: 4px 14px 4px 10px;
+    margin-bottom: 28px;
+    border-radius: 999px;
+    background: var(--color-surface, #f8fafc);
+    border: 1px solid var(--color-line, #e2e8f0);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--color-fg-subtle, #94a3b8);
+    max-width: 100%;
 }
 
-.most__search__tab-requirements .nav {
-    justify-content: normal;
+.crumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    color: var(--color-fg-muted, #475569);
 }
 
-.bb_ul {
-    text-align: left;
-    list-style-type: none;
-    font-size: 14px;
-}
-
-.bb_tag {
-    color: #323232;
-    font-weight: 600;
-    margin-bottom: 18px;
-    font-size: 20px;
-}
-
-.listing__hero__icon img {
-    background-color: rgba(0, 0, 0, 0.6);
-}
-
-div.read-more img {
-    background-color: rgba(0, 0, 0, 0.6);
-}
-
-#game-name-select {
-    border-radius: 0;
-}
-
-p {
-    transition: all .2s;
-}
-
-p#showMore {
-    color: black;
-}
-
-p#showMore:hover {
-    cursor: pointer;
-}
-
-.btn-label {
-    position: relative;
-    left: -12px;
-    display: inline-block;
-    padding: 6px 12px;
-    background: rgba(0, 0, 0, 0.15);
-    border-radius: 3px 0 0 3px;
-}
-
-.btn-steam-deck {
-    padding: 0 0.75rem;
-}
-
-.btn-steam-deck:hover {
-    cursor: default !important;
-}
-
-.game-search-link {
-    color: #000000;
-}
-
-.easy-autocomplete-container > ul > li {
-    border-bottom: 1px solid rgba(221, 221, 221, 0.4);
-}
-
-.hero__text .hero__categories__tags li a {
-    transition: all .2s;
-}
-
-.hero__text .hero__categories__tags li a:hover {
-    border: 1px solid #8d8d8d;
-}
-
-.breadcrumb__option span {
-    color: #000000;
-}
-
-.blog__item {
-    transition: box-shadow 0.3s ease-in-out;
-}
-
-.blog__item:hover {
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.8);
-}
-
-.bs-tooltip-top .arrow, .bs-tooltip-auto[x-placement^="top"] .arrow {
-    bottom: 1px;
-}
-
-s, strike {
+.crumb a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: inherit;
     text-decoration: none;
-    position: relative;
+    transition: color 140ms ease;
+}
+
+.crumb:has(a:hover) {
+    background: var(--color-canvas, #ffffff);
+    color: var(--color-fg, #0f172a);
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+.crumb-active {
+    color: var(--color-fg, #0f172a);
+    font-weight: 600;
+    font-family: var(--font-display, "Lexend", system-ui, sans-serif);
+    letter-spacing: -0.01em;
+    background: transparent;
+}
+
+.crumb-active:hover {
+    background: transparent;
+    box-shadow: none;
+}
+
+.crumb-sep {
     display: inline-block;
-    font-size: 85%;
-    color: rgba(180, 180, 180, 0.75);
+    color: var(--color-line-strong, #cbd5e1);
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 11px;
+    user-select: none;
 }
-
-s:after, strike:after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    border-top: 2px solid red;
-    height: calc(50% + 1px);
-    width: 100%;
-    transform: rotateZ(-12deg);
-}
-
-.game-price {
-    color: #FFF;
-    margin-bottom: 5px;
-    margin-right: 6px;
-    font-size: 30px;
-}
-
-.row {
-    transition: all .2s;
-}
-
-.row.game:hover {
-    background: #dddddd;
-}
-
-.blog__sidebar__recent {
-    padding: 25px 25px 10px 25px;
-}
-
-.blog__sidebar__recent__item__text p {
-    margin-bottom: 15px;
-}
-
-.blog__sidebar__recent__item__text span {
-    margin-bottom: 5px;
-}
-
-.listing__hero__text .label {
-    font-size: 13px;
-    color: #ffffff;
-    background: #f03250;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    display: inline-block;
-    padding: 4px 15px 4px;
-    border-radius: 2px;
-}
-
-.listing__hero__text .label .label-bestseller {
-    color: #ffffff;
-    background: #f03250;
-}
-
-.listing__hero__text .label .label-new-and-noteworthy {
-    color: #ffffff;
-    background: #00a7ea;
-}
-
-.listing__hero__text .label .label-popular-upcoming {
-    color: #000000;
-    background: #D9D137;
-}
-
-.game-details-loading {
-    opacity: 0.4;
-}
-
-.spad {
-    padding-top: 50px;
-    padding-bottom: 50px;
-}
-
-.hero {
-    padding: 100px 0;
-}
-
-.hero__search__form form input {
-    width: 100%;
-    float: none;
-}
-
-/*
-.blog__pagination a.active {
-    background: #f03250;
-    color: #ffffff;
-    border-color: #f03250;
-}
-
-.blog__pagination span.disabled, .blog__pagination li {
-    font-size: 15px;
-    color: #707070;
-    display: inline-block;
-    padding: 12px 20px 10px;
-    border: 1px solid #e4e4e4;
-    margin-right: -5px;
-    -webkit-transition: all, 0.3s;
-    -o-transition: all, 0.3s;
-    transition: all, 0.3s;
-
-    cursor: not-allowed;
-}*/

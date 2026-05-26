@@ -2,13 +2,12 @@
 
 use common\models\Category;
 use common\models\Genre;
-use frontend\components\Helper;
-use frontend\components\Pager;
 use frontend\modules\game\models\searches\GameSearch;
+use yii\data\ActiveDataProvider;
+use yii\helpers\Html;
 use yii\helpers\Url;
 use yii\web\View;
 use yii\widgets\ListView;
-use yii\data\ActiveDataProvider;
 
 /* @var $this View */
 /* @var $searchModel GameSearch */
@@ -18,96 +17,148 @@ use yii\data\ActiveDataProvider;
 $this->title = "Best {$model->name} games on Steam" . " - " . Yii::$app->params['meta-title'];
 $this->params['breadcrumbs'][] = 'Games';
 $this->params['breadcrumbs'][] = $model->name;
+$this->registerCssFile('@web/css/game.css');
 
 $models = $dataProvider->getModels();
+$totalCount = $dataProvider->getTotalCount();
+$kind = $model instanceof Category ? 'Category' : 'Genre';
 ?>
 
-<div class="breadcrumb-area set-bg" data-setbg="/img/background-default.jpg">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-12 text-center">
-                <div class="breadcrumb__text">
-                    <h2><?= $this->title ?></h2>
-                    <div class="breadcrumb__option">
-                        <a href="<?= Url::to(['/games']) ?>">
-                            <i class="fa fa-home"></i> Games
-                        </a>
-                        <span><?= $model->name ?></span>
-                    </div>
-                </div>
-            </div>
-        </div>
+<header class="mb-10">
+    <div class="flex items-center gap-3 mb-4">
+        <span class="font-mono text-[11px] uppercase tracking-[0.22em] text-fg-subtle">
+            <?= $kind ?>
+        </span>
+        <span class="h-px flex-1 bg-line"></span>
+        <span class="font-mono text-[11px] uppercase tracking-[0.18em] text-fg-subtle">
+            <?= number_format($totalCount) ?> games
+        </span>
     </div>
-</div>
+    <h1 class="font-display text-3xl sm:text-4xl font-bold text-fg tracking-tight leading-tight">
+        Best <span class="text-accent"><?= Html::encode($model->name) ?></span> games on Steam
+    </h1>
+    <?php if ($model->description ?? null): ?>
+        <p class="mt-4 max-w-3xl text-fg-muted leading-relaxed">
+            <?= Html::encode($model->description) ?>
+        </p>
+    <?php else: ?>
+        <p class="mt-4 max-w-3xl text-fg-muted">
+            Hand-picked <?= Html::encode(strtolower($model->name)) ?> titles. Hover any card to preview details on the right.
+        </p>
+    <?php endif; ?>
+</header>
 
-<section class="blog-section spad">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 col-sm-12 col-md-8 col-lg-8">
-                <?= ListView::widget([
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+    <div class="lg:col-span-8">
+        <?php if (empty($models)): ?>
+            <div class="rounded-2xl border border-dashed border-line bg-surface/40 px-8 py-16 text-center">
+                <p class="font-display text-lg font-semibold text-fg">No games yet</p>
+                <p class="mt-2 text-sm text-fg-muted">Check back soon — we sync new titles from Steam every day.</p>
+            </div>
+        <?php else: ?>
+            <?= ListView::widget([
                     'id'           => 'gameList',
-                    'pager'        => Helper::pager(),
                     'dataProvider' => $dataProvider,
-                    'itemOptions'  => ['class' => 'col-lg-6 col-md-6 game'],
                     'itemView'     => '_item',
-                    'options'      => ['class' => 'row'],
                     'summary'      => false,
-                ]) ?>
-            </div>
-
-            <div class="col-12 col-sm-12 col-md-4 col-lg-4" id="gameDetailsBox">
-                <?php if (isset($models[0])): ?>
-                    <?= $this->render('_right-bar', ['model' => $models[0], 'gameViewButton' => false]) ?>
-                <?php endif; ?>
-            </div>
-        </div>
+                    'layout'       => "<div class=\"grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-7\">{items}</div>\n{pager}",
+                    'itemOptions'  => function ($model) {
+                        return [
+                                'tag'      => 'div',
+                                'class'    => 'game-list-item',
+                                'data-key' => $model->id,
+                        ];
+                    },
+                    'pager'        => [
+                            'options'              => ['class' => 'mt-12 flex flex-wrap items-center justify-center gap-1.5 list-none p-0'],
+                            'linkContainerOptions' => ['class' => 'pager-item'],
+                            'linkOptions'          => ['class' => 'inline-flex items-center justify-center min-w-10 h-10 px-3.5 rounded-lg border border-line text-sm font-medium text-fg-muted hover:bg-surface hover:border-line-strong transition'],
+                            'activePageCssClass'   => 'pager-active',
+                            'disabledPageCssClass' => 'pager-disabled',
+                            'firstPageLabel'       => false,
+                            'lastPageLabel'        => false,
+                            'prevPageLabel'        => '←',
+                            'nextPageLabel'        => '→',
+                            'maxButtonCount'       => 7,
+                    ],
+            ]) ?>
+        <?php endif; ?>
     </div>
+
+    <aside class="lg:col-span-4">
+        <div class="lg:sticky lg:top-24" id="gameDetailsBox">
+            <?php if (isset($models[0])): ?>
+                <?= $this->render('_right-bar', ['model' => $models[0], 'gameViewButton' => true]) ?>
+            <?php endif; ?>
+        </div>
+    </aside>
 </section>
 
 <?php
-
+$detailsUrl = Url::to(['/game/details']);
 $js = <<<JS
+(function () {
+    var box = document.getElementById('gameDetailsBox');
+    var list = document.getElementById('gameList');
+    if (!box || !list) return;
 
-var timer;
+    var hoverTimer = null;
+    var currentXHR = null;
+    var currentKey = null;
+    var endpoint = '{$detailsUrl}';
 
-$(document).ready(function () {
-
-    $("div.game").hover(function () {
-        //mouseenter
-        let key = $(this).data('key');
-        let details = $(document).find('div.game-details[data-key="' + key + '"]');
-        
-        if (details.length === 0) {
-            clearTimeout(timer);
-            timer = setTimeout(function() { loadGame(key); }, 550);
-        }
-
-    }, function () {
-        //mouseleave 
-    });
-
-
-    function loadGame(id) {
-        let box = $('#gameDetailsBox');
-        $.ajax({
-            url: '/game/details',
-            type: 'GET',
-            data: {'id': id},
-            success: function (data) {
-                $(box).html(data);
-            },
-            beforeSend: function () {
-                $(box).addClass('game-details-loading');
-            },
-            complete: function () {
-                $(box).removeClass('game-details-loading');
-            }
+    function setActive(item) {
+        list.querySelectorAll('.game-list-item').forEach(function (el) {
+            el.setAttribute('data-active', el === item ? 'true' : 'false');
         });
     }
-    
-});
+
+    function loadGame(id, item) {
+        if (id === currentKey) return;
+        if (currentXHR && typeof currentXHR.abort === 'function') currentXHR.abort();
+
+        box.classList.add('game-details-loading');
+
+        var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        currentXHR = controller;
+
+        fetch(endpoint + '?id=' + encodeURIComponent(id), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+            signal: controller ? controller.signal : undefined
+        })
+            .then(function (res) { return res.ok ? res.text() : Promise.reject(); })
+            .then(function (html) {
+                box.innerHTML = html;
+                currentKey = id;
+                setActive(item);
+            })
+            .catch(function () {})
+            .finally(function () {
+                box.classList.remove('game-details-loading');
+            });
+    }
+
+    list.addEventListener('mouseover', function (e) {
+        var item = e.target.closest('.game-list-item');
+        if (!item) return;
+        var key = item.getAttribute('data-key');
+        if (!key || key === currentKey) return;
+        clearTimeout(hoverTimer);
+        hoverTimer = setTimeout(function () { loadGame(key, item); }, 380);
+    });
+
+    list.addEventListener('mouseleave', function () {
+        clearTimeout(hoverTimer);
+    });
+
+    // Mark first item active on load
+    var first = list.querySelector('.game-list-item');
+    if (first) {
+        first.setAttribute('data-active', 'true');
+        currentKey = first.getAttribute('data-key');
+    }
+})();
 JS;
-
-$this->registerJs($js, View::POS_READY);
+$this->registerJs($js, View::POS_END);
 ?>
-

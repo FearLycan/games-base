@@ -1,11 +1,11 @@
 <?php
 
 /* @var $this yii\web\View */
-/* @var $form yii\bootstrap4\ActiveForm */
+/* @var $form yii\widgets\ActiveForm */
 /* @var $model \frontend\models\SignupForm */
 
-use yii\bootstrap4\Html;
-use yii\bootstrap4\ActiveForm;
+use yii\helpers\Html;
+use yii\widgets\ActiveForm;
 
 $this->title = 'Signup';
 $this->params['breadcrumbs'][] = $this->title;

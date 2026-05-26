@@ -35,11 +35,11 @@ class HomeController extends Controller
                     ],
                 ],
             ],
-            'pageCache' => [
+            /*'pageCache' => [
                 'class'    => 'yii\filters\PageCache',
                 'only'     => ['index'],
                 'duration' => YII_DEBUG ? 1 : 3600,
-            ],
+            ],*/
         ];
     }
 

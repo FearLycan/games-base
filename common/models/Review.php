@@ -96,7 +96,7 @@ class Review extends \yii\db\ActiveRecord
         }
 
         if (!$this->_percent_positive) {
-            $this->_percent_positive = round(($this->total_positive / $this->total_reviews), 2) * 100;
+            $this->_percent_positive = (int)round(($this->total_positive / $this->total_reviews) * 100);
         }
 
         return $this->_percent_positive;
@@ -109,7 +109,7 @@ class Review extends \yii\db\ActiveRecord
         }
 
         if (!$this->_percent_negative) {
-            $this->_percent_negative = round(($this->total_negative / $this->total_reviews), 2) * 100;
+            $this->_percent_negative = (int)round(($this->total_negative / $this->total_reviews) * 100);
         }
 
         return $this->_percent_negative;
