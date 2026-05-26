@@ -10,14 +10,16 @@ use yii\db\ActiveRecord;
 /**
  * This is the model class for table "{{%developer}}".
  *
- * @property int         $id
- * @property string|null $name
- * @property string|null $slug
- * @property int|null    $status
- * @property string      $created_at
- * @property string|null $updated_at
+ * @property int            $id
+ * @property string|null    $name
+ * @property string|null    $slug
+ * @property int|null       $status
+ * @property int|null       $profile_id
+ * @property string         $created_at
+ * @property string|null    $updated_at
  *
- * @property Game[]      $games
+ * @property Game[]         $games
+ * @property CompanyProfile $profile
  */
 class Developer extends ActiveRecord
 {
@@ -50,10 +52,15 @@ class Developer extends ActiveRecord
     public function rules(): array
     {
         return [
-            [['status'], 'integer'],
+            [['status', 'profile_id'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
             [['name'], 'string', 'max' => 255],
         ];
+    }
+
+    public function getProfile(): ActiveQuery
+    {
+        return $this->hasOne(CompanyProfile::class, ['id' => 'profile_id']);
     }
 
     public function attributeLabels(): array
@@ -70,5 +77,11 @@ class Developer extends ActiveRecord
     public function getGames(): ActiveQuery
     {
         return $this->hasMany(Game::class, ['id' => 'game_id'])->viaTable('{{%game_developer}}', ['developer_id' => 'id']);
+    }
+
+    public function afterSave($insert, $changedAttributes): void
+    {
+        parent::afterSave($insert, $changedAttributes);
+        CompanyProfileSync::syncFromDeveloper($this, $insert, $changedAttributes);
     }
 }

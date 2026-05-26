@@ -933,6 +933,50 @@ class Game extends ActiveRecord
         return '';
     }
 
+    /**
+     * Companies that act as both developer AND publisher of this game.
+     * Used to render a single "Studio" row instead of duplicating the name
+     * across Developer and Publisher rows.
+     *
+     * @return Developer[]
+     */
+    public function getStudios(): array
+    {
+        $pubNames = array_map(static fn($p) => $p->name, $this->publishers);
+        return array_values(array_filter(
+            $this->developers,
+            static fn($d) => in_array($d->name, $pubNames, true),
+        ));
+    }
+
+    /**
+     * Developers that don't also publish this game.
+     *
+     * @return Developer[]
+     */
+    public function getDevOnly(): array
+    {
+        $pubNames = array_map(static fn($p) => $p->name, $this->publishers);
+        return array_values(array_filter(
+            $this->developers,
+            static fn($d) => !in_array($d->name, $pubNames, true),
+        ));
+    }
+
+    /**
+     * Publishers that don't also develop this game.
+     *
+     * @return Publisher[]
+     */
+    public function getPubOnly(): array
+    {
+        $devNames = array_map(static fn($d) => $d->name, $this->developers);
+        return array_values(array_filter(
+            $this->publishers,
+            static fn($p) => !in_array($p->name, $devNames, true),
+        ));
+    }
+
     public static function count(): string
     {
         $cache = Yii::$app->cache;

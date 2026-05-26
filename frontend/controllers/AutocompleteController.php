@@ -66,15 +66,15 @@ class AutocompleteController extends Controller
             $games = $this->searchGames($query);
             $genres = $this->searchByName(Genre::class, $query, self::LIMIT_OTHER, 'list');
             $categories = $this->searchByName(Category::class, $query, self::LIMIT_OTHER, 'list');
-            $publishers = $this->searchByName(Publisher::class, $query, self::LIMIT_OTHER, null);
-            $developers = $this->searchByName(Developer::class, $query, self::LIMIT_OTHER, null);
+            [$companies, $developers, $publishers] = $this->searchCompaniesAndRoles($query);
 
             $groups = array_values(array_filter([
                 $this->formatGroup('games', 'Games', $games),
                 $this->formatGroup('genres', 'Genres', $genres),
                 $this->formatGroup('categories', 'Categories', $categories),
-                $this->formatGroup('publishers', 'Publishers', $publishers),
+                $this->formatGroup('companies', 'Companies', $companies),
                 $this->formatGroup('developers', 'Developers', $developers),
+                $this->formatGroup('publishers', 'Publishers', $publishers),
             ]));
 
             $total = array_sum(array_map(fn($g) => count($g['items']), $groups));
@@ -161,6 +161,84 @@ class AutocompleteController extends Controller
                 'badge'    => null,
             ];
         }, $rows);
+    }
+
+    /**
+     * Splits company matches into three buckets:
+     *   - companies: name exists in both developer and publisher → /company/<slug>
+     *   - developers: developer only → /developer/<slug>
+     *   - publishers: publisher only → /publisher/<slug>
+     *
+     * Each bucket is independently capped at LIMIT_OTHER and ordered alphabetically.
+     *
+     * @return array{0:array,1:array,2:array}
+     */
+    private function searchCompaniesAndRoles(string $query): array
+    {
+        $cap = self::LIMIT_OTHER * 2;
+
+        $devRows = Developer::find()
+            ->select(['name', 'slug'])
+            ->where(['like', 'name', $query])
+            ->orderBy(['name' => SORT_ASC])
+            ->limit($cap)
+            ->asArray()
+            ->all();
+
+        $pubRows = Publisher::find()
+            ->select(['name', 'slug'])
+            ->where(['like', 'name', $query])
+            ->orderBy(['name' => SORT_ASC])
+            ->limit($cap)
+            ->asArray()
+            ->all();
+
+        $devByName = [];
+        foreach ($devRows as $row) {
+            if (!empty($row['name'])) {
+                $devByName[$row['name']] = $row;
+            }
+        }
+        $pubByName = [];
+        foreach ($pubRows as $row) {
+            if (!empty($row['name'])) {
+                $pubByName[$row['name']] = $row;
+            }
+        }
+
+        $companies = [];
+        $developers = [];
+        $publishers = [];
+
+        foreach ($devByName as $name => $row) {
+            if (empty($row['slug'])) continue;
+            if (isset($pubByName[$name])) {
+                $companies[$row['slug']] = ['name' => $name, 'slug' => $row['slug'], 'route' => '/company/company/view'];
+            } else {
+                $developers[$row['slug']] = ['name' => $name, 'slug' => $row['slug'], 'route' => '/developer/developer/view'];
+            }
+        }
+        foreach ($pubByName as $name => $row) {
+            if (empty($row['slug']) || isset($devByName[$name])) continue;
+            $publishers[$row['slug']] = ['name' => $name, 'slug' => $row['slug'], 'route' => '/publisher/publisher/view'];
+        }
+
+        return [
+            $this->formatRoleItems(array_slice($companies, 0, self::LIMIT_OTHER)),
+            $this->formatRoleItems(array_slice($developers, 0, self::LIMIT_OTHER)),
+            $this->formatRoleItems(array_slice($publishers, 0, self::LIMIT_OTHER)),
+        ];
+    }
+
+    private function formatRoleItems(array $rows): array
+    {
+        return array_map(static fn($row) => [
+            'title'    => $row['name'],
+            'subtitle' => null,
+            'image'    => null,
+            'url'      => Url::to([$row['route'], 'slug' => $row['slug']]),
+            'badge'    => null,
+        ], array_values($rows));
     }
 
     private function formatGroup(string $key, string $label, array $items): ?array

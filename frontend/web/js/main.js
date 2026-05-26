@@ -93,7 +93,7 @@
                 items.push(item);
 
                 const visual = item.image
-                    ? `<img src="${escapeHtml(item.image)}" alt="" loading="lazy" class="h-10 w-16 object-cover rounded-md bg-surface-2 shrink-0">`
+                    ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}" loading="lazy" class="h-10 w-16 object-cover rounded-md bg-surface-2 shrink-0">`
                     : `<span class="h-10 w-10 grid place-items-center rounded-md bg-surface-2 text-fg-subtle shrink-0">
                             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <path d="M4 7h16M4 12h10M4 17h16"></path>

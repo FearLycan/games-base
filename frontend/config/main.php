@@ -3,8 +3,11 @@
 use yii\log\FileTarget;
 use common\models\User;
 use common\components\WebUser;
+use frontend\modules\company\CompanyModule;
+use frontend\modules\developer\DeveloperModule;
 use frontend\modules\game\GameModule;
 use frontend\modules\homepage\HomepageModule;
+use frontend\modules\publisher\PublisherModule;
 
 $params = array_merge(
     require __DIR__ . '/../../common/config/params.php',
@@ -54,15 +57,29 @@ return [
                 'game/<id>/<slug>'     => 'game/game/view',
                 '<alias:games>/<slug>' => 'game/game/list',
                 'game/<action>'        => 'game/game/<action>',
+                'developers'           => 'developer/developer/index',
+                'developer/<slug>'     => 'developer/developer/view',
+                'publishers'           => 'publisher/publisher/index',
+                'publisher/<slug>'     => 'publisher/publisher/view',
+                'company/<slug>'       => 'company/company/view',
             ],
         ],
     ],
     'modules'             => [
-        'homepage' => [
+        'homepage'  => [
             'class' => HomepageModule::class,
         ],
-        'game'     => [
+        'game'      => [
             'class' => GameModule::class,
+        ],
+        'developer' => [
+            'class' => DeveloperModule::class,
+        ],
+        'publisher' => [
+            'class' => PublisherModule::class,
+        ],
+        'company'   => [
+            'class' => CompanyModule::class,
         ],
     ],
     'params'              => $params,

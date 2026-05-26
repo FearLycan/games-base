@@ -1,0 +1,390 @@
+/* ----------------------------------------------------------------------
+ * Styles for developer / publisher pages.
+ * Registered from frontend/views/company/_view.php and _index.php.
+ * --------------------------------------------------------------------*/
+
+/* --- Hero ------------------------------------------------------------ */
+
+.company-hero {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(120% 90% at 80% 0%, rgba(16, 185, 129, 0.18) 0%, transparent 60%),
+        radial-gradient(120% 100% at 10% 100%, rgba(59, 130, 246, 0.12) 0%, transparent 65%),
+        linear-gradient(180deg, #0b1220 0%, #050a14 100%);
+    color: #fff;
+}
+
+.company-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(90deg,
+            rgba(255, 255, 255, 0.02) 0,
+            rgba(255, 255, 255, 0.02) 1px,
+            transparent 1px,
+            transparent 80px);
+    pointer-events: none;
+}
+
+.company-hero-glow {
+    position: absolute;
+    top: -40%;
+    right: -10%;
+    width: 60%;
+    height: 140%;
+    background: radial-gradient(closest-side, rgba(16, 185, 129, 0.22), transparent 70%);
+    filter: blur(40px);
+    pointer-events: none;
+}
+
+.company-logo {
+    background-color: rgba(255, 255, 255, 0.04);
+    transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.company-logo:hover {
+    transform: scale(1.04) rotate(-1deg);
+}
+
+/* --- Stat cards ------------------------------------------------------ */
+
+.stat-card {
+    border: 1px solid var(--color-line, #e5e7eb);
+    background: var(--color-surface, #fafafa);
+    border-radius: 14px;
+    padding: 16px 18px;
+    transition: border-color 200ms ease, transform 200ms ease;
+}
+
+.stat-card:hover {
+    border-color: var(--color-line-strong, #d1d5db);
+    transform: translateY(-2px);
+}
+
+.stat-value {
+    font-family: var(--font-display, "Lexend", sans-serif);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--color-fg, #0a0a0a);
+}
+
+.stat-label {
+    margin-top: 6px;
+    font-size: 11px;
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-fg-subtle, #6b7280);
+}
+
+/* --- Genre breakdown bars ------------------------------------------- */
+
+.genre-row {
+    display: grid;
+    grid-template-columns: minmax(110px, 160px) 1fr 44px 50px;
+    align-items: center;
+    gap: 14px;
+    font-size: 13px;
+}
+
+.genre-name {
+    color: var(--color-fg, #0a0a0a);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.genre-bar-track {
+    position: relative;
+    height: 8px;
+    background: var(--color-surface-2, #f3f4f6);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.genre-bar-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: linear-gradient(90deg, #10b981, #34d399);
+    border-radius: 999px;
+    transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.genre-percent {
+    text-align: right;
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 12px;
+    color: var(--color-accent, #059669);
+    font-weight: 600;
+}
+
+.genre-count {
+    text-align: right;
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 11px;
+    color: var(--color-fg-subtle, #6b7280);
+}
+
+@media (max-width: 480px) {
+    .genre-row {
+        grid-template-columns: minmax(90px, 120px) 1fr 40px;
+    }
+    .genre-count { display: none; }
+}
+
+/* --- Sort chips ----------------------------------------------------- */
+
+.sort-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--color-line, #e5e7eb);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-fg-muted, #4b5563);
+    background: transparent;
+    transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.sort-chip:hover {
+    background: var(--color-surface, #fafafa);
+    border-color: var(--color-line-strong, #d1d5db);
+    color: var(--color-fg, #0a0a0a);
+}
+
+.sort-chip[data-active="true"] {
+    background: var(--color-fg, #0a0a0a);
+    border-color: var(--color-fg, #0a0a0a);
+    color: var(--color-canvas, #ffffff);
+}
+
+/* --- Timeline ------------------------------------------------------- */
+
+.timeline {
+    position: relative;
+    padding-left: 28px;
+    margin: 0 0 0 6px;
+    list-style: none;
+}
+
+.timeline::before {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: linear-gradient(180deg,
+        rgba(16, 185, 129, 0.5) 0%,
+        rgba(16, 185, 129, 0.2) 50%,
+        transparent 100%);
+}
+
+.timeline-item {
+    position: relative;
+    padding: 6px 0 18px 0;
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    align-items: baseline;
+    gap: 16px;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-year {
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-accent, #059669);
+    text-align: right;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: -28px;
+    top: 12px;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: var(--color-canvas, #fff);
+    border: 2px solid var(--color-accent, #059669);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.08);
+}
+
+.timeline-item:last-child .timeline-dot {
+    background: var(--color-accent, #059669);
+}
+
+.timeline-text {
+    color: var(--color-fg-muted, #4b5563);
+    font-size: 14px;
+    line-height: 1.55;
+    margin: 0;
+}
+
+/* --- Social links --------------------------------------------------- */
+
+.social-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    transition: background 160ms ease;
+    color: var(--color-fg-muted, #4b5563);
+}
+
+.social-link:hover {
+    background: var(--color-surface, #fafafa);
+    color: var(--color-fg, #0a0a0a);
+}
+
+.social-icon {
+    flex: 0 0 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--color-surface-2, #f3f4f6);
+    display: grid;
+    place-items: center;
+    font-size: 14px;
+}
+
+.social-label {
+    flex: 1;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.social-arrow {
+    color: var(--color-fg-subtle, #9ca3af);
+    font-size: 12px;
+}
+
+/* --- Company cards (index page) ------------------------------------- */
+
+.company-card {
+    display: flex;
+    gap: 16px;
+    padding: 18px;
+    border-radius: 16px;
+    border: 1px solid var(--color-line, #e5e7eb);
+    background: var(--color-canvas, #fff);
+    transition: border-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+    overflow: hidden;
+}
+
+.company-card:hover {
+    border-color: var(--color-line-strong, #d1d5db);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.12);
+}
+
+.company-card-logo {
+    flex: 0 0 56px;
+    height: 56px;
+    border-radius: 12px;
+    background: var(--color-surface-2, #f3f4f6);
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+}
+
+.company-card-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.company-card-initials {
+    font-family: var(--font-display, "Lexend", sans-serif);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-accent, #059669);
+    letter-spacing: -0.02em;
+}
+
+.company-card-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.company-card-name {
+    font-family: var(--font-display, "Lexend", sans-serif);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-fg, #0a0a0a);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color 160ms ease;
+}
+
+.company-card:hover .company-card-name {
+    color: var(--color-accent, #059669);
+}
+
+.company-card-meta {
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-fg-subtle, #9ca3af);
+}
+
+.company-card-dot {
+    flex: 0 0 3px;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--color-line-strong, #d1d5db);
+}
+
+.company-card-desc {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-fg-muted, #4b5563);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* --- Pager (shared with game.css idiom) ---------------------------- */
+
+.pager-active a {
+    background: var(--color-fg, #0a0a0a);
+    color: var(--color-canvas, #fff);
+    border-color: var(--color-fg, #0a0a0a);
+}
+
+.pager-disabled a {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+/* --- History prose -------------------------------------------------- */
+
+.prose-history {
+    font-size: 15px;
+}
+
+.prose-history p {
+    margin: 0 0 1em;
+}

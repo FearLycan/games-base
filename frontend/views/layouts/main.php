@@ -257,15 +257,41 @@ AppAsset::register($this);
 </main>
 
 <footer class="border-t border-line mt-24 bg-surface/40">
-    <div class="mx-auto max-w-7xl px-6 lg:px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-fg-muted">
-        <div class="flex items-center gap-2">
-            <span class="grid h-6 w-6 place-items-center rounded-md bg-fg text-canvas font-bold text-[10px]">G</span>
-            © <?= date('Y') ?> <?= Html::encode(Yii::$app->name) ?>. All rights reserved.
+    <div class="mx-auto max-w-7xl px-6 lg:px-8 py-12">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
+            <div>
+                <h4 class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle mb-4">Browse</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="/developers" class="text-fg-muted hover:text-fg transition">Developers</a></li>
+                    <li><a href="/publishers" class="text-fg-muted hover:text-fg transition">Publishers</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle mb-4">Discover</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="/" class="text-fg-muted hover:text-fg transition">Home</a></li>
+                    <li><a href="#" class="text-fg-muted hover:text-fg transition">Bestsellers</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle mb-4">Company</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="#" class="text-fg-muted hover:text-fg transition">Contact</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle mb-4">Legal</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="#" class="text-fg-muted hover:text-fg transition">Terms</a></li>
+                    <li><a href="#" class="text-fg-muted hover:text-fg transition">Privacy</a></li>
+                </ul>
+            </div>
         </div>
-        <div class="flex gap-6">
-            <a href="#" class="hover:text-fg transition">Terms</a>
-            <a href="#" class="hover:text-fg transition">Privacy</a>
-            <a href="#" class="hover:text-fg transition">Contact</a>
+        <div class="pt-6 border-t border-line/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-fg-muted">
+            <div class="flex items-center gap-2">
+                <span class="grid h-6 w-6 place-items-center rounded-md bg-fg text-canvas font-bold text-[10px]">G</span>
+                © <?= date('Y') ?> <?= Html::encode(Yii::$app->name) ?>. All rights reserved.
+            </div>
         </div>
     </div>
 </footer>

@@ -14,11 +14,13 @@ use yii\db\ActiveRecord;
  * @property string|null     $name
  * @property string|null     $slug
  * @property int|null        $status
+ * @property int|null        $profile_id
  * @property string          $created_at
  * @property string|null     $updated_at
  *
  * @property GamePublisher[] $gamePublishers
  * @property Game[]          $games
+ * @property CompanyProfile  $profile
  */
 class Publisher extends ActiveRecord
 {
@@ -51,10 +53,15 @@ class Publisher extends ActiveRecord
     public function rules(): array
     {
         return [
-            [['status'], 'integer'],
+            [['status', 'profile_id'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
             [['name'], 'string', 'max' => 255],
         ];
+    }
+
+    public function getProfile(): ActiveQuery
+    {
+        return $this->hasOne(CompanyProfile::class, ['id' => 'profile_id']);
     }
 
     public function attributeLabels(): array
@@ -76,5 +83,11 @@ class Publisher extends ActiveRecord
     public function getGames(): ActiveQuery
     {
         return $this->hasMany(Game::class, ['id' => 'game_id'])->viaTable('{{%game_publisher}}', ['publisher_id' => 'id']);
+    }
+
+    public function afterSave($insert, $changedAttributes): void
+    {
+        parent::afterSave($insert, $changedAttributes);
+        CompanyProfileSync::syncFromPublisher($this, $insert, $changedAttributes);
     }
 }

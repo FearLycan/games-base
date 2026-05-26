@@ -51,17 +51,24 @@ $linkList = function (array $models, string $base) {
                     </div>
                 <?php endif; ?>
 
-                <?php if (!empty($model->developers)): ?>
+                <?php if (!empty($model->studios)): ?>
                     <div class="flex items-start gap-4 py-2.5">
-                        <dt class="w-24 shrink-0 text-fg-subtle">Developer</dt>
-                        <dd class="flex-1 text-right text-fg"><?= $linkList($model->developers, '/developer/') ?></dd>
+                        <dt class="w-24 shrink-0 text-fg-subtle" title="Developer & Publisher">Studio</dt>
+                        <dd class="flex-1 text-right text-fg"><?= $linkList($model->studios, '/company/') ?></dd>
                     </div>
                 <?php endif; ?>
 
-                <?php if (!empty($model->publishers)): ?>
+                <?php if (!empty($model->devOnly)): ?>
+                    <div class="flex items-start gap-4 py-2.5">
+                        <dt class="w-24 shrink-0 text-fg-subtle">Developer</dt>
+                        <dd class="flex-1 text-right text-fg"><?= $linkList($model->devOnly, '/developer/') ?></dd>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (!empty($model->pubOnly)): ?>
                     <div class="flex items-start gap-4 py-2.5">
                         <dt class="w-24 shrink-0 text-fg-subtle">Publisher</dt>
-                        <dd class="flex-1 text-right text-fg"><?= $linkList($model->publishers, '/publisher/') ?></dd>
+                        <dd class="flex-1 text-right text-fg"><?= $linkList($model->pubOnly, '/publisher/') ?></dd>
                     </div>
                 <?php endif; ?>
 
