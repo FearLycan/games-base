@@ -54,6 +54,7 @@ return [
             'showScriptName'  => false,
             'rules'           => [
                 '/'                    => 'homepage/home/index',
+                'games'                => 'game/game/index',
                 'game/<id>/<slug>'     => 'game/game/view',
                 '<alias:games>/<slug>' => 'game/game/list',
                 'game/<action>'        => 'game/game/<action>',

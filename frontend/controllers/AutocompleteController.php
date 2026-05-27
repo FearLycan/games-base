@@ -38,11 +38,56 @@ class AutocompleteController extends Controller
                 'rules' => [
                     [
                         'allow'   => true,
-                        'actions' => ['search'],
+                        'actions' => ['search', 'select2'],
                         'roles'   => ['?', '@'],
                     ],
                 ],
             ],
+        ];
+    }
+
+    /**
+     * Select2-compatible endpoint: returns `{results: [{id, text}], pagination: {more: bool}}`.
+     * Backs the multi-select filters on /games (genre, tag, category, developer, publisher).
+     */
+    public function actionSelect2(string $type, string $q = '', int $page = 1)
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        $modelClass = match ($type) {
+            'genre'     => Genre::class,
+            'tag'       => \common\models\Tag::class,
+            'category'  => Category::class,
+            'developer' => Developer::class,
+            'publisher' => Publisher::class,
+            default     => null,
+        };
+
+        if ($modelClass === null) {
+            return ['results' => [], 'pagination' => ['more' => false]];
+        }
+
+        $pageSize = 30;
+        $offset = max(0, ($page - 1) * $pageSize);
+
+        $query = $modelClass::find()
+            ->select(['id', 'name'])
+            ->orderBy(['name' => SORT_ASC])
+            ->limit($pageSize + 1)
+            ->offset($offset)
+            ->asArray();
+
+        if ($q !== '') {
+            $query->where(['like', 'name', $q]);
+        }
+
+        $rows = $query->all();
+        $hasMore = count($rows) > $pageSize;
+        $rows = array_slice($rows, 0, $pageSize);
+
+        return [
+            'results'    => array_map(static fn($r) => ['id' => (int)$r['id'], 'text' => $r['name']], $rows),
+            'pagination' => ['more' => $hasMore],
         ];
     }
 
