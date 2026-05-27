@@ -15,6 +15,8 @@
     const idleEl = modal.querySelector('[data-search-state="idle"]');
     const emptyEl = modal.querySelector('[data-search-state="empty"]');
     const endpoint = modal.dataset.searchUrl || '/autocomplete/search';
+    const trendingEndpoint = modal.dataset.trendingUrl || '/autocomplete/trending';
+    const trackEndpoint = modal.dataset.trackUrl || '/autocomplete/track';
 
     const DEBOUNCE_MS = 180;
     const MIN_CHARS = 2;
@@ -25,6 +27,8 @@
     let items = [];
     let activeIndex = -1;
     let lastQuery = '';
+    let trendingData = null;
+    let trendingLoading = false;
 
     function openModal() {
         if (!modal.hidden) return;
@@ -33,7 +37,63 @@
         requestAnimationFrame(() => input.focus());
         if (input.value.trim().length >= MIN_CHARS) {
             scheduleSearch(input.value);
+        } else {
+            ensureTrending();
         }
+    }
+
+    function ensureTrending() {
+        if (trendingData) {
+            renderTrending();
+            return;
+        }
+        if (trendingLoading) return;
+        trendingLoading = true;
+
+        fetch(trendingEndpoint, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+            credentials: 'same-origin',
+        })
+            .then((res) => res.ok ? res.json() : Promise.reject(new Error('Network error')))
+            .then((data) => {
+                trendingData = data;
+                if (input.value.trim().length < MIN_CHARS) {
+                    renderTrending();
+                }
+            })
+            .catch(() => { /* silently fall back to idle state */ })
+            .finally(() => { trendingLoading = false; });
+    }
+
+    function renderTrending() {
+        if (!trendingData || !trendingData.groups || !trendingData.groups.length) {
+            setState('idle');
+            return;
+        }
+        buildResults({ query: '', groups: trendingData.groups });
+    }
+
+    function trackClick(steamAppid) {
+        if (!steamAppid) return;
+
+        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+        const token = tokenMeta ? tokenMeta.getAttribute('content') : '';
+
+        const headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest',
+        };
+        if (token) {
+            headers['X-CSRF-Token'] = token;
+        }
+
+        fetch(trackEndpoint, {
+            method: 'POST',
+            headers: headers,
+            credentials: 'same-origin',
+            body: 'steam_appid=' + encodeURIComponent(steamAppid),
+            keepalive: true,
+        }).catch(() => {});
     }
 
     function closeModal() {
@@ -108,10 +168,15 @@
                     ? `<span class="ml-auto text-[11px] font-mono text-fg-subtle shrink-0">${escapeHtml(item.badge)}</span>`
                     : '';
 
+                const trackAttr = item.steam_appid
+                    ? `data-steam-appid="${escapeHtml(item.steam_appid)}"`
+                    : '';
+
                 return `
                     <a href="${escapeHtml(item.url)}"
                        data-search-result
                        data-index="${index}"
+                       ${trackAttr}
                        class="flex items-center gap-3 px-5 py-2.5 transition group">
                         ${visual}
                         <div class="min-w-0 flex-1">
@@ -170,6 +235,7 @@
         const nodes = resultsEl.querySelectorAll('[data-search-result]');
         const active = nodes[activeIndex];
         if (active) {
+            trackClick(active.getAttribute('data-steam-appid'));
             window.location.href = active.getAttribute('href');
         }
     }
@@ -181,10 +247,15 @@
         if (q.length < MIN_CHARS) {
             cancelInflight();
             setSpinner(false);
-            setState('idle');
             items = [];
             activeIndex = -1;
             lastQuery = '';
+            if (trendingData) {
+                renderTrending();
+            } else {
+                setState('idle');
+                ensureTrending();
+            }
             return;
         }
 
@@ -255,6 +326,12 @@
         if (!Number.isNaN(idx) && idx !== activeIndex) {
             setActive(idx);
         }
+    });
+
+    resultsEl.addEventListener('click', (e) => {
+        const link = e.target.closest('[data-search-result]');
+        if (!link) return;
+        trackClick(link.getAttribute('data-steam-appid'));
     });
 
     document.addEventListener('keydown', (e) => {

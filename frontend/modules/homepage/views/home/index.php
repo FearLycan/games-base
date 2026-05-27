@@ -1,21 +1,24 @@
 <?php
 
-use common\models\GameGenre;
+use common\models\Genre;
 use yii\helpers\Html;
 use yii\helpers\Url;
 
 /* @var $this yii\web\View */
-/* @var $genres GameGenre[] */
+/* @var $genres Genre[] */
 /* @var $bestsellers \common\models\Game[] */
 /* @var $popular_upcoming \common\models\Game[] */
 /* @var $new_and_noteworthy \common\models\Game[] */
+/* @var $gamesCount int */
+/* @var $genresCount int */
 
-$this->title = Yii::$app->params['meta-title'];
+$this->title = Yii::$app->params['meta-title'] . ' — Discover great Steam games, with confidence';
+$this->params['description'] = 'Curated Steam game discovery — bestsellers, new releases, and upcoming titles, refreshed daily. Signal over noise.';
 
 $columns = [
-        ['dot' => 'bg-emerald-500', 'eyebrow' => 'Trending now', 'label' => 'Bestsellers', 'tagline' => "What everyone's playing this week.", 'games' => $bestsellers],
-        ['dot' => 'bg-sky-500', 'eyebrow' => 'Fresh arrivals', 'label' => 'New & Noteworthy', 'games' => $new_and_noteworthy, 'tagline' => 'Just dropped — worth your evening.'],
-        ['dot' => 'bg-indigo-500', 'eyebrow' => 'Soon to ship', 'label' => 'Upcoming', 'games' => $popular_upcoming, 'tagline' => 'On the horizon. Wishlist material.'],
+        ['dot' => 'bg-emerald-500', 'eyebrow' => 'Trending now',  'label' => 'Bestsellers',       'tagline' => "What everyone's playing this week.",  'games' => $bestsellers,        'slug' => 'bestsellers'],
+        ['dot' => 'bg-sky-500',     'eyebrow' => 'Fresh arrivals', 'label' => 'New & Noteworthy', 'tagline' => 'Just dropped — worth your evening.',  'games' => $new_and_noteworthy, 'slug' => 'new-and-noteworthy'],
+        ['dot' => 'bg-indigo-500',  'eyebrow' => 'Soon to ship',   'label' => 'Upcoming',         'tagline' => 'On the horizon. Wishlist material.',  'games' => $popular_upcoming,   'slug' => 'upcoming'],
 ];
 
 $preview_tabs = [
@@ -61,7 +64,7 @@ $preview_tabs = [
                            class="inline-flex items-center gap-2 rounded-full bg-fg text-canvas px-6 py-3 text-sm font-semibold hover:bg-fg/90 transition shadow-sm">
                             Browse games <span aria-hidden="true">→</span>
                         </a>
-                        <a href="#"
+                        <a href="<?= Url::to(['/how-it-works']) ?>"
                            class="inline-flex items-center gap-2 rounded-full bg-canvas text-fg px-6 py-3 text-sm font-medium ring-1 ring-line hover:ring-line-strong hover:bg-surface transition">
                             How it works
                         </a>
@@ -71,15 +74,15 @@ $preview_tabs = [
                          style="animation-delay: 0.6s">
                         <div class="flex items-center gap-2">
                             <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                            <?= number_format(count($bestsellers) + count($new_and_noteworthy) + count($popular_upcoming) + 200) ?>+ games
+                            <?= number_format($gamesCount) ?> games
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="h-1.5 w-1.5 rounded-full bg-sky-500"></span>
-                            <?= count($genres) ?>+ genres
+                            <?= number_format($genresCount) ?> genres
                         </div>
                         <div class="hidden sm:flex items-center gap-2">
                             <span class="h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
-                            Synced from Steam
+                            Synced from Steam daily
                         </div>
                     </div>
                 </div>
@@ -147,13 +150,13 @@ $preview_tabs = [
     <section class="relative -mt-4 mb-16">
         <div class="mt-6 flex flex-wrap items-center justify-center gap-2 max-w-3xl mx-auto px-4">
             <span class="text-xs text-fg-subtle font-mono mr-1">Browse:</span>
-            <?php foreach (array_slice($genres, 0, 8) as $genre): ?>
-                <a href="<?= Url::to(['/games/' . $genre->genre->slug]) ?>"
+            <?php foreach ($genres as $genre): ?>
+                <a href="<?= Url::to(['/games/' . $genre->slug]) ?>"
                    class="inline-flex items-center text-xs font-medium text-fg-muted bg-canvas border border-line rounded-full px-3 py-1.5 hover:border-line-strong hover:text-fg hover:bg-surface transition">
-                    <?= Html::encode($genre->genre->name) ?>
+                    <?= Html::encode($genre->name) ?>
                 </a>
             <?php endforeach; ?>
-            <a href="#"
+            <a href="<?= Url::to(['/genres']) ?>"
                class="inline-flex items-center gap-1 text-xs font-medium text-accent rounded-full px-3 py-1.5 hover:underline">
                 All genres <span aria-hidden="true">→</span>
             </a>
@@ -194,7 +197,8 @@ $preview_tabs = [
                             <?= $this->render('_game-sale-item', ['game' => $game, 'rank' => $i + 1]) ?>
                         <?php endforeach; ?>
                     </div>
-                    <a href="#" class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline">
+                    <a href="<?= Url::to(['/games/' . $col['slug']]) ?>"
+                       class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline">
                         See all <?= Html::encode(strtolower($col['label'])) ?>
                         <span aria-hidden="true" class="transition group-hover:translate-x-0.5">→</span>
                     </a>

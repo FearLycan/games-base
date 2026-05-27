@@ -1,8 +1,8 @@
 <?php
 return [
     'adminEmail'          => 'admin@example.com',
-    'meta-title'          => '',
-    'meta-description'    => '',
+    'meta-title'          => 'Gamentator',
+    'meta-description'    => 'Curated Steam game discovery — bestsellers, new releases, and upcoming titles, refreshed daily.',
     'social_facebook_url' => '',
     'social_twitter_url'  => '',
     'admin-email'         => '',

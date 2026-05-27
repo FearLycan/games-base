@@ -2,6 +2,7 @@
 
 namespace common\models;
 
+use Yii;
 use yii\behaviors\SluggableBehavior;
 use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveQuery;
@@ -16,6 +17,7 @@ use yii\db\ActiveRecord;
  * @property string|null $description
  * @property string|null $image
  * @property int|null    $status
+ * @property int         $games_count   precomputed by console `genre/recount`
  * @property string      $created_at
  * @property string|null $updated_at
  *
@@ -23,6 +25,7 @@ use yii\db\ActiveRecord;
  */
 class Genre extends ActiveRecord
 {
+    private const int COUNT_CACHE_TTL = 86400;
     public function behaviors(): array
     {
         return [

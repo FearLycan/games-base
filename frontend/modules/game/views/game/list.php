@@ -2,6 +2,7 @@
 
 use common\models\Category;
 use common\models\Genre;
+use common\models\Tag;
 use frontend\modules\game\models\searches\GameSearch;
 use yii\data\ActiveDataProvider;
 use yii\helpers\Html;
@@ -12,16 +13,23 @@ use yii\widgets\ListView;
 /* @var $this View */
 /* @var $searchModel GameSearch */
 /* @var $dataProvider ActiveDataProvider */
-/* @var $model Genre|Category */
+/* @var $model Genre|Category|Tag */
 
 $this->title = "Best {$model->name} games on Steam" . " - " . Yii::$app->params['meta-title'];
-$this->params['breadcrumbs'][] = 'Games';
+$this->params['breadcrumbs'][] = ['label' => 'Games', 'url' => ['/game/game/index']];
+if ($model instanceof Tag) {
+    $this->params['breadcrumbs'][] = 'Tag';
+}
 $this->params['breadcrumbs'][] = $model->name;
 $this->registerCssFile('@web/css/game.css');
 
 $models = $dataProvider->getModels();
 $totalCount = $dataProvider->getTotalCount();
-$kind = $model instanceof Category ? 'Category' : 'Genre';
+$kind = match (true) {
+    $model instanceof Category => 'Category',
+    $model instanceof Tag      => 'Tag',
+    default                    => 'Genre',
+};
 ?>
 
 <header class="mb-10">

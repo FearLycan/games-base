@@ -142,6 +142,12 @@ class SteamController extends Controller
             }
         } while ($start < $total);
 
+        $controller = new GenreController(Yii::$app->controller->id, Yii::$app);
+        $controller->actionRecount();
+
+        $controller = new TagController(Yii::$app->controller->id, Yii::$app);
+        $controller->actionRecount();
+
         return ExitCode::OK;
     }
 
@@ -163,7 +169,11 @@ class SteamController extends Controller
             return ExitCode::TEMPFAIL;
         }
 
-        $existing = array_flip(Game::find()->select('steam_appid')->column());
+        $existing = array_flip(Game::find()
+            ->select('steam_appid')
+            ->where(['is not', 'steam_appid', null])
+            ->column()
+        );
         $newCount = 0;
 
         foreach ($response->data['applist']['apps'] as $app) {

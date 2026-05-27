@@ -41,21 +41,25 @@ AppAsset::register($this);
         }
         </script>
 
+        <?php
+        $pageDescription = $this->params['description'] ?? Yii::$app->params['meta-description'];
+        $pageOgImage = $this->params['og_image'] ?? Yii::$app->params['og_image']['content'];
+        ?>
         <title><?= Html::encode($this->title) ?></title>
         <meta name="title" content="<?= Html::encode($this->title) ?>"/>
-        <meta name="description" content="<?= Html::encode(Yii::$app->params['meta-description']) ?>"/>
+        <meta name="description" content="<?= Html::encode($pageDescription) ?>"/>
 
         <meta property="og:type" content="website"/>
         <meta property="og:url" content="<?= Yii::$app->request->absoluteUrl ?>"/>
         <meta property="og:title" content="<?= Html::encode($this->title) ?>"/>
-        <meta property="og:description" content="<?= Html::encode(Yii::$app->params['meta-description']) ?>"/>
-        <meta property="og:image" content="<?= Yii::$app->params['og_image']['content'] ?>"/>
+        <meta property="og:description" content="<?= Html::encode($pageDescription) ?>"/>
+        <meta property="og:image" content="<?= Html::encode($pageOgImage) ?>"/>
 
         <meta property="twitter:card" content="summary_large_image"/>
         <meta property="twitter:url" content="<?= Yii::$app->request->absoluteUrl ?>"/>
         <meta property="twitter:title" content="<?= Html::encode($this->title) ?>"/>
-        <meta property="twitter:description" content="<?= Html::encode(Yii::$app->params['meta-description']) ?>"/>
-        <meta property="twitter:image" content="<?= Yii::$app->params['og_image']['content'] ?>"/>
+        <meta property="twitter:description" content="<?= Html::encode($pageDescription) ?>"/>
+        <meta property="twitter:image" content="<?= Html::encode($pageOgImage) ?>"/>
 
         <link rel="canonical" href="<?= Yii::$app->request->absoluteUrl ?>"/>
 
@@ -146,12 +150,16 @@ AppAsset::register($this);
 
             <nav class="hidden lg:flex items-center gap-7 text-sm font-medium text-fg-muted shrink-0">
                 <a href="<?= Url::to(['/games']) ?>" class="hover:text-fg transition">Games</a>
+                <a href="<?= Url::to(['/genres']) ?>" class="hover:text-fg transition">Genres</a>
+                <a href="<?= Url::to(['/tags']) ?>" class="hover:text-fg transition">Tags</a>
             </nav>
         </div>
     </header>
 
     <div data-search-modal
          data-search-url="<?= Url::to(['/autocomplete/search']) ?>"
+         data-trending-url="<?= Url::to(['/autocomplete/trending']) ?>"
+         data-track-url="<?= Url::to(['/autocomplete/track']) ?>"
          hidden
          class="fixed inset-0 z-50 px-4 sm:px-6 pt-[8vh] sm:pt-[12vh] bg-fg/40 backdrop-blur-sm"
          role="dialog"

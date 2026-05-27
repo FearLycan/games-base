@@ -22,6 +22,8 @@ class AutocompleteController extends Controller
     private const int LIMIT_GAMES = 6;
     private const int LIMIT_OTHER = 4;
     private const int CACHE_TTL = 1800;
+    private const int TRENDING_LIMIT = 5;
+    private const int TRENDING_CACHE_TTL = 300;
 
     private Cache $cache;
 
@@ -39,7 +41,7 @@ class AutocompleteController extends Controller
                 'rules' => [
                     [
                         'allow'   => true,
-                        'actions' => ['search', 'select2'],
+                        'actions' => ['search', 'select2', 'trending', 'track'],
                         'roles'   => ['?', '@'],
                     ],
                 ],
@@ -47,7 +49,7 @@ class AutocompleteController extends Controller
         ];
     }
 
-    /**
+/**
      * Select2-compatible endpoint: returns `{results: [{id, text}], pagination: {more: bool}}`.
      * Backs the multi-select filters on /games (genre, tag, category, developer, publisher).
      */
@@ -134,6 +136,129 @@ class AutocompleteController extends Controller
         }, self::CACHE_TTL);
     }
 
+    /**
+     * Bumps the daily click counter for a game. Called via sendBeacon when
+     * a user clicks a search result. Accepts steam_appid (stable, external)
+     * rather than internal game.id so the JS payload doesn't need it injected.
+     */
+    public function actionTrack()
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        if (!Yii::$app->request->isPost) {
+            Yii::$app->response->statusCode = 405;
+            return ['ok' => false];
+        }
+
+        $steamAppid = (int)Yii::$app->request->post('steam_appid');
+        if ($steamAppid <= 0) {
+            Yii::$app->response->statusCode = 400;
+            return ['ok' => false];
+        }
+
+        $gameId = (int)Game::find()
+            ->select('id')
+            ->where(['steam_appid' => $steamAppid, 'status' => Game::STATUS_ACTIVE])
+            ->scalar();
+
+        if (!$gameId) {
+            Yii::$app->response->statusCode = 404;
+            return ['ok' => false];
+        }
+
+        Yii::$app->db->createCommand(
+            'INSERT INTO {{%game_search_stat}} (game_id, day, count)
+             VALUES (:gid, CURRENT_DATE, 1)
+             ON DUPLICATE KEY UPDATE count = count + 1',
+            [':gid' => $gameId]
+        )->execute();
+
+        Yii::$app->response->statusCode = 204;
+        return null;
+    }
+
+    /**
+     * Top-N games by clicks for today. Falls back to no results if nobody
+     * has clicked anything today yet (acceptable — modal idle state covers it).
+     */
+    public function actionTrending()
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        $today = date('Y-m-d');
+        $cacheKey = 'autocomplete:trending:' . $today;
+
+        return $this->cache->getOrSet($cacheKey, function () use ($today) {
+            $stats = (new \yii\db\Query())
+                ->select(['game_id', 'count'])
+                ->from('{{%game_search_stat}}')
+                ->where(['day' => $today])
+                ->orderBy(['count' => SORT_DESC])
+                ->limit(self::TRENDING_LIMIT)
+                ->all();
+
+            if (!$stats) {
+                return ['groups' => []];
+            }
+
+            $gameIds = array_column($stats, 'game_id');
+            $rows = Game::find()
+                ->select([
+                    'game.id',
+                    'game.steam_appid',
+                    'game.title',
+                    'game.slug',
+                    'game.release_date',
+                    'header_url' => GameImage::find()
+                        ->select('url')
+                        ->where("game_id = game.id AND type = 'header' AND status = " . GameImage::STATUS_ACTIVE)
+                        ->limit(1),
+                ])
+                ->alias('game')
+                ->where(['game.id' => $gameIds, 'game.status' => Game::STATUS_ACTIVE])
+                ->indexBy('id')
+                ->asArray()
+                ->all();
+
+            $items = [];
+            foreach ($stats as $stat) {
+                $row = $rows[$stat['game_id']] ?? null;
+                if (!$row) {
+                    continue;
+                }
+
+                $year = '';
+                if (!empty($row['release_date'])) {
+                    $ts = strtotime($row['release_date']);
+                    if ($ts) {
+                        $year = date('Y', $ts);
+                    }
+                }
+
+                $items[] = [
+                    'title'       => $row['title'],
+                    'subtitle'    => $year ?: 'Steam',
+                    'image'       => $row['header_url'] ?? null,
+                    'url'         => Url::to([
+                        '/game/game/view',
+                        'id'   => $row['steam_appid'],
+                        'slug' => $row['slug'],
+                    ]),
+                    'badge'       => '↑ ' . number_format((int)$stat['count']),
+                    'steam_appid' => (int)$row['steam_appid'],
+                ];
+            }
+
+            return [
+                'groups' => $items ? [[
+                    'key'   => 'trending',
+                    'label' => 'Trending today',
+                    'items' => $items,
+                ]] : [],
+            ];
+        }, self::TRENDING_CACHE_TTL);
+    }
+
     private function searchGames(string $query): array
     {
         $rows = Game::find()
@@ -168,15 +293,16 @@ class AutocompleteController extends Controller
             }
 
             return [
-                'title'    => $row['title'],
-                'subtitle' => $year ?: 'Steam',
-                'image'    => $row['header_url'] ?? null,
-                'url'      => Url::to([
+                'title'       => $row['title'],
+                'subtitle'    => $year ?: 'Steam',
+                'image'       => $row['header_url'] ?? null,
+                'url'         => Url::to([
                     '/game/game/view',
                     'id'   => $row['steam_appid'],
                     'slug' => $row['slug'],
                 ]),
-                'badge'    => $year,
+                'badge'       => $year,
+                'steam_appid' => (int)$row['steam_appid'],
             ];
         }, $rows);
     }

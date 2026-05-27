@@ -209,8 +209,9 @@ $linkList = function (array $models, string $base) {
             </div>
             <div class="flex flex-wrap gap-1.5">
                 <?php foreach ($model->gameTags as $idx => $gameTag): ?>
-                    <a href="#"
+                    <a href="<?= Url::to(['/game/game/list-by-tag', 'slug' => $gameTag->tag->slug]) ?>"
                        class="tag-chip"
+                       title="Browse games tagged <?= Html::encode($gameTag->tag->name) ?>"
                        <?= $idx >= 6 ? 'data-tag-hidden hidden' : '' ?>>
                         <?= Html::encode($gameTag->tag->name) ?>
                     </a>

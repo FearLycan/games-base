@@ -965,18 +965,12 @@ class Game extends ActiveRecord
         ));
     }
 
-    public static function count(): string
+    public static function count(): int
     {
-        $cache = Yii::$app->cache;
-        $key = "keyGamesCount";
-        $games = $cache->getOrSet($key, function () {
-            return self::find()
-                ->where([
-                    'status' => self::STATUS_ACTIVE,
-                    'type'   => 'game',
-                ])->count();
-        }, 60 * 60 * 24);
-
-        return number_format($games);
+        return (int)Yii::$app->cache->getOrSet('keyGamesCount', static fn(): int => (int)self::find()
+            ->where([
+                'status' => self::STATUS_ACTIVE,
+                'type'   => 'game',
+            ])->count(), 60 * 60 * 24);
     }
 }

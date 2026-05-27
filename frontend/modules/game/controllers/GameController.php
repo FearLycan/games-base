@@ -5,7 +5,9 @@ namespace frontend\modules\game\controllers;
 use common\components\AccessControl;
 use common\models\Category;
 use common\models\GameImage;
+use common\models\GameSale;
 use common\models\Genre;
+use common\models\Tag;
 use frontend\components\Controller;
 use frontend\modules\game\models\Game;
 use frontend\modules\game\models\searches\GameSearch;
@@ -36,7 +38,7 @@ class GameController extends Controller
                     [
                         'allow'   => true,
                         'actions' => [
-                            'view', 'search-list', 'list', 'index', 'details',
+                            'view', 'search-list', 'list', 'list-by-tag', 'sale', 'genres', 'tags', 'index', 'details',
                         ],
                         'roles'   => ['?'],
                     ],
@@ -86,6 +88,69 @@ class GameController extends Controller
             'model'        => $model,
         ]);
 
+    }
+
+    public function actionSale($type): string
+    {
+        $typeMap = [
+            'bestsellers'         => GameSale::TYPE_BESTSELLERS,
+            'new-and-noteworthy'  => GameSale::TYPE_NEW_AND_NOTEWORTHY,
+            'upcoming'            => GameSale::TYPE_POPULAR_UPCOMING,
+        ];
+
+        if (!isset($typeMap[$type])) {
+            throw new NotFoundHttpException('The requested page does not exist.');
+        }
+
+        $saleType = $typeMap[$type];
+        $games = \common\models\Game::getSales($saleType, 250);
+
+        return $this->render('sale', [
+            'slug'  => $type,
+            'type'  => $saleType,
+            'games' => $games,
+        ]);
+    }
+
+    public function actionGenres(): string
+    {
+        $genres = Genre::find()
+            ->orderBy(['games_count' => SORT_DESC, 'name' => SORT_ASC])
+            ->all();
+
+        return $this->render('genres', [
+            'genres' => $genres,
+        ]);
+    }
+
+    public function actionTags(): string
+    {
+        $tags = Tag::find()
+            ->where(['>', 'games_count', 0])
+            ->orderBy(['games_count' => SORT_DESC, 'name' => SORT_ASC])
+            ->all();
+
+        return $this->render('tags', [
+            'tags' => $tags,
+        ]);
+    }
+
+    public function actionListByTag($slug): string
+    {
+        $tag = Tag::findOne(['slug' => $slug]);
+        if (!$tag) {
+            throw new NotFoundHttpException('The requested page does not exist.');
+        }
+
+        $searchModel = new GameSearch();
+        $searchModel->tag_ids = [$tag->id];
+        $dataProvider = $searchModel->search($this->request->queryParams);
+
+        return $this->render('list', [
+            'searchModel'  => $searchModel,
+            'dataProvider' => $dataProvider,
+            'model'        => $tag,
+        ]);
     }
 
     public function actionView($id, $slug)

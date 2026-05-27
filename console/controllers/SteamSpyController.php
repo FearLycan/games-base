@@ -13,7 +13,7 @@ class SteamSpyController extends Controller
 {
     private const string API_URL = 'https://steamspy.com/api.php';
 
-    private const int MAX_PAGES             = 100;
+    private const int MAX_PAGES = 100;
     private const int REQUEST_DELAY_SECONDS = 60;
 
     public Client $client;
@@ -30,7 +30,12 @@ class SteamSpyController extends Controller
 
     public function actionCreateAppList(): int
     {
-        $existing = array_flip(Game::find()->select('steam_appid')->column());
+        $existing = array_flip(Game::find()
+            ->select('steam_appid')
+            ->where(['is not', 'steam_appid', null])
+            ->column()
+        );
+
         $page = 0;
         $newCount = 0;
 
