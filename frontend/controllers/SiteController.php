@@ -2,8 +2,11 @@
 
 namespace frontend\controllers;
 
+use common\models\Genre;
+use common\models\Tag;
 use frontend\models\ResendVerificationEmailForm;
 use frontend\models\VerifyEmailForm;
+use Throwable;
 use Yii;
 use yii\base\InvalidArgumentException;
 use yii\web\BadRequestHttpException;
@@ -58,14 +61,58 @@ class SiteController extends Controller
     public function actions()
     {
         return [
-            'error' => [
-                'class' => 'yii\web\ErrorAction',
-            ],
             'captcha' => [
                 'class' => 'yii\captcha\CaptchaAction',
                 'fixedVerifyCode' => YII_ENV_TEST ? 'testme' : null,
             ],
         ];
+    }
+
+    /**
+     * Replaces yii\web\ErrorAction so the error page can surface discovery
+     * widgets (top genres + tags) on a 404 — turns a dead-end into a way out.
+     * Mirrors ErrorAction's status-code handling.
+     */
+    public function actionError()
+    {
+        $exception = Yii::$app->errorHandler->exception;
+        if ($exception === null) {
+            $exception = new \yii\web\HttpException(404, 'Page not found.');
+        }
+
+        Yii::$app->response->setStatusCodeByException($exception);
+
+        $name = method_exists($exception, 'getName') ? $exception->getName() : 'Error';
+        $message = $exception->getMessage();
+
+        $genres = [];
+        $tags = [];
+
+        if ($exception instanceof \yii\web\HttpException && $exception->statusCode === 404) {
+            try {
+                $genres = Yii::$app->cache->getOrSet('error.popular_genres', static fn(): array => Genre::find()
+                    ->where(['>', 'games_count', 0])
+                    ->orderBy(['games_count' => SORT_DESC])
+                    ->limit(6)
+                    ->all(), 3600);
+
+                $tags = Yii::$app->cache->getOrSet('error.popular_tags', static fn(): array => Tag::find()
+                    ->where(['>', 'games_count', 0])
+                    ->orderBy(['games_count' => SORT_DESC])
+                    ->limit(12)
+                    ->all(), 3600);
+            } catch (Throwable $e) {
+                // DB might be the failure cause — degrade gracefully, render error page anyway
+            }
+        }
+
+        return $this->render('error', [
+            'name'      => $name,
+            'message'   => $message,
+            'exception' => $exception,
+            'genres'    => $genres,
+            'tags'      => $tags,
+        ]);
     }
 
     /**
