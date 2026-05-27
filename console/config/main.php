@@ -8,29 +8,45 @@ $params = array_merge(
 );
 
 return [
-    'id' => 'app-console',
-    'basePath' => dirname(__DIR__),
-    'bootstrap' => ['log'],
+    'id'                  => 'app-console',
+    'basePath'            => dirname(__DIR__),
+    'bootstrap'           => ['log'],
     'controllerNamespace' => 'console\controllers',
-    'aliases' => [
+    'aliases'             => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
     ],
-    'controllerMap' => [
+    'controllerMap'       => [
         'fixture' => [
-            'class' => 'yii\console\controllers\FixtureController',
+            'class'     => 'yii\console\controllers\FixtureController',
             'namespace' => 'common\fixtures',
-          ],
+        ],
     ],
-    'components' => [
-        'log' => [
+    'components'          => [
+        'cache'         => [
+            'class'     => \yii\caching\FileCache::class,
+            'cachePath' => dirname(__DIR__, 2) . '/console/runtime/cache',
+        ],
+        'frontendCache' => [
+            'class'     => \yii\caching\FileCache::class,
+            'cachePath' => dirname(__DIR__, 2) . '/frontend/runtime/cache',
+        ],
+        'backendCache'  => [
+            'class'     => \yii\caching\FileCache::class,
+            'cachePath' => dirname(__DIR__, 2) . '/backend/runtime/cache',
+        ],
+        'schemaCache'   => [
+            'class'     => \yii\caching\FileCache::class,
+            'cachePath' => dirname(__DIR__, 2) . '/console/runtime/schema-cache',
+        ],
+        'log'           => [
             'targets' => [
                 [
-                    'class' => 'yii\log\FileTarget',
+                    'class'  => 'yii\log\FileTarget',
                     'levels' => ['error', 'warning'],
                 ],
             ],
         ],
     ],
-    'params' => $params,
+    'params'              => $params,
 ];
