@@ -22,6 +22,7 @@ class SteamController extends Controller
     private const int SEARCH_DELAY_MIN = 5;
     private const int SEARCH_DELAY_MAX = 15;
     private const int SEARCH_PAGE_SIZE = 50;
+    private const int SEARCH_MAX_PAGES = 200;
 
     public function actionSync(int $limit = 0): int
     {
@@ -88,6 +89,7 @@ class SteamController extends Controller
         $client = new Client(['baseUrl' => self::SEARCH_URL]);
 
         $start = 0;
+        $page = 0;
         $query = [
             'query'              => '',
             'count'              => self::SEARCH_PAGE_SIZE,
@@ -136,6 +138,12 @@ class SteamController extends Controller
 
             $total = (int)($response->data['total_count'] ?? 0);
             $start += self::SEARCH_PAGE_SIZE;
+            $page++;
+
+            if ($page >= self::SEARCH_MAX_PAGES) {
+                $this->stderr("hit SEARCH_MAX_PAGES safety cap at start={$start}, total={$total}\n");
+                break;
+            }
 
             if ($start < $total) {
                 sleep(random_int(self::SEARCH_DELAY_MIN, self::SEARCH_DELAY_MAX));
