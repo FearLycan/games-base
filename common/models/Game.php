@@ -402,20 +402,6 @@ class Game extends ActiveRecord
         }
     }
 
-    public function createApp($app): self
-    {
-        $game = self::findOne(['steam_appid' => $app['appid']]);
-
-        if (!$game) {
-            $game = new self();
-            $game->steam_appid = $app['appid'];
-            $game->title = $app['name'];
-            $game->save();
-        }
-
-        return $game;
-    }
-
     public function setBaseInformation($information): self
     {
         $this->title = $information['name'];
@@ -522,6 +508,7 @@ class Game extends ActiveRecord
 
         foreach ($developers as $name) {
 
+            $name = trim($name);
             $developer = Developer::findOne(['name' => $name]);
 
             if (!$developer) {
@@ -540,6 +527,7 @@ class Game extends ActiveRecord
 
         foreach ($publishers as $name) {
 
+            $name = trim($name);
             $developer = Publisher::findOne(['name' => $name]);
 
             if (!$developer) {

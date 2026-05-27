@@ -9,6 +9,7 @@ use common\models\Game;
 use common\models\GameImage;
 use common\models\Genre;
 use common\models\Publisher;
+use common\models\Tag;
 use frontend\components\Controller;
 use Yii;
 use yii\caching\Cache;
@@ -56,7 +57,7 @@ class AutocompleteController extends Controller
 
         $modelClass = match ($type) {
             'genre'     => Genre::class,
-            'tag'       => \common\models\Tag::class,
+            'tag'       => Tag::class,
             'category'  => Category::class,
             'developer' => Developer::class,
             'publisher' => Publisher::class,
@@ -73,6 +74,7 @@ class AutocompleteController extends Controller
         $query = $modelClass::find()
             ->select(['id', 'name'])
             ->orderBy(['name' => SORT_ASC])
+            ->where('name != ""')
             ->limit($pageSize + 1)
             ->offset($offset)
             ->asArray();

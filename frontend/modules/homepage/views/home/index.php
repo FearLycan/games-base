@@ -57,7 +57,7 @@ $preview_tabs = [
 
                     <div class="fade-up mt-10 flex flex-wrap items-center gap-3"
                          style="animation-delay: 0.45s">
-                        <a href="#"
+                        <a href="<?= Url::to(['/games']) ?>"
                            class="inline-flex items-center gap-2 rounded-full bg-fg text-canvas px-6 py-3 text-sm font-semibold hover:bg-fg/90 transition shadow-sm">
                             Browse games <span aria-hidden="true">→</span>
                         </a>

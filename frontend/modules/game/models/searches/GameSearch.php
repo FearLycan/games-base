@@ -11,7 +11,7 @@ use yii\data\ActiveDataProvider;
 class GameSearch extends Game
 {
     /** How long the total-count for a given filter combination is cached. */
-    private const int COUNT_CACHE_TTL = 1800;
+    private const int COUNT_CACHE_TTL = YII_DEBUG ? 1 : 1800;
 
     public const string SORT_RELEASE = 'release';
     public const string SORT_OLDEST = 'oldest';
@@ -124,7 +124,7 @@ class GameSearch extends Game
         //   other → explicit pick      → filter to that type
         if ($this->game_type === null) {
             $query->andWhere(['game.type' => self::TYPE_GAME]);
-        } elseif ($this->game_type !== '') {
+        } else if ($this->game_type !== '') {
             $query->andWhere(['game.type' => $this->game_type]);
         }
 
@@ -261,7 +261,7 @@ class GameSearch extends Game
 
     private function applyMeta($query): void
     {
-        if ($this->meta_min === null || $this->meta_min === '') {
+        if ((int)$this->meta_min <= 0) {
             return;
         }
 

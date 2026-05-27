@@ -184,7 +184,7 @@
 
 .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
     position: absolute;
-    top: 50%;
+    top: 43%;
     right: 4px;
     transform: translateY(-50%);
     display: inline-flex;
@@ -213,7 +213,7 @@
 /* Clear-all (×): centered against the whole field, not the first row. */
 .select2-container--default .select2-selection--multiple .select2-selection__clear {
     position: absolute;
-    top: 50%;
+    top: 45%;
     right: 8px;
     transform: translateY(-50%);
     margin: 0;
@@ -275,4 +275,8 @@
 
 .select2-results__options {
     font-size: 13px;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice__display{
+    padding-left: 7px;
 }
