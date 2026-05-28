@@ -1,5 +1,8 @@
 <?php
 
+use common\schema\factory\BreadcrumbListSchemaFactory;
+use common\schema\factory\OrganizationSchemaFactory;
+use common\schema\JsonLdRenderer;
 use common\widgets\Alert;
 use frontend\assets\AppAsset;
 use yii\helpers\Html;
@@ -12,6 +15,17 @@ use yii\helpers\Url;
 
 
 AppAsset::register($this);
+
+$schemaNodes = [OrganizationSchemaFactory::fromParams()];
+if (!empty($this->params['breadcrumbs'])) {
+    $breadcrumbSchema = BreadcrumbListSchemaFactory::fromView(
+        $this->params['breadcrumbs'],
+        ['label' => 'Home', 'url' => Yii::$app->homeUrl]
+    );
+    if ($breadcrumbSchema !== []) {
+        $schemaNodes[] = $breadcrumbSchema;
+    }
+}
 ?>
 <?php $this->beginPage() ?>
     <!DOCTYPE html>
@@ -30,38 +44,32 @@ AppAsset::register($this);
         <meta name="msapplication-TileColor" content="#ffffff">
         <meta name="theme-color" content="#ffffff">
 
-        <script type="application/ld+json">
-            {
-                "@context": "https://schema.org",
-                "@type": "Organization",
-                "name": "Gamentator",
-                "description": "<?= Yii::$app->params['meta-description'] ?>",
-            "url": "https://gamentator.com",
-            "logo": "<?= Yii::$app->params['og_image']['content'] ?>"
-        }
-        </script>
+        <?= JsonLdRenderer::render($schemaNodes) ?>
 
         <?php
         $pageDescription = $this->params['description'] ?? Yii::$app->params['meta-description'];
         $pageOgImage = $this->params['og_image'] ?? Yii::$app->params['og_image']['content'];
+        // Canonical without the query string so sort/filter/page/role variants
+        // all consolidate to one indexable URL per page.
+        $canonicalUrl = Yii::$app->request->hostInfo . (parse_url(Yii::$app->request->url, PHP_URL_PATH) ?: '/');
         ?>
         <title><?= Html::encode($this->title) ?></title>
         <meta name="title" content="<?= Html::encode($this->title) ?>"/>
         <meta name="description" content="<?= Html::encode($pageDescription) ?>"/>
 
         <meta property="og:type" content="website"/>
-        <meta property="og:url" content="<?= Yii::$app->request->absoluteUrl ?>"/>
+        <meta property="og:url" content="<?= Html::encode($canonicalUrl) ?>"/>
         <meta property="og:title" content="<?= Html::encode($this->title) ?>"/>
         <meta property="og:description" content="<?= Html::encode($pageDescription) ?>"/>
         <meta property="og:image" content="<?= Html::encode($pageOgImage) ?>"/>
 
         <meta property="twitter:card" content="summary_large_image"/>
-        <meta property="twitter:url" content="<?= Yii::$app->request->absoluteUrl ?>"/>
+        <meta property="twitter:url" content="<?= Html::encode($canonicalUrl) ?>"/>
         <meta property="twitter:title" content="<?= Html::encode($this->title) ?>"/>
         <meta property="twitter:description" content="<?= Html::encode($pageDescription) ?>"/>
         <meta property="twitter:image" content="<?= Html::encode($pageOgImage) ?>"/>
 
-        <link rel="canonical" href="<?= Yii::$app->request->absoluteUrl ?>"/>
+        <link rel="canonical" href="<?= Html::encode($canonicalUrl) ?>"/>
 
         <?php $this->registerCsrfMetaTags() ?>
 
@@ -310,28 +318,32 @@ AppAsset::register($this);
                 <div>
                     <h4 class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle mb-4">Browse</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="/developers" class="text-fg-muted hover:text-fg transition">Developers</a></li>
-                        <li><a href="/publishers" class="text-fg-muted hover:text-fg transition">Publishers</a></li>
+                        <li><a href="<?= Url::to(['/games']) ?>" class="text-fg-muted hover:text-fg transition">All games</a></li>
+                        <li><a href="<?= Url::to(['/genres']) ?>" class="text-fg-muted hover:text-fg transition">Genres</a></li>
+                        <li><a href="<?= Url::to(['/tags']) ?>" class="text-fg-muted hover:text-fg transition">Tags</a></li>
+                        <li><a href="<?= Url::to(['/categories']) ?>" class="text-fg-muted hover:text-fg transition">Features</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle mb-4">Studios</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="<?= Url::to(['/developers']) ?>" class="text-fg-muted hover:text-fg transition">Developers</a></li>
+                        <li><a href="<?= Url::to(['/publishers']) ?>" class="text-fg-muted hover:text-fg transition">Publishers</a></li>
                     </ul>
                 </div>
                 <div>
                     <h4 class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle mb-4">Discover</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="/" class="text-fg-muted hover:text-fg transition">Home</a></li>
-                        <li><a href="#" class="text-fg-muted hover:text-fg transition">Bestsellers</a></li>
+                        <li><a href="<?= Url::to(['/games/bestsellers']) ?>" class="text-fg-muted hover:text-fg transition">Bestsellers</a></li>
+                        <li><a href="<?= Url::to(['/games/new-and-noteworthy']) ?>" class="text-fg-muted hover:text-fg transition">New &amp; Noteworthy</a></li>
+                        <li><a href="<?= Url::to(['/games/upcoming']) ?>" class="text-fg-muted hover:text-fg transition">Upcoming</a></li>
                     </ul>
                 </div>
                 <div>
-                    <h4 class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle mb-4">Company</h4>
+                    <h4 class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle mb-4">About</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="text-fg-muted hover:text-fg transition">Contact</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle mb-4">Legal</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="text-fg-muted hover:text-fg transition">Terms</a></li>
-                        <li><a href="#" class="text-fg-muted hover:text-fg transition">Privacy</a></li>
+                        <li><a href="<?= Url::to(['/how-it-works']) ?>" class="text-fg-muted hover:text-fg transition">How it works</a></li>
+                        <li><a href="<?= Url::to(['/site/contact']) ?>" class="text-fg-muted hover:text-fg transition">Contact</a></li>
                     </ul>
                 </div>
             </div>

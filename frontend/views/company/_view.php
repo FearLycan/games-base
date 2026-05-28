@@ -20,6 +20,9 @@ use yii\widgets\ListView;
 /* @var $gamesLabel string */
 
 $this->title = $model->name . ' — ' . strtolower($kindLabel) . ' profile · ' . Yii::$app->params['meta-title'];
+$this->params['description'] = $profile?->description
+    ? mb_substr(trim($profile->description), 0, 160)
+    : sprintf('%s — %s profile on Gamentator: games, catalog stats and release history.', $model->name, strtolower($kindLabel));
 $this->params['breadcrumbs'][] = ['label' => ucfirst($kind) . 's', 'url' => ['/' . $kind . 's']];
 $this->params['breadcrumbs'][] = $model->name;
 $this->registerCssFile('@web/css/company.css');
@@ -198,8 +201,8 @@ $baseSortUrl = ['/' . $kind . '/' . $kind . '/view', 'slug' => $model->slug];
                             'disabledPageCssClass' => 'pager-disabled',
                             'firstPageLabel'       => false,
                             'lastPageLabel'        => false,
-                            'prevPageLabel'        => '←',
-                            'nextPageLabel'        => '→',
+                            'prevPageLabel'        => '<i class="fa-solid fa-angle-left"></i>',
+                            'nextPageLabel'        => '<i class="fa-solid fa-angle-right"></i>',
                             'maxButtonCount'       => 7,
                         ],
                     ]) ?>
@@ -292,7 +295,7 @@ $baseSortUrl = ['/' . $kind . '/' . $kind . '/view', 'slug' => $model->slug];
                                 <li>
                                     <a href="<?= Html::encode($profile->website) ?>" target="_blank" rel="nofollow noopener external"
                                        class="social-link">
-                                        <span class="social-icon">🌐</span>
+                                        <span class="social-icon"><i class="fa-solid fa-globe" aria-hidden="true"></i></span>
                                         <span class="social-label">Official website</span>
                                         <span class="social-arrow">↗</span>
                                     </a>
@@ -302,7 +305,7 @@ $baseSortUrl = ['/' . $kind . '/' . $kind . '/view', 'slug' => $model->slug];
                                 <li>
                                     <a href="https://twitter.com/<?= Html::encode(ltrim($profile->twitter, '@')) ?>" target="_blank" rel="nofollow noopener external"
                                        class="social-link">
-                                        <span class="social-icon">𝕏</span>
+                                        <span class="social-icon"><i class="fa-brands fa-x-twitter" aria-hidden="true"></i></span>
                                         <span class="social-label"><?= Html::encode($profile->twitter) ?></span>
                                         <span class="social-arrow">↗</span>
                                     </a>
@@ -312,7 +315,7 @@ $baseSortUrl = ['/' . $kind . '/' . $kind . '/view', 'slug' => $model->slug];
                                 <li>
                                     <a href="<?= Html::encode($profile->discord) ?>" target="_blank" rel="nofollow noopener external"
                                        class="social-link">
-                                        <span class="social-icon">💬</span>
+                                        <span class="social-icon"><i class="fa-brands fa-discord" aria-hidden="true"></i></span>
                                         <span class="social-label">Discord</span>
                                         <span class="social-arrow">↗</span>
                                     </a>

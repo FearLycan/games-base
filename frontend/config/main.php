@@ -58,6 +58,7 @@ return [
                 'games/<type:bestsellers|new-and-noteworthy|upcoming>'       => 'game/game/sale',
                 'genres'                                                     => 'game/game/genres',
                 'tags'                                                       => 'game/game/tags',
+                'categories'                                                 => 'game/game/categories',
                 'how-it-works'                                               => 'site/how-it-works',
                 'game/tag/<slug>'                                            => 'game/game/list-by-tag',
                 'game/<id>/<slug>'                                           => 'game/game/view',

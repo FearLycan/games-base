@@ -23,8 +23,8 @@ class Helper extends \common\components\Helper
             'options'       => [
                 'class' => 'blog__pagination',
             ],
-            'nextPageLabel' => '<i class="fa fa-long-arrow-right"></i>',
-            'prevPageLabel' => '<i class="fa fa-long-arrow-left"></i>',
+            'nextPageLabel' => '<i class="fa-solid fa-arrow-right-long"></i>',
+            'prevPageLabel' => '<i class="fa-solid fa-arrow-left-long"></i>',
         ];
     }
 }

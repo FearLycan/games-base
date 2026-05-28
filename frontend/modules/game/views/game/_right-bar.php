@@ -86,16 +86,13 @@ $linkList = function (array $models, string $base) {
                     <div class="flex items-start gap-4 py-2.5">
                         <dt class="w-24 shrink-0 text-fg-subtle">Platforms</dt>
                         <dd class="flex-1 text-right text-fg-muted flex justify-end items-center gap-2.5">
+                            <?php $platformIcons = ['windows' => 'fa-windows', 'mac' => 'fa-apple', 'linux' => 'fa-linux']; ?>
                             <?php foreach ($availablePlatforms as $platform): ?>
                                 <span class="inline-flex items-center"
                                       title="<?= ucfirst(Html::encode($platform->name)) ?>"
                                       aria-label="<?= ucfirst(Html::encode($platform->name)) ?>">
-                                    <?php if ($platform->slug === 'windows'): ?>
-                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 4.5 11 3.4v8H3v-7zM12.5 3.2 21 2v9.4h-8.5V3.2zM3 12.5h8V20l-8-1V12.5zM12.5 12.5H21V22l-8.5-1.2V12.5z"/></svg>
-                                    <?php elseif ($platform->slug === 'mac'): ?>
-                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.5 12.5c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2.1-.9-3.4-.9-1.7 0-3.4 1-4.3 2.6-1.8 3.2-.5 7.9 1.3 10.4.9 1.3 2 2.7 3.3 2.6 1.3-.1 1.8-.8 3.4-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.2-2.6 1-1.5 1.4-3 1.5-3-.1 0-2.9-1.1-3-4.1zM14 5.4c.7-.9 1.2-2.1 1.1-3.4-1.1.1-2.4.8-3.1 1.6-.7.8-1.3 2-1.1 3.2 1.2.1 2.4-.6 3.1-1.4z"/></svg>
-                                    <?php elseif ($platform->slug === 'linux'): ?>
-                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.5 2c-2.4 0-3.7 2-3.6 4 0 .7.3 1.6.5 2.3.4 1.4 0 2.7-.7 4-.7 1.3-2 2.6-2.6 4-.6 1.3-.6 2.5.4 3.3l1.5-1.4c.5 1.3 2 2.8 4.6 2.8 2.7 0 4-1.6 4.4-2.8l1.5 1.4c1-.8 1-2 .4-3.3-.6-1.4-1.9-2.7-2.6-4-.7-1.3-1-2.6-.7-4 .2-.7.5-1.6.5-2.3.1-2-1.2-4-3.6-4z"/></svg>
+                                    <?php if (isset($platformIcons[$platform->slug])): ?>
+                                        <i class="fa-brands <?= $platformIcons[$platform->slug] ?> text-base leading-none" aria-hidden="true"></i>
                                     <?php else: ?>
                                         <span class="text-xs font-mono"><?= Html::encode(strtoupper(substr($platform->name, 0, 3))) ?></span>
                                     <?php endif; ?>
@@ -233,6 +230,19 @@ $linkList = function (array $models, string $base) {
         <a href="<?= Url::to(['game/view', 'id' => $model->steam_appid, 'slug' => $model->slug]) ?>"
            class="block text-center rounded-xl bg-fg text-canvas px-4 py-3 text-sm font-semibold hover:bg-fg/90 transition shadow-sm">
             Go to game page →
+        </a>
+    <?php else: ?>
+        <?php $priceLabel = $model->getPriceLabel(); $discount = $model->getDiscountPercent(); ?>
+        <a href="<?= Html::encode($model->getSteamUrl()) ?>"
+           target="_blank"
+           rel="nofollow noopener external"
+           class="flex items-center justify-center gap-2.5 rounded-xl bg-accent text-white px-4 py-3.5 text-sm font-semibold hover:bg-accent/90 transition shadow-sm">
+            <i class="fa-brands fa-steam text-lg leading-none" aria-hidden="true"></i>
+            View on Steam
+            <?php if ($priceLabel !== null): ?>
+                <span class="text-white/80">·</span>
+                <span><?= $discount > 0 ? '-' . $discount . '% ' : '' ?><?= Html::encode($priceLabel) ?></span>
+            <?php endif; ?>
         </a>
     <?php endif; ?>
 </div>

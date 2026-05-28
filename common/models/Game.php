@@ -899,6 +899,37 @@ class Game extends ActiveRecord
         return '$' . number_format($this->steam_price_final / 100, 2);
     }
 
+    /**
+     * Human price for CTAs: "Free to Play", a formatted price, or null when
+     * there is no price to show (e.g. unreleased).
+     */
+    public function getPriceLabel(): ?string
+    {
+        if ((int)$this->is_free === 1) {
+            return 'Free to Play';
+        }
+
+        if ((int)$this->steam_price_final > 0) {
+            return $this->getFinalPrice();
+        }
+
+        return null;
+    }
+
+    /**
+     * Discount percentage off the initial price, or 0 when not on sale.
+     */
+    public function getDiscountPercent(): int
+    {
+        $initial = (int)$this->steam_price_initial;
+        $final = (int)$this->steam_price_final;
+        if ($initial <= 0 || $final <= 0 || $final >= $initial) {
+            return 0;
+        }
+
+        return (int)round((($initial - $final) / $initial) * 100);
+    }
+
     public function getMainGenre(): string
     {
         return $this->_mainGenre ??= ($this->genres[0]->name ?? '');

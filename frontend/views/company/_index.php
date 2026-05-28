@@ -17,6 +17,7 @@ use yii\widgets\ListView;
 /* @var $pageIntro string */
 
 $this->title = $pageTitle . ' · ' . Yii::$app->params['meta-title'];
+$this->params['description'] = $pageIntro;
 $this->params['breadcrumbs'][] = $pageTitle;
 $this->registerCssFile('@web/css/company.css');
 
@@ -100,8 +101,8 @@ $sortOptions = [
             'disabledPageCssClass' => 'pager-disabled',
             'firstPageLabel'       => false,
             'lastPageLabel'        => false,
-            'prevPageLabel'        => '←',
-            'nextPageLabel'        => '→',
+            'prevPageLabel'        => '<i class="fa-solid fa-angle-left"></i>',
+            'nextPageLabel'        => '<i class="fa-solid fa-angle-right"></i>',
             'maxButtonCount'       => 7,
         ],
     ]) ?>

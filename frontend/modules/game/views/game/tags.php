@@ -7,14 +7,13 @@ use yii\web\View;
 
 /* @var $this View */
 /* @var $tags Tag[] */
+/* @var $hub array */
 
 $this->title = 'Browse by tag — ' . Yii::$app->params['meta-title'];
 $this->params['description'] = 'Every Steam tag with at least one active game — Souls-like, Cozy, Roguelite, you name it. Filter to find your niche.';
 $this->params['breadcrumbs'][] = ['label' => 'Games', 'url' => ['/game/game/index']];
 $this->params['breadcrumbs'][] = 'Tags';
 $this->registerCssFile('@web/css/game.css');
-
-$totalGames = array_sum(array_map(static fn(Tag $t): int => (int)$t->games_count, $tags));
 ?>
 
 <section class="relative left-1/2 w-screen -ml-[50vw] overflow-hidden bg-gradient-to-b from-rose-50/20 via-amber-50/10 to-canvas pt-12 pb-14 sm:pt-16">
@@ -30,7 +29,7 @@ $totalGames = array_sum(array_map(static fn(Tag $t): int => (int)$t->games_count
                 Directory
             </span>
             <span class="font-mono text-[11px] uppercase tracking-[0.2em] text-fg-subtle">
-                <?= number_format(count($tags)) ?> tags · <?= number_format($totalGames) ?> game links
+                <?= number_format($hub['count']) ?> tags · <?= number_format($hub['games']) ?> games
             </span>
         </div>
 
@@ -38,7 +37,7 @@ $totalGames = array_sum(array_map(static fn(Tag $t): int => (int)$t->games_count
             Browse by <span class="text-accent">tag</span>
         </h1>
         <p class="mt-5 max-w-2xl text-fg-muted leading-relaxed">
-            Crowd-sourced labels from Steam. More specific than genres — Souls-like, Cozy, Bullet Hell, Walking Simulator. Find your niche.
+            <?= Html::encode($hub['intro']) ?>
         </p>
 
         <?php if (!empty($tags)): ?>

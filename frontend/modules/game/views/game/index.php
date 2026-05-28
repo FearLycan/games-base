@@ -18,6 +18,7 @@ use yii\widgets\ListView;
 /* @var $dataProvider ActiveDataProvider */
 
 $this->title = 'Browse games · ' . Yii::$app->params['meta-title'];
+$this->params['description'] = 'Filter and sort every game in our Steam catalog by price, genre, tag, platform, Steam Deck support and review score.';
 $this->params['breadcrumbs'][] = 'Games';
 $this->registerCssFile('@web/css/game.css');
 
@@ -97,10 +98,10 @@ $chipGroup = function (string $name, array $options, $currentValue, ?string $any
         </span>
     </div>
     <h1 class="font-display text-3xl sm:text-4xl font-bold text-fg tracking-tight leading-tight">
-        Browse all games
+        Browse every Steam game
     </h1>
     <p class="mt-3 max-w-3xl text-fg-muted leading-relaxed">
-        Every game in our Steam catalog. Filter, sort, find your next favourite.
+        Our full Steam catalog in one place. Filter by price, genre, platform and reviews to find your next favourite.
     </p>
 </header>
 
@@ -286,8 +287,8 @@ $chipGroup = function (string $name, array $options, $currentValue, ?string $any
                 'disabledPageCssClass' => 'pager-disabled',
                 'firstPageLabel'       => false,
                 'lastPageLabel'        => false,
-                'prevPageLabel'        => '←',
-                'nextPageLabel'        => '→',
+                'prevPageLabel'        => '<i class="fa-solid fa-angle-left"></i>',
+                'nextPageLabel'        => '<i class="fa-solid fa-angle-right"></i>',
                 'maxButtonCount'       => 7,
             ],
         ]) ?>

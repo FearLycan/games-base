@@ -25,8 +25,9 @@ $this->title = $name . ' — games, history & releases · ' . Yii::$app->params[
 $this->params['breadcrumbs'][] = $name;
 $this->registerCssFile('@web/css/company.css');
 
+// Canonical is emitted once by the layout (query-string-free); we only need
+// the absolute URL here for the JSON-LD @id/url fields below.
 $canonicalUrl = Url::to(['/company/company/view', 'slug' => $slug], true);
-$this->registerLinkTag(['rel' => 'canonical', 'href' => $canonicalUrl]);
 
 $roleLabels = [];
 if ($developer) $roleLabels[] = 'Developer';
@@ -272,8 +273,8 @@ $this->registerJs(Json::encode($schema), View::POS_HEAD, 'org-jsonld');
                             'disabledPageCssClass' => 'pager-disabled',
                             'firstPageLabel'       => false,
                             'lastPageLabel'        => false,
-                            'prevPageLabel'        => '←',
-                            'nextPageLabel'        => '→',
+                            'prevPageLabel'        => '<i class="fa-solid fa-angle-left"></i>',
+                            'nextPageLabel'        => '<i class="fa-solid fa-angle-right"></i>',
                             'maxButtonCount'       => 7,
                         ],
                     ]) ?>
@@ -370,7 +371,7 @@ $this->registerJs(Json::encode($schema), View::POS_HEAD, 'org-jsonld');
                             <?php if ($profile->website): ?>
                                 <li>
                                     <a href="<?= Html::encode($profile->website) ?>" target="_blank" rel="nofollow noopener external" class="social-link">
-                                        <span class="social-icon">🌐</span>
+                                        <span class="social-icon"><i class="fa-solid fa-globe" aria-hidden="true"></i></span>
                                         <span class="social-label">Official website</span>
                                         <span class="social-arrow">↗</span>
                                     </a>
@@ -379,7 +380,7 @@ $this->registerJs(Json::encode($schema), View::POS_HEAD, 'org-jsonld');
                             <?php if ($profile->twitter): ?>
                                 <li>
                                     <a href="https://twitter.com/<?= Html::encode(ltrim($profile->twitter, '@')) ?>" target="_blank" rel="nofollow noopener external" class="social-link">
-                                        <span class="social-icon">𝕏</span>
+                                        <span class="social-icon"><i class="fa-brands fa-x-twitter" aria-hidden="true"></i></span>
                                         <span class="social-label"><?= Html::encode($profile->twitter) ?></span>
                                         <span class="social-arrow">↗</span>
                                     </a>
@@ -388,7 +389,7 @@ $this->registerJs(Json::encode($schema), View::POS_HEAD, 'org-jsonld');
                             <?php if ($profile->discord): ?>
                                 <li>
                                     <a href="<?= Html::encode($profile->discord) ?>" target="_blank" rel="nofollow noopener external" class="social-link">
-                                        <span class="social-icon">💬</span>
+                                        <span class="social-icon"><i class="fa-brands fa-discord" aria-hidden="true"></i></span>
                                         <span class="social-label">Discord</span>
                                         <span class="social-arrow">↗</span>
                                     </a>

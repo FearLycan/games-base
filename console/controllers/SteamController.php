@@ -205,6 +205,9 @@ class SteamController extends Controller
         $controller = new TagController(Yii::$app->controller->id, Yii::$app);
         $controller->actionRecount();
 
+        $controller = new CategoryController(Yii::$app->controller->id, Yii::$app);
+        $controller->actionRecount();
+
         return ExitCode::OK;
     }
 

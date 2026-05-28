@@ -15,6 +15,7 @@ use yii\db\ActiveRecord;
  * @property string|null $image
  * @property string|null $slug
  * @property int|null    $status
+ * @property int         $games_count   precomputed by console `category/recount`
  * @property string      $created_at
  * @property string|null $updated_at
  *
@@ -62,7 +63,7 @@ class Category extends ActiveRecord
         return [
             [['name'], 'required'],
             [['description'], 'string'],
-            [['status'], 'integer'],
+            [['status', 'games_count'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
             [['name', 'image'], 'string', 'max' => 255],
         ];

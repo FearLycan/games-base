@@ -1,13 +1,20 @@
 <?php
 
+use common\schema\builder\GamePageSchemaBuilder;
+use common\schema\JsonLdRenderer;
 use frontend\modules\game\models\Game;
 use yii\helpers\Html;
+use yii\helpers\Url;
 use yii\web\View;
 
 /* @var $this View */
 /* @var $model Game */
+/* @var $related Game[] */
 
 $this->title = $model->title . " - " . Yii::$app->params['meta-title'];
+$this->params['description'] = $model->short_description
+    ? mb_substr(trim(strip_tags($model->short_description)), 0, 160)
+    : ($model->title . ' — reviews, screenshots, system requirements and Steam details.');
 $this->params['breadcrumbs'][] = ['label' => 'Games', 'url' => ['/game/game/index']];
 if (!empty($model->genres)) {
     $mainGenre = $model->genres[0];
@@ -15,6 +22,9 @@ if (!empty($model->genres)) {
 }
 $this->params['breadcrumbs'][] = $model->title;
 $this->registerCssFile('@web/css/game.css');
+
+$gameUrl = Url::to(['/game/game/view', 'id' => $model->steam_appid, 'slug' => $model->slug], true);
+echo JsonLdRenderer::render(GamePageSchemaBuilder::build($model, $gameUrl));
 
 $screenshots = $model->getScreenshots();
 $platforms = $model->getAvailablePlatforms();
@@ -74,14 +84,22 @@ if ($model->isBestseller()) {
                 </div>
             </div>
 
-            <div class="lg:col-span-4 flex lg:justify-end">
+            <div class="lg:col-span-4 flex flex-col items-start lg:items-end gap-3">
+                <?php $priceLabel = $model->getPriceLabel(); $discount = $model->getDiscountPercent(); ?>
+                <?php if ($priceLabel !== null): ?>
+                    <div class="flex items-center gap-2.5">
+                        <?php if ($discount > 0): ?>
+                            <span class="rounded-md bg-emerald-500 px-2 py-1 text-sm font-bold text-white">-<?= $discount ?>%</span>
+                            <span class="text-white/50 line-through text-sm"><?= Html::encode($model->getInitialPrice()) ?></span>
+                        <?php endif; ?>
+                        <span class="font-display text-2xl font-bold text-white"><?= Html::encode($priceLabel) ?></span>
+                    </div>
+                <?php endif; ?>
                 <a href="<?= Html::encode($model->getSteamUrl()) ?>"
                    target="_blank"
                    rel="nofollow noopener external"
-                   class="inline-flex items-center gap-2.5 rounded-xl bg-black/40 hover:bg-black/55 border border-white/20 backdrop-blur px-5 py-3 text-sm font-semibold text-white transition shadow-lg shadow-black/30">
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M12 2C6.48 2 2 6.48 2 12c0 4.62 3.16 8.5 7.43 9.66l-.06-.93c0-.34.07-.66.2-.96l-2.93-1.16a3.34 3.34 0 1 0 4.97-3.6 3.34 3.34 0 0 0-1.7-.46L7.6 11.34a4.07 4.07 0 1 1 6.99 3.99l-2.99 2.97c.18.05.36.08.55.08a3.34 3.34 0 1 0-3.34-3.34l-3.97-1.58a2.05 2.05 0 1 1 1.13-2.74L8.4 11.5a3.34 3.34 0 0 1 5.86-2.36 4.07 4.07 0 1 1-6.5-4.7A9.97 9.97 0 0 1 12 2z"></path>
-                    </svg>
+                   class="inline-flex items-center gap-2.5 rounded-xl bg-accent hover:bg-accent/90 px-6 py-3.5 text-sm font-semibold text-white transition shadow-lg shadow-emerald-900/30">
+                    <i class="fa-brands fa-steam text-lg leading-none" aria-hidden="true"></i>
                     View on Steam
                     <span class="text-white/70" aria-hidden="true">↗</span>
                 </a>
@@ -200,6 +218,46 @@ if ($model->isBestseller()) {
                 <?= $this->render('_right-bar', ['model' => $model, 'gameViewButton' => false]) ?>
             </div>
         </aside>
+    </div>
+</section>
+
+<?php if (!empty($related)): ?>
+<section class="mt-16">
+    <header class="flex items-center gap-3 mb-6">
+        <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">More games like this</h2>
+        <span class="h-px flex-1 bg-line"></span>
+    </header>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-5 gap-y-7">
+        <?php foreach ($related as $relatedGame): ?>
+            <?= $this->render('_item', ['model' => $relatedGame]) ?>
+        <?php endforeach; ?>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php $closingPrice = $model->getPriceLabel(); $closingDiscount = $model->getDiscountPercent(); ?>
+<section class="mt-14">
+    <div class="rounded-3xl bg-fg text-canvas px-6 sm:px-10 py-9 flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div class="text-center sm:text-left">
+            <h2 class="font-display text-xl sm:text-2xl font-bold">Ready to play <?= Html::encode($model->title) ?>?</h2>
+            <p class="mt-1 text-sm text-canvas/70">
+                <?php if ($closingPrice !== null && $closingDiscount > 0): ?>
+                    On sale now — <?= $closingDiscount ?>% off, <?= Html::encode($closingPrice) ?> on Steam.
+                <?php elseif ($closingPrice !== null): ?>
+                    <?= Html::encode($closingPrice) ?> on Steam.
+                <?php else: ?>
+                    Head to Steam for the latest price and availability.
+                <?php endif; ?>
+            </p>
+        </div>
+        <a href="<?= Html::encode($model->getSteamUrl()) ?>"
+           target="_blank"
+           rel="nofollow noopener external"
+           class="inline-flex items-center gap-2.5 rounded-xl bg-accent text-white px-7 py-3.5 text-sm font-semibold hover:bg-accent/90 transition shadow-lg shadow-emerald-900/20 shrink-0">
+            <i class="fa-brands fa-steam text-lg leading-none" aria-hidden="true"></i>
+            View on Steam
+            <span class="text-white/70" aria-hidden="true">↗</span>
+        </a>
     </div>
 </section>
 

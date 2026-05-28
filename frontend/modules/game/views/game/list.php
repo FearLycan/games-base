@@ -3,6 +3,8 @@
 use common\models\Category;
 use common\models\Genre;
 use common\models\Tag;
+use common\schema\factory\ItemListSchemaFactory;
+use common\schema\JsonLdRenderer;
 use frontend\modules\game\models\searches\GameSearch;
 use yii\data\ActiveDataProvider;
 use yii\helpers\Html;
@@ -14,11 +16,17 @@ use yii\widgets\ListView;
 /* @var $searchModel GameSearch */
 /* @var $dataProvider ActiveDataProvider */
 /* @var $model Genre|Category|Tag */
+/* @var $stats array */
 
 $this->title = "Best {$model->name} games on Steam" . " - " . Yii::$app->params['meta-title'];
+$this->params['description'] = ($model->description ?? null)
+    ? mb_substr(trim(strip_tags($model->description)), 0, 160)
+    : "Browse the best {$model->name} games on Steam — ranked by reviews, with prices, ratings and release dates in one place.";
 $this->params['breadcrumbs'][] = ['label' => 'Games', 'url' => ['/game/game/index']];
 if ($model instanceof Tag) {
     $this->params['breadcrumbs'][] = ['label' => 'Tags', 'url' => ['/tags']];
+} elseif ($model instanceof Category) {
+    $this->params['breadcrumbs'][] = ['label' => 'Features', 'url' => ['/categories']];
 } elseif ($model instanceof Genre) {
     $this->params['breadcrumbs'][] = ['label' => 'Genres', 'url' => ['/genres']];
 }
@@ -32,6 +40,12 @@ $kind = match (true) {
     $model instanceof Tag      => 'Tag',
     default                    => 'Genre',
 };
+
+$pagination = $dataProvider->getPagination();
+$startPosition = $pagination !== false ? $pagination->getPage() * $pagination->getPageSize() + 1 : 1;
+echo JsonLdRenderer::render([
+    ItemListSchemaFactory::fromGames($models, "Best {$model->name} games on Steam", $startPosition, $totalCount),
+]);
 ?>
 
 <header class="mb-10">
@@ -47,14 +61,43 @@ $kind = match (true) {
     <h1 class="font-display text-3xl sm:text-4xl font-bold text-fg tracking-tight leading-tight">
         Best <span class="text-accent"><?= Html::encode($model->name) ?></span> games on Steam
     </h1>
-    <?php if ($model->description ?? null): ?>
-        <p class="mt-4 max-w-3xl text-fg-muted leading-relaxed">
-            <?= Html::encode($model->description) ?>
-        </p>
-    <?php else: ?>
-        <p class="mt-4 max-w-3xl text-fg-muted">
-            Hand-picked <?= Html::encode(strtolower($model->name)) ?> titles. Hover any card to preview details on the right.
-        </p>
+
+    <p class="mt-4 max-w-3xl text-fg-muted leading-relaxed">
+        <?= Html::encode($stats['intro']) ?>
+    </p>
+
+    <?php
+    $statChips = array_filter([
+        $stats['yearText']  ?: null,
+        $stats['avgRating'] !== null ? $stats['avgRating'] . '% positive' : null,
+        $stats['priceText'] ?: null,
+        $stats['free'] > 0 && $stats['priceText'] !== 'Free to play' ? number_format($stats['free']) . ' free' : null,
+    ]);
+    ?>
+    <?php if ($statChips): ?>
+        <div class="mt-5 flex flex-wrap items-center gap-2">
+            <?php foreach ($statChips as $chip): ?>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-surface ring-1 ring-line px-3 py-1 text-xs font-medium text-fg-muted">
+                    <span aria-hidden="true" class="h-1.5 w-1.5 rounded-full bg-accent/60"></span>
+                    <?= Html::encode($chip) ?>
+                </span>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($stats['related'])): ?>
+        <div class="mt-6">
+            <span class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle"><?= Html::encode($stats['relatedLabel']) ?></span>
+            <div class="mt-2 flex flex-wrap gap-1.5">
+                <?php foreach ($stats['related'] as $rel): ?>
+                    <a href="<?= Url::to([$rel['url']]) ?>"
+                       class="group inline-flex items-center gap-1.5 rounded-full bg-canvas ring-1 ring-line px-3 py-1 text-xs font-medium text-fg-muted hover:ring-line-strong hover:text-fg transition">
+                        <?= Html::encode($rel['name']) ?>
+                        <span class="font-mono text-[10px] tabular-nums text-fg-subtle group-hover:text-fg-muted transition"><?= number_format($rel['count']) ?></span>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
     <?php endif; ?>
 </header>
 
@@ -87,8 +130,8 @@ $kind = match (true) {
                             'disabledPageCssClass' => 'pager-disabled',
                             'firstPageLabel'       => false,
                             'lastPageLabel'        => false,
-                            'prevPageLabel'        => '←',
-                            'nextPageLabel'        => '→',
+                            'prevPageLabel'        => '<i class="fa-solid fa-angle-left"></i>',
+                            'nextPageLabel'        => '<i class="fa-solid fa-angle-right"></i>',
                             'maxButtonCount'       => 7,
                     ],
             ]) ?>

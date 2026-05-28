@@ -49,13 +49,13 @@ $preview_tabs = [
 
                     <h1 class="fade-up mt-6 font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-fg tracking-tight leading-[1.05]"
                         style="animation-delay: 0.15s">
-                        Discover great games,<br class="hidden sm:block">
-                        <span class="text-accent">with confidence.</span>
+                        Discover great Steam games,<br class="hidden sm:block">
+                        <span class="text-accent">without the noise.</span>
                     </h1>
 
                     <p class="fade-up mt-6 max-w-xl text-lg text-fg-muted leading-relaxed"
                        style="animation-delay: 0.3s">
-                        Thousands of titles across every genre — sorted by what's hot, what's new, and what's worth your time. Built for players who want signal over noise.
+                        Thousands of Steam games, ranked by what's hot, what's new, and what's actually worth playing — minus the asset flips and paid placements.
                     </p>
 
                     <div class="fade-up mt-10 flex flex-wrap items-center gap-3"

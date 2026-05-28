@@ -7,14 +7,13 @@ use yii\web\View;
 
 /* @var $this View */
 /* @var $genres Genre[] */
+/* @var $hub array */
 
 $this->title = 'Browse by genre — ' . Yii::$app->params['meta-title'];
 $this->params['description'] = 'Every Steam genre we track, sorted by how much there is to explore. Pick a corner that calls to you.';
 $this->params['breadcrumbs'][] = ['label' => 'Games', 'url' => ['/game/game/index']];
 $this->params['breadcrumbs'][] = 'Genres';
 $this->registerCssFile('@web/css/game.css');
-
-$totalGames = array_sum(array_map(static fn(Genre $g): int => (int)$g->games_count, $genres));
 
 $accentSeed = ['emerald', 'sky', 'indigo', 'rose', 'amber', 'teal', 'violet', 'cyan'];
 ?>
@@ -32,7 +31,7 @@ $accentSeed = ['emerald', 'sky', 'indigo', 'rose', 'amber', 'teal', 'violet', 'c
                 Directory
             </span>
             <span class="font-mono text-[11px] uppercase tracking-[0.2em] text-fg-subtle">
-                <?= number_format(count($genres)) ?> genres · <?= number_format($totalGames) ?> games
+                <?= number_format($hub['count']) ?> genres · <?= number_format($hub['games']) ?> games
             </span>
         </div>
 
@@ -40,7 +39,7 @@ $accentSeed = ['emerald', 'sky', 'indigo', 'rose', 'amber', 'teal', 'violet', 'c
             Browse by <span class="text-accent">genre</span>
         </h1>
         <p class="mt-5 max-w-2xl text-fg-muted leading-relaxed">
-            Every genre we track on Steam — sorted by how much there is to dig through. Pick a corner that calls to you.
+            <?= Html::encode($hub['intro']) ?>
         </p>
     </div>
 </section>

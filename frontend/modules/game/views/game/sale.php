@@ -2,6 +2,8 @@
 
 use common\models\Game;
 use common\models\GameSale;
+use common\schema\factory\ItemListSchemaFactory;
+use common\schema\JsonLdRenderer;
 use yii\helpers\Html;
 use yii\helpers\Url;
 use yii\web\View;
@@ -71,6 +73,9 @@ $this->params['breadcrumbs'][] = $crumbLabels[$type];
 $this->registerCssFile('@web/css/game.css');
 
 $totalCount = count($games);
+echo JsonLdRenderer::render([
+    ItemListSchemaFactory::fromGames($games, $titleLabels[$type]),
+]);
 ?>
 
 <section class="relative left-1/2 w-screen -ml-[50vw] overflow-hidden bg-gradient-to-b from-slate-50/30 to-canvas pt-12 pb-14 sm:pt-16">
