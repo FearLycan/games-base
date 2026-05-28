@@ -40,7 +40,7 @@ $facts = [
 ];
 ?>
 
-<section class="relative left-1/2 w-screen -ml-[50vw] -mt-10 sm:-mt-14 overflow-hidden bg-gradient-to-b from-slate-50/40 via-cyan-50/20 to-canvas pt-12 pb-14 sm:pt-16">
+<section class="relative left-1/2 w-screen -ml-[50vw] overflow-hidden bg-gradient-to-b from-slate-50/40 via-cyan-50/20 to-canvas pt-12 pb-14 sm:pt-16">
     <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div class="absolute -top-32 -left-20 h-[460px] w-[460px] rounded-full bg-gradient-to-br from-cyan-200/40 to-sky-200/40 opacity-50 blur-3xl"></div>
         <div class="absolute -bottom-20 right-0 h-[400px] w-[400px] rounded-full bg-gradient-to-br from-indigo-200/40 to-rose-200/40 opacity-30 blur-3xl"></div>

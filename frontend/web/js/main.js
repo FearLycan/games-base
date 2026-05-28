@@ -1,6 +1,37 @@
 'use strict';
 
 (function () {
+    const toggle = document.querySelector('[data-menu-toggle]');
+    const panel = document.querySelector('[data-menu-panel]');
+    if (!toggle || !panel) {
+        return;
+    }
+
+    const iconOpen = toggle.querySelector('[data-menu-icon-open]');
+    const iconClose = toggle.querySelector('[data-menu-icon-close]');
+
+    function setOpen(open) {
+        panel.hidden = !open;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+        if (iconOpen) iconOpen.hidden = open;
+        if (iconClose) iconClose.hidden = !open;
+    }
+
+    toggle.addEventListener('click', () => setOpen(panel.hidden));
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !panel.hidden) setOpen(false);
+    });
+
+    // Close the menu if the viewport grows to the desktop breakpoint.
+    const desktop = window.matchMedia('(min-width: 1024px)');
+    desktop.addEventListener('change', (e) => {
+        if (e.matches) setOpen(false);
+    });
+})();
+
+(function () {
     const modal = document.querySelector('[data-search-modal]');
     if (!modal) {
         return;

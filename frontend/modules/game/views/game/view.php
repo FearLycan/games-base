@@ -8,6 +8,12 @@ use yii\web\View;
 /* @var $model Game */
 
 $this->title = $model->title . " - " . Yii::$app->params['meta-title'];
+$this->params['breadcrumbs'][] = ['label' => 'Games', 'url' => ['/game/game/index']];
+if (!empty($model->genres)) {
+    $mainGenre = $model->genres[0];
+    $this->params['breadcrumbs'][] = ['label' => $mainGenre->name, 'url' => ['/games/' . $mainGenre->slug]];
+}
+$this->params['breadcrumbs'][] = $model->title;
 $this->registerCssFile('@web/css/game.css');
 
 $screenshots = $model->getScreenshots();
@@ -24,7 +30,7 @@ if ($model->isBestseller()) {
 }
 ?>
 
-<section class="game-hero relative left-1/2 w-screen -ml-[50vw] -mt-10 sm:-mt-14 mb-10 sm:mb-14"
+<section class="game-hero relative left-1/2 w-screen -ml-[50vw] mb-10 sm:mb-14"
          style="background-image:url('<?= Html::encode($model->getBackground()) ?>')">
     <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-32 sm:pt-28 sm:pb-40">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">

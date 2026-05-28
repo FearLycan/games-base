@@ -61,14 +61,19 @@ $titleLabels = [
 ];
 $this->title = $titleLabels[$type] . ' — ' . Yii::$app->params['meta-title'];
 $this->params['description'] = $m['subtitle'];
+$crumbLabels = [
+    GameSale::TYPE_BESTSELLERS        => 'Bestsellers',
+    GameSale::TYPE_NEW_AND_NOTEWORTHY => 'New & Noteworthy',
+    GameSale::TYPE_POPULAR_UPCOMING   => 'Upcoming',
+];
 $this->params['breadcrumbs'][] = ['label' => 'Games', 'url' => ['/game/game/index']];
-$this->params['breadcrumbs'][] = $m['eyebrow'];
+$this->params['breadcrumbs'][] = $crumbLabels[$type];
 $this->registerCssFile('@web/css/game.css');
 
 $totalCount = count($games);
 ?>
 
-<section class="relative left-1/2 w-screen -ml-[50vw] -mt-10 sm:-mt-14 overflow-hidden bg-gradient-to-b from-slate-50/30 to-canvas pt-12 pb-14 sm:pt-16">
+<section class="relative left-1/2 w-screen -ml-[50vw] overflow-hidden bg-gradient-to-b from-slate-50/30 to-canvas pt-12 pb-14 sm:pt-16">
     <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div class="absolute -top-32 -left-20 h-[460px] w-[460px] rounded-full bg-gradient-to-br <?= $m['glow'] ?> opacity-50 blur-3xl"></div>
         <div class="absolute -bottom-20 right-0 h-[400px] w-[400px] rounded-full bg-gradient-to-br <?= $m['glow'] ?> opacity-30 blur-3xl"></div>

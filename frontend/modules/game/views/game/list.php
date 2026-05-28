@@ -18,7 +18,9 @@ use yii\widgets\ListView;
 $this->title = "Best {$model->name} games on Steam" . " - " . Yii::$app->params['meta-title'];
 $this->params['breadcrumbs'][] = ['label' => 'Games', 'url' => ['/game/game/index']];
 if ($model instanceof Tag) {
-    $this->params['breadcrumbs'][] = 'Tag';
+    $this->params['breadcrumbs'][] = ['label' => 'Tags', 'url' => ['/tags']];
+} elseif ($model instanceof Genre) {
+    $this->params['breadcrumbs'][] = ['label' => 'Genres', 'url' => ['/genres']];
 }
 $this->params['breadcrumbs'][] = $model->name;
 $this->registerCssFile('@web/css/game.css');

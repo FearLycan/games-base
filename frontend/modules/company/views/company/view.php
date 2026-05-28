@@ -97,7 +97,7 @@ $this->registerJs(Json::encode($schema), View::POS_HEAD, 'org-jsonld');
 
 <script type="application/ld+json"><?= Json::encode($schema) ?></script>
 
-<section class="company-hero relative left-1/2 w-screen -ml-[50vw] -mt-10 sm:-mt-14 mb-10 sm:mb-14">
+<section class="company-hero relative left-1/2 w-screen -ml-[50vw] mb-10 sm:mb-14">
     <div class="company-hero-glow"></div>
 
     <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-28 sm:pt-28 sm:pb-36">

@@ -153,7 +153,36 @@ AppAsset::register($this);
                 <a href="<?= Url::to(['/genres']) ?>" class="hover:text-fg transition">Genres</a>
                 <a href="<?= Url::to(['/tags']) ?>" class="hover:text-fg transition">Tags</a>
             </nav>
+
+            <button type="button"
+                    data-menu-toggle
+                    aria-label="Open menu"
+                    aria-expanded="false"
+                    aria-controls="mobile-menu"
+                    class="lg:hidden shrink-0 grid h-9 w-9 place-items-center rounded-lg border border-line text-fg-muted hover:bg-surface-2 hover:text-fg transition">
+                <svg data-menu-icon-open class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="4" y1="7" x2="20" y2="7"></line>
+                    <line x1="4" y1="12" x2="20" y2="12"></line>
+                    <line x1="4" y1="17" x2="20" y2="17"></line>
+                </svg>
+                <svg data-menu-icon-close hidden class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                    <line x1="6" y1="18" x2="18" y2="6"></line>
+                </svg>
+            </button>
         </div>
+
+        <nav id="mobile-menu"
+             data-menu-panel
+             hidden
+             aria-label="Mobile"
+             class="lg:hidden border-t border-line bg-canvas">
+            <div class="mx-auto max-w-7xl px-6 py-3 flex flex-col text-sm font-medium text-fg-muted">
+                <a href="<?= Url::to(['/games']) ?>" class="py-2.5 hover:text-fg transition">Games</a>
+                <a href="<?= Url::to(['/genres']) ?>" class="py-2.5 hover:text-fg transition">Genres</a>
+                <a href="<?= Url::to(['/tags']) ?>" class="py-2.5 hover:text-fg transition">Tags</a>
+            </div>
+        </nav>
     </header>
 
     <div data-search-modal
