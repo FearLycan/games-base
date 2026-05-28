@@ -24,6 +24,21 @@ class SteamController extends Controller
     private const int SEARCH_PAGE_SIZE = 50;
     private const int SEARCH_MAX_PAGES = 200;
 
+    /**
+     * When enabled, actionSync prints per-game progress (appid, title, time).
+     * Off by default; turn on with `--verbose=1`.
+     */
+    public bool $verbose = false;
+
+    public function options($actionID): array
+    {
+        $options = parent::options($actionID);
+        if ($actionID === 'sync') {
+            $options[] = 'verbose';
+        }
+        return $options;
+    }
+
     public function actionSync(int $limit = 100): int
     {
         // andWhere (not where): GameQuery::where() force-injects
@@ -47,14 +62,36 @@ class SteamController extends Controller
             $query->limit($limit);
         }
 
-        foreach ($query->column() as $appid) {
+        $appids = $query->column();
+        $total = count($appids);
+        $batchStart = microtime(true);
+        if ($this->verbose) {
+            $this->stdout("Starting sync of {$total} game(s)\n");
+        }
+
+        foreach ($appids as $i => $appid) {
+            $position = $i + 1;
+            $start = microtime(true);
             try {
-                $this->stdout("Syncing {$appid}\n");
                 $this->actionGetInfo((int)$appid);
+                if ($this->verbose) {
+                    $elapsed = round(microtime(true) - $start, 2);
+                    $title = Game::find()
+                        ->select('title')
+                        ->andWhere(['steam_appid' => $appid])
+                        ->scalar() ?: '(unknown title)';
+                    $this->stdout("[{$position}/{$total}] Synced {$appid} \"{$title}\" in {$elapsed}s\n");
+                }
             } catch (Exception $e) {
-                $this->stderr($e->getMessage() . " - appid: {$appid}\n");
+                $elapsed = round(microtime(true) - $start, 2);
+                $this->stderr("[{$position}/{$total}] Failed {$appid} after {$elapsed}s: {$e->getMessage()}\n");
             }
             sleep(random_int(self::SYNC_DELAY_MIN, self::SYNC_DELAY_MAX));
+        }
+
+        if ($this->verbose) {
+            $totalElapsed = round(microtime(true) - $batchStart, 2);
+            $this->stdout("Finished syncing {$total} game(s) in {$totalElapsed}s\n");
         }
 
         return ExitCode::OK;
