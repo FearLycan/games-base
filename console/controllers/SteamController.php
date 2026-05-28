@@ -24,25 +24,35 @@ class SteamController extends Controller
     private const int SEARCH_PAGE_SIZE = 50;
     private const int SEARCH_MAX_PAGES = 200;
 
-    public function actionSync(int $limit = 0): int
+    public function actionSync(int $limit = 100): int
     {
-        $query = Game::find()->where([
-            'or',
-            ['status' => Game::STATUS_WAIT_TO_SYNC],
-            ['force_sync' => 1],
-        ])->orderBy(['force_sync' => SORT_DESC, 'id' => SORT_DESC]);
+        // andWhere (not where): GameQuery::where() force-injects
+        // game.status = STATUS_ACTIVE, which would corrupt this OR into an
+        // always-true clause (OR 1) and make the job scan the whole table.
+        //
+        // Snapshot candidate appids up front instead of using each(): syncing a
+        // game removes it from the matching set, which shifts each()'s OFFSET
+        // and skips rows mid-iteration. A fixed list guarantees forward progress
+        // and preserves the force_sync priority captured at snapshot time.
+        $query = Game::find()
+            ->select('steam_appid')
+            ->andWhere([
+                'or',
+                ['status' => Game::STATUS_WAIT_TO_SYNC],
+                ['force_sync' => 1],
+            ])
+            ->orderBy(['force_sync' => SORT_DESC, 'id' => SORT_DESC]);
 
-        $iterator = $limit > 0
-            ? $query->limit($limit)->all()
-            : $query->each();
+        if ($limit > 0) {
+            $query->limit($limit);
+        }
 
-        foreach ($iterator as $game) {
-            /** @var Game $game */
+        foreach ($query->column() as $appid) {
             try {
-                $this->stdout("Syncing {$game->steam_appid}\n");
-                $this->actionGetInfo($game->steam_appid);
+                $this->stdout("Syncing {$appid}\n");
+                $this->actionGetInfo((int)$appid);
             } catch (Exception $e) {
-                $this->stderr($e->getMessage() . " - appid: {$game->steam_appid}\n");
+                $this->stderr($e->getMessage() . " - appid: {$appid}\n");
             }
             sleep(random_int(self::SYNC_DELAY_MIN, self::SYNC_DELAY_MAX));
         }
@@ -76,6 +86,8 @@ class SteamController extends Controller
 
         if (empty($response->data[$app_id]['success'])) {
             $game->status = Game::STATUS_SUCCESS_FALSE;
+            $game->force_sync = false;
+            $game->synchronized_at = date('Y-m-d H:i:s');
             $game->save(false);
             return ExitCode::OK;
         }

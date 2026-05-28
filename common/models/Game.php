@@ -157,24 +157,24 @@ class Game extends ActiveRecord
         return parent::beforeSave($insert);
     }
 
-    public function afterFind()
-    {
-        $this->checkSyncDate();
-
-        parent::afterFind();
-    }
-
+    /**
+     * Flags the game for re-sync if it hasn't been synchronized in over a day.
+     * Call this from the detail-page load (on cache miss) so that games users
+     * actually view get refreshed more often than the rest of the catalogue.
+     * Must NOT live in afterFind(): that writes to the DB on every read
+     * (list pages, console iteration) and mutates result sets mid-iteration.
+     */
     public function checkSyncDate(): void
     {
-        if ($this->synchronized_at && (int)$this->force_sync === 0) {
-            $synchronizedAt = new DateTime($this->synchronized_at);
-            $now = new DateTime('now');
-            $now->modify('-1 day');
+        if (!$this->synchronized_at || (int)$this->force_sync === 1) {
+            return;
+        }
 
-            if ($now > $synchronizedAt) {
-                $this->force_sync = 1;
-                $this->save(false);
-            }
+        $synchronizedAt = new DateTime($this->synchronized_at);
+        $threshold = (new DateTime('now'))->modify('-1 day');
+
+        if ($synchronizedAt < $threshold) {
+            $this->updateAttributes(['force_sync' => true]);
         }
     }
 
