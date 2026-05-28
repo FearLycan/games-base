@@ -51,11 +51,12 @@ class SteamController extends Controller
         // and preserves the force_sync priority captured at snapshot time.
         $query = Game::find()
             ->select('steam_appid')
-            ->andWhere([
+            /*->andWhere([
                 'or',
                 ['status' => Game::STATUS_WAIT_TO_SYNC],
                 ['force_sync' => 1],
-            ])
+            ])*/
+            ->where(['status' => Game::STATUS_ACTIVE])
             ->orderBy(['force_sync' => SORT_DESC, 'id' => SORT_DESC]);
 
         if ($limit > 0) {
