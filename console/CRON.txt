@@ -1,0 +1,67 @@
+================================================================================
+ GAMENTATOR — CRON / CONSOLE COMMANDS
+================================================================================
+
+Each command below is a Yii console action in console/controllers/.
+Run inside the container, e.g.:
+
+    docker compose exec php php yii steam/sync
+
+Actual start/finish times of every run are recorded automatically in:
+
+    console/runtime/logs/cron.log
+
+(one "START <cmd>" line when it begins, one "END <cmd> (<seconds>s)" line when
+it finishes — see CronLogger). That file is where you check "when did it run
+and how long did it take".
+
+--------------------------------------------------------------------------------
+ COMMANDS  (suggested cadence — the real schedule lives in the server crontab)
+--------------------------------------------------------------------------------
+
+  steam/sync [--limit=100] [--verbose=1]
+      Pulls fresh Steam data for games waiting to sync / flagged force_sync.
+      Cadence: often, small batches — e.g. every 15 min.
+
+  steam/get-coming-soon
+      Discovers upcoming Steam titles, then recounts genres/tags/features.
+      Cadence: daily.
+
+  steam/create-app-list
+      Rebuilds the full Steam app list (seeds new appids).
+      Cadence: weekly / occasional.
+
+  steam-spy/create-app-list
+      Seeds appids from SteamSpy.
+      Cadence: weekly / occasional.
+
+  sale/synchronize
+      Refreshes Bestsellers / New & Noteworthy / Upcoming lists.
+      Cadence: every 6 hours.
+
+  genre/recount
+  tag/recount
+  category/recount
+      Refresh the precomputed games_count columns (drive the directories and
+      landing pages). Also run automatically after steam/get-coming-soon.
+      Cadence: daily, after steam/sync.
+
+  sitemap/generate [--baseUrl=https://gamentator.com]
+      Regenerates the gzipped XML sitemap set + index.
+      Cadence: daily, after the catalog sync.
+
+--------------------------------------------------------------------------------
+ EXAMPLE CRONTAB  (adjust times to taste; paths assume docker compose)
+--------------------------------------------------------------------------------
+
+  # m   h   command
+  */15  *   * * *   docker compose exec -T php php yii steam/sync --limit=100
+  0     */6 * * *   docker compose exec -T php php yii sale/synchronize
+  15    3   * * *   docker compose exec -T php php yii steam/get-coming-soon
+  30    3   * * *   docker compose exec -T php php yii genre/recount
+  35    3   * * *   docker compose exec -T php php yii tag/recount
+  40    3   * * *   docker compose exec -T php php yii category/recount
+  50    3   * * *   docker compose exec -T php php yii sitemap/generate
+  0     4   * * 1   docker compose exec -T php php yii steam/create-app-list
+
+================================================================================

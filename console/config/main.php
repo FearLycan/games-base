@@ -12,6 +12,12 @@ return [
     'basePath'            => dirname(__DIR__),
     'bootstrap'           => ['log'],
     'controllerNamespace' => 'console\controllers',
+    'on beforeAction'     => function ($event) {
+        \console\components\CronLogger::start($event->action->getUniqueId());
+    },
+    'on afterAction'      => function ($event) {
+        \console\components\CronLogger::finish($event->action->getUniqueId());
+    },
     'aliases'             => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
