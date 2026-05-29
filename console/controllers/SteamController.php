@@ -42,8 +42,10 @@ class SteamController extends Controller
     public function actionSync(int $limit = 100): int
     {
         // andWhere (not where): GameQuery::where() force-injects
-        // game.status = STATUS_ACTIVE, which would corrupt this OR into an
-        // always-true clause (OR 1) and make the job scan the whole table.
+        // game.status = STATUS_ACTIVE, which would AND in `game.status = 1`
+        // alongside our `status = 0` filter — the same column with two
+        // contradictory values, so the query always returns zero rows.
+        // andWhere skips that override (find() leaves where = null).
         //
         // Snapshot candidate appids up front instead of using each(): syncing a
         // game removes it from the matching set, which shifts each()'s OFFSET
@@ -52,14 +54,14 @@ class SteamController extends Controller
         $query = Game::find()
             ->select('steam_appid')
             /*->andWhere([
-                'or',
-                ['status' => Game::STATUS_WAIT_TO_SYNC],
-                ['force_sync' => 1],
-            ])*/
-            ->where(['status' => Game::STATUS_WAIT_TO_SYNC])
+                    'or',
+                    ['status' => Game::STATUS_WAIT_TO_SYNC],
+                     ['force_sync' => 1],
+                 ])*/
+            ->andWhere(['status' => Game::STATUS_WAIT_TO_SYNC])
             ->orderBy([
                 //'force_sync' => SORT_DESC,
-                'id' => SORT_DESC
+                'id' => SORT_DESC,
             ]);
 
         if ($limit > 0) {
