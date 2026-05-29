@@ -128,6 +128,21 @@ if (!empty($this->params['breadcrumbs'])) {
         </style>
 
         <?php $this->head() ?>
+
+        <?php if (isset(Yii::$app->params['gtag']) && Yii::$app->params['gtag']): ?>
+            <!-- Google tag (gtag.js) -->
+            <script async src="https://www.googletagmanager.com/gtag/js?id=<?= Yii::$app->params['gtag'] ?>"></script>
+            <script>
+                window.dataLayer = window.dataLayer || [];
+
+                function gtag() {
+                    dataLayer.push(arguments);
+                }
+
+                gtag('js', new Date());
+                gtag('config', '<?= Yii::$app->params['gtag'] ?>');
+            </script>
+        <?php endif; ?>
     </head>
     <body class="min-h-full flex flex-col font-body bg-canvas text-fg antialiased overflow-x-hidden selection:bg-accent/20 selection:text-fg">
     <?php $this->beginBody() ?>

@@ -14,4 +14,8 @@ return [
     'schema.organization.name' => 'Gamentator',
     'schema.organization.url'  => 'https://gamentator.com',
     'schema.organization.logo' => 'https://gamentator.com/img/logo.png',
+
+    'gtag'        => '',
+    'leadTag'     => '',
+    'smart-links' => [],
 ];
