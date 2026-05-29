@@ -45,16 +45,16 @@ class GameQuery extends ActiveQuery
         '+',
     ];
 
-    public function where($condition, $params = []): GameQuery
+    /**
+     * Scope - only active (published) games. Apply explicitly wherever a
+     * user-facing list should hide unsynced / hidden games.
+     *
+     * Pass $alias when the query is aliased (e.g. ->alias('game')) so the
+     * condition targets the right table.
+     */
+    public function active(string $alias = 'game'): GameQuery
     {
-        $this->where = $condition;
-
-        $this->where['game.status'] = Game::STATUS_ACTIVE;
-        //$this->where['game.required_age'] = 0;
-        //$this->where['game.type'] = GAME::TYPE_GAME;
-
-        $this->addParams($params);
-        return $this;
+        return $this->andWhere([$alias . '.status' => Game::STATUS_ACTIVE]);
     }
 
     /**

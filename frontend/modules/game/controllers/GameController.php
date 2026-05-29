@@ -259,7 +259,7 @@ class GameController extends Controller
     {
         $key = Yii::$app->controller->id . $id . $slug;
         $model = $this->cache->getOrSet($key, function () use ($id, $slug) {
-            $game = Game::findOne(['steam_appid' => $id, 'slug' => $slug]);
+            $game = Game::findOne(['steam_appid' => $id, 'slug' => $slug, 'status' => Game::STATUS_ACTIVE]);
             // Viewed games get re-synced more often. Runs only on cache miss
             // (~hourly per game), so it's not a write on every request.
             $game?->checkSyncDate();

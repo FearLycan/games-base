@@ -41,12 +41,6 @@ class SteamController extends Controller
 
     public function actionSync(int $limit = 100): int
     {
-        // andWhere (not where): GameQuery::where() force-injects
-        // game.status = STATUS_ACTIVE, which would AND in `game.status = 1`
-        // alongside our `status = 0` filter — the same column with two
-        // contradictory values, so the query always returns zero rows.
-        // andWhere skips that override (find() leaves where = null).
-        //
         // Snapshot candidate appids up front instead of using each(): syncing a
         // game removes it from the matching set, which shifts each()'s OFFSET
         // and skips rows mid-iteration. A fixed list guarantees forward progress
