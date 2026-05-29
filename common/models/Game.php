@@ -51,6 +51,7 @@ use yii\httpclient\Client;
  * @property GameCategory[] $gameCategories
  * @property GameGenre[]    $gameGenres
  * @property GameSale[]     $gameSales
+ * @property GameOffer[]    $gameOffers
  */
 class Game extends ActiveRecord
 {
@@ -78,6 +79,8 @@ class Game extends ActiveRecord
     private ?string    $_mainGenre = null;
     /** @var array<int, true>|null map of sale type IDs this game belongs to */
     private ?array     $_saleTypes = null;
+    /** @var GameOffer[]|null active store offers, store eager-loaded */
+    private ?array     $_activeOffers = null;
 
     /**
      * @return array
@@ -367,6 +370,76 @@ class Game extends ActiveRecord
     public function getGameSales(): ActiveQuery
     {
         return $this->hasMany(GameSale::class, ['game_id' => 'id']);
+    }
+
+    /**
+     * Gets query for [[GameOffers]].
+     *
+     * @return ActiveQuery
+     */
+    public function getGameOffers(): ActiveQuery
+    {
+        return $this->hasMany(GameOffer::class, ['game_id' => 'id']);
+    }
+
+    /**
+     * Active store offers for this game, ordered for display, with the related
+     * store eager-loaded. Cached per request.
+     *
+     * @return GameOffer[]
+     */
+    public function getActiveOffers(): array
+    {
+        // Free-to-play games are never sold elsewhere — no offers shown.
+        if ((int)$this->is_free === 1) {
+            return $this->_activeOffers ??= [];
+        }
+
+        return $this->_activeOffers ??= $this->getGameOffers()
+            ->with(['store', 'prices'])
+            ->where(['game_offer.status' => GameOffer::STATUS_ACTIVE])
+            ->orderBy(['game_offer.order' => SORT_ASC])
+            ->all();
+    }
+
+    /**
+     * Active offers ordered cheapest-first for the given display currency.
+     * Offers that have no price in that currency sort last (keeping their
+     * relative `order`). The first element is therefore the best deal when it
+     * has a price — see {@see getBestOffer()}.
+     *
+     * @return GameOffer[]
+     */
+    public function getSortedOffers(string $currency): array
+    {
+        $offers = $this->getActiveOffers();
+
+        usort($offers, static function (GameOffer $a, GameOffer $b) use ($currency): int {
+            $pa = $a->getPrice($currency);
+            $pb = $b->getPrice($currency);
+            $fa = $pa && (int)$pa->price_final > 0 ? (int)$pa->price_final : PHP_INT_MAX;
+            $fb = $pb && (int)$pb->price_final > 0 ? (int)$pb->price_final : PHP_INT_MAX;
+
+            return $fa <=> $fb;
+        });
+
+        return $offers;
+    }
+
+    /**
+     * The cheapest active offer that has a price in the given currency, or null.
+     *
+     * @return GameOffer|null
+     */
+    public function getBestOffer(string $currency): ?GameOffer
+    {
+        foreach ($this->getSortedOffers($currency) as $offer) {
+            if ($offer->getPrice($currency)) {
+                return $offer;
+            }
+        }
+
+        return null;
     }
 
     public function setReview()

@@ -1,0 +1,3 @@
+# Downloaded data (e.g. GeoLite2 *.mmdb) — keep the directory, ignore contents.
+*
+!.gitignore

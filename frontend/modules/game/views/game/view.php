@@ -211,6 +211,22 @@ if ($model->isBestseller()) {
                     <?php endforeach; ?>
                 </article>
             <?php endif; ?>
+
+            <article>
+                <header class="flex items-center gap-3 mb-5">
+                    <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">04</span>
+                    <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">Get it on Steam</h2>
+                </header>
+
+                <div class="steam-widget overflow-hidden rounded-xl">
+                    <iframe src="https://store.steampowered.com/widget/<?= (int)$model->steam_appid ?>/?utm_source=<?= Yii::$app->name ?>&utm_campaign=<?= Yii::$app->name ?>"
+                            title="<?= Html::encode($model->title) ?> on Steam"
+                            loading="lazy"
+                            width="100%"
+                            height="190"
+                            frameborder="0"></iframe>
+                </div>
+            </article>
         </div>
 
         <aside class="lg:col-span-4 lg:-mt-48 relative z-10">
