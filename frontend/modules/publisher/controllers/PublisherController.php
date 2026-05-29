@@ -3,6 +3,7 @@
 namespace frontend\modules\publisher\controllers;
 
 use common\components\AccessControl;
+use common\components\CompanyTimeline;
 use common\models\Developer;
 use common\models\Game;
 use frontend\components\Controller;
@@ -60,11 +61,21 @@ class PublisherController extends Controller
         }
 
         $sort = Yii::$app->request->get('sort', 'reviews');
+        $stats = $this->buildStats($model->id);
 
-        return $this->render('view', [
-            'model'        => $model,
+        return $this->render('@frontend/views/company/_view', [
+            'name'         => $model->name,
+            'slug'         => $model->slug,
+            'kind'         => 'publisher',
+            'profile'      => $model->profile,
             'dataProvider' => $this->buildGamesProvider($model->id, $sort),
-            'stats'        => $this->buildStats($model->id),
+            'stats'        => $stats,
+            'statCards'    => CompanyTimeline::statCards($stats, $model->profile, 'Games published'),
+            'roleLabels'   => ['Publisher'],
+            'roleTabs'     => [],
+            'role'         => '',
+            'gamesHeading' => 'Games published',
+            'timeline'     => CompanyTimeline::build(null, $model->id, $model->profile, $stats['games']),
             'sort'         => $sort,
         ]);
     }

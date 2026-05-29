@@ -1,33 +1,55 @@
 <?php
 
 use common\models\CompanyProfile;
-use common\models\Developer;
-use common\models\Publisher;
 use yii\data\ActiveDataProvider;
 use yii\helpers\Html;
+use yii\helpers\Json;
 use yii\helpers\Url;
 use yii\web\View;
 use yii\widgets\ListView;
 
 /* @var $this View */
-/* @var $model Developer|Publisher */
+/* @var $name string */
+/* @var $slug string */
+/* @var $kind string */                                                    // company | developer | publisher
 /* @var $profile CompanyProfile|null */
 /* @var $dataProvider ActiveDataProvider */
-/* @var $stats array */
+/* @var $stats array */                                                    // requires: games (int), genreBreakdown (array)
+/* @var $statCards array<int,array{value:string|int,label:string,accent?:bool}> */
+/* @var $roleLabels string[] */                                            // hero chips
+/* @var $roleTabs array<string,array{0:string,1:int}> */                   // empty when single-role
+/* @var $role string */                                                    // active tab key, '' when no tabs
+/* @var $gamesHeading string */
+/* @var $timeline array<int,array{type:string,year:int,label:string,appid?:int,slug?:string,image?:string,note?:string}> */
 /* @var $sort string */
-/* @var $kind string */
-/* @var $kindLabel string */
-/* @var $gamesLabel string */
 
-$this->title = $model->name . ' — ' . strtolower($kindLabel) . ' profile · ' . Yii::$app->params['meta-title'];
+$kindLabel = match ($kind) {
+    'developer' => 'Developer',
+    'publisher' => 'Publisher',
+    default     => 'Studio',
+};
+
+$this->title = ($kind === 'company'
+        ? $name . ' — games, history & releases'
+        : $name . ' — ' . strtolower($kindLabel) . ' profile')
+    . ' · ' . Yii::$app->params['meta-title'];
+
+$roleHeadline = implode(' & ', $roleLabels) ?: 'game studio';
 $this->params['description'] = $profile?->description
     ? mb_substr(trim($profile->description), 0, 160)
-    : sprintf('%s — %s profile on Gamentator: games, catalog stats and release history.', $model->name, strtolower($kindLabel));
-$this->params['breadcrumbs'][] = ['label' => ucfirst($kind) . 's', 'url' => ['/' . $kind . 's']];
-$this->params['breadcrumbs'][] = $model->name;
+    : sprintf('%s — %s with %s game%s in our Steam catalog.',
+        $name, strtolower($roleHeadline), number_format($stats['games']), $stats['games'] === 1 ? '' : 's');
+
+if ($kind !== 'company') {
+    $this->params['breadcrumbs'][] = ['label' => $kindLabel . 's', 'url' => ['/' . $kind . 's']];
+}
+$this->params['breadcrumbs'][] = $name;
 $this->registerCssFile('@web/css/company.css');
 
-$initials = mb_strtoupper(mb_substr($model->name, 0, 2));
+$baseUrl = ['/' . $kind . '/' . $kind . '/view', 'slug' => $slug];
+$canonicalUrl = Url::to($baseUrl, true);
+
+$initials = mb_strtoupper(mb_substr($name, 0, 2));
 $location = $profile?->getLocation();
 $activeYears = null;
 if ($profile?->founded_year) {
@@ -41,9 +63,85 @@ $sortOptions = [
     'newest'  => 'Newest',
     'oldest'  => 'Oldest',
 ];
+$sortExtra = $roleTabs ? ['role' => $role] : [];
 
-$baseSortUrl = ['/' . $kind . '/' . $kind . '/view', 'slug' => $model->slug];
+[$emptyTitle, $emptyText] = $roleTabs
+    ? ['No games in this view', 'Try switching the role tab above.']
+    : ['No games in our catalog yet', 'We sync new titles daily — check back soon.'];
+
+// On-this-page jump nav: only list sections that actually render.
+$hasHistory = count($timeline) > 1 || $profile?->history;
+$sectionList = [
+    ['id' => 'at-a-glance', 'label' => 'At a glance'],
+    ['id' => 'games',       'label' => $gamesHeading],
+];
+if ($hasHistory) {
+    $sectionList[] = ['id' => 'history', 'label' => 'History'];
+}
+$sectionNo = [];
+foreach ($sectionList as $i => $s) {
+    $sectionNo[$s['id']] = str_pad((string)($i + 1), 2, '0', STR_PAD_LEFT);
+}
+
+// Organization structured data (valid for studios as well as combined companies).
+$schema = [
+    '@context' => 'https://schema.org',
+    '@type'    => 'Organization',
+    'name'     => $name,
+    'url'      => $canonicalUrl,
+];
+if ($profile?->logo_url)     $schema['logo']         = $profile->logo_url;
+if ($profile?->description)  $schema['description']  = $profile->description;
+if ($profile?->founded_year) $schema['foundingDate'] = (string)$profile->founded_year;
+if ($location) {
+    $schema['address'] = array_filter([
+        '@type'           => 'PostalAddress',
+        'addressLocality' => $profile?->city,
+        'addressCountry'  => $profile?->country,
+    ]);
+}
+$sameAs = array_filter([
+    $profile?->website,
+    $profile?->twitter ? 'https://twitter.com/' . ltrim($profile->twitter, '@') : null,
+    $profile?->discord,
+]);
+if ($sameAs) $schema['sameAs'] = array_values($sameAs);
+
+$this->registerJs(<<<'JS'
+(function () {
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var behavior = reduce ? 'auto' : 'smooth';
+
+    // Restart the press animation even on rapid repeat clicks.
+    function pulse(el) {
+        el.classList.remove('is-pulsing');
+        void el.offsetWidth;
+        el.classList.add('is-pulsing');
+    }
+
+    document.querySelectorAll('.section-nav-link').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            var target = document.getElementById(a.getAttribute('href').slice(1));
+            if (target) { e.preventDefault(); target.scrollIntoView({ behavior: behavior, block: 'start' }); }
+            pulse(a);
+        });
+    });
+
+    var btn = document.querySelector('[data-back-to-top]');
+    if (btn) {
+        var toggle = function () { btn.classList.toggle('is-visible', window.scrollY >= 600); };
+        window.addEventListener('scroll', toggle, { passive: true });
+        toggle();
+        btn.addEventListener('click', function () {
+            pulse(btn);
+            window.scrollTo({ top: 0, behavior: behavior });
+        });
+    }
+})();
+JS, View::POS_END);
 ?>
+
+<script type="application/ld+json"><?= Json::encode($schema) ?></script>
 
 <section class="company-hero relative left-1/2 w-screen -ml-[50vw] mb-10 sm:mb-14">
     <div class="company-hero-glow"></div>
@@ -53,7 +151,7 @@ $baseSortUrl = ['/' . $kind . '/' . $kind . '/view', 'slug' => $model->slug];
             <div class="lg:col-span-8 flex items-start gap-5 sm:gap-7">
                 <?php if ($profile?->logo_url): ?>
                     <img src="<?= Html::encode($profile->logo_url) ?>"
-                         alt="<?= Html::encode($model->name) ?> logo"
+                         alt="<?= Html::encode($name) ?> logo"
                          loading="lazy"
                          class="company-logo h-24 w-24 sm:h-32 sm:w-32 rounded-2xl object-cover ring-2 ring-white/15 shadow-2xl shadow-black/40 shrink-0 bg-white/5">
                 <?php else: ?>
@@ -64,14 +162,16 @@ $baseSortUrl = ['/' . $kind . '/' . $kind . '/view', 'slug' => $model->slug];
 
                 <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-2 text-[11px] font-mono uppercase tracking-[0.2em] text-white/70">
-                        <span class="rounded-full bg-white/10 px-2.5 py-1 ring-1 ring-white/15"><?= Html::encode($kindLabel) ?></span>
+                        <?php foreach ($roleLabels as $label): ?>
+                            <span class="rounded-full bg-white/10 px-2.5 py-1 ring-1 ring-white/15"><?= Html::encode($label) ?></span>
+                        <?php endforeach; ?>
                         <?php if ($profile?->isClosed()): ?>
                             <span class="rounded-full bg-rose-500/20 px-2.5 py-1 ring-1 ring-rose-300/30 text-rose-100">Inactive since <?= (int)$profile->closed_year ?></span>
                         <?php endif; ?>
                     </div>
 
                     <h1 class="mt-3 font-display text-3xl sm:text-5xl font-bold text-white tracking-tight leading-tight">
-                        <?= Html::encode($model->name) ?>
+                        <?= Html::encode($name) ?>
                     </h1>
 
                     <?php if ($profile?->description): ?>
@@ -113,35 +213,28 @@ $baseSortUrl = ['/' . $kind . '/' . $kind . '/view', 'slug' => $model->slug];
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div class="lg:col-span-8 lg:-mt-44 relative z-10 rounded-3xl bg-canvas p-6 sm:p-10 space-y-14">
 
-            <article>
+            <nav class="section-nav" aria-label="Jump to section">
+                <?php foreach ($sectionList as $s): ?>
+                    <a href="#<?= $s['id'] ?>" class="section-nav-link">
+                        <span class="section-nav-num"><?= $sectionNo[$s['id']] ?></span>
+                        <?= Html::encode($s['label']) ?>
+                    </a>
+                <?php endforeach; ?>
+            </nav>
+
+            <article id="at-a-glance" class="scroll-mt-24">
                 <header class="flex items-center gap-3 mb-6">
-                    <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">01</span>
+                    <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['at-a-glance'] ?></span>
                     <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">At a glance</h2>
                 </header>
 
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div class="stat-card">
-                        <div class="stat-value"><?= number_format($stats['games']) ?></div>
-                        <div class="stat-label"><?= Html::encode($gamesLabel) ?></div>
-                    </div>
-                    <?php if ($stats['topGenre']): ?>
+                    <?php foreach ($statCards as $card): ?>
                         <div class="stat-card">
-                            <div class="stat-value text-accent"><?= Html::encode($stats['topGenre']) ?></div>
-                            <div class="stat-label">Most common genre</div>
+                            <div class="stat-value<?= !empty($card['accent']) ? ' text-accent' : '' ?>"><?= Html::encode((string)$card['value']) ?></div>
+                            <div class="stat-label"><?= Html::encode($card['label']) ?></div>
                         </div>
-                    <?php endif; ?>
-                    <?php if ($stats['avgRating'] !== null): ?>
-                        <div class="stat-card">
-                            <div class="stat-value"><?= (int)$stats['avgRating'] ?>%</div>
-                            <div class="stat-label">Avg. Steam rating</div>
-                        </div>
-                    <?php endif; ?>
-                    <?php if ($profile?->founded_year): ?>
-                        <div class="stat-card">
-                            <div class="stat-value"><?= (int)$profile->founded_year ?></div>
-                            <div class="stat-label"><?= $profile->isClosed() ? 'Founded' : 'Active since' ?></div>
-                        </div>
-                    <?php endif; ?>
+                    <?php endforeach; ?>
                 </div>
 
                 <?php if (!empty($stats['genreBreakdown'])): ?>
@@ -166,13 +259,13 @@ $baseSortUrl = ['/' . $kind . '/' . $kind . '/view', 'slug' => $model->slug];
                 <?php endif; ?>
             </article>
 
-            <article>
+            <article id="games" class="scroll-mt-24">
                 <header class="flex flex-wrap items-center gap-3 mb-6">
-                    <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">02</span>
-                    <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg"><?= Html::encode($gamesLabel) ?></h2>
+                    <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['games'] ?></span>
+                    <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg"><?= Html::encode($gamesHeading) ?></h2>
                     <span class="ml-auto flex flex-wrap items-center gap-1.5">
                         <?php foreach ($sortOptions as $key => $label): ?>
-                            <a href="<?= Url::to(array_merge($baseSortUrl, ['sort' => $key])) ?>"
+                            <a href="<?= Url::to(array_merge($baseUrl, $sortExtra, ['sort' => $key])) ?>"
                                class="sort-chip"
                                data-active="<?= $sort === $key ? 'true' : 'false' ?>">
                                 <?= Html::encode($label) ?>
@@ -181,10 +274,23 @@ $baseSortUrl = ['/' . $kind . '/' . $kind . '/view', 'slug' => $model->slug];
                     </span>
                 </header>
 
+                <?php if ($roleTabs): ?>
+                    <div class="mb-5 flex flex-wrap items-center gap-1.5">
+                        <?php foreach ($roleTabs as $key => [$label, $count]): ?>
+                            <a href="<?= Url::to(array_merge($baseUrl, ['role' => $key, 'sort' => $sort])) ?>"
+                               class="sort-chip"
+                               data-active="<?= $role === $key ? 'true' : 'false' ?>">
+                                <?= Html::encode($label) ?>
+                                <span class="ml-1 text-[10px] opacity-70"><?= number_format($count) ?></span>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+
                 <?php if ($dataProvider->getTotalCount() === 0): ?>
                     <div class="rounded-2xl border border-dashed border-line bg-surface/40 px-8 py-14 text-center">
-                        <p class="font-display text-lg font-semibold text-fg">No games in our catalog yet</p>
-                        <p class="mt-2 text-sm text-fg-muted">We sync new titles daily — check back soon.</p>
+                        <p class="font-display text-lg font-semibold text-fg"><?= Html::encode($emptyTitle) ?></p>
+                        <p class="mt-2 text-sm text-fg-muted"><?= Html::encode($emptyText) ?></p>
                     </div>
                 <?php else: ?>
                     <?= ListView::widget([
@@ -209,43 +315,46 @@ $baseSortUrl = ['/' . $kind . '/' . $kind . '/view', 'slug' => $model->slug];
                 <?php endif; ?>
             </article>
 
-            <?php if ($profile?->history): ?>
-                <article>
+            <?php if ($hasHistory): ?>
+                <article id="history" class="scroll-mt-24">
                     <header class="flex items-center gap-3 mb-6">
-                        <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">03</span>
+                        <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['history'] ?></span>
                         <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">History</h2>
                     </header>
 
-                    <?php if ($profile->founded_year): ?>
+                    <?php if (count($timeline) > 1): ?>
                         <ol class="timeline">
-                            <li class="timeline-item">
-                                <span class="timeline-year"><?= (int)$profile->founded_year ?></span>
-                                <span class="timeline-dot"></span>
-                                <p class="timeline-text">Founded<?= $location ? ' in ' . Html::encode($profile->city ?: $profile->country) : '' ?>.</p>
-                            </li>
-                            <?php
-                            $founded = (int)$profile->founded_year;
-                            $games = $stats['games'];
-                            $milestones = [];
-                            if ($games >= 1) $milestones[] = [$founded + 2, 'First commercial release lands.'];
-                            if ($games >= 5) $milestones[] = [$founded + 6, 'Catalog grows past five titles.'];
-                            if ($games >= 15) $milestones[] = [$founded + 12, 'Established as a recognisable name in the catalog.'];
-                            if ($profile->isClosed()) $milestones[] = [(int)$profile->closed_year, 'Studio winds down operations.'];
-                            else $milestones[] = [(int)date('Y'), 'Still active — ' . number_format($games) . ' games tracked.'];
-                            ?>
-                            <?php foreach ($milestones as $m): ?>
-                                <li class="timeline-item">
-                                    <span class="timeline-year"><?= (int)$m[0] ?></span>
+                            <?php foreach ($timeline as $entry): ?>
+                                <li class="timeline-item timeline-item--<?= $entry['type'] ?>">
+                                    <span class="timeline-year"><?= (int)$entry['year'] ?></span>
                                     <span class="timeline-dot"></span>
-                                    <p class="timeline-text"><?= Html::encode($m[1]) ?></p>
+                                    <?php if ($entry['type'] === 'release'): ?>
+                                        <a href="<?= Url::to(['/game/game/view', 'id' => $entry['appid'], 'slug' => $entry['slug']]) ?>"
+                                           class="timeline-release group">
+                                            <img src="<?= Html::encode($entry['image']) ?>"
+                                                 alt="<?= Html::encode($entry['label']) ?>"
+                                                 loading="lazy"
+                                                 class="timeline-release-thumb">
+                                            <span class="timeline-release-body">
+                                                <span class="timeline-release-title"><?= Html::encode($entry['label']) ?></span>
+                                                <?php if ($entry['note']): ?>
+                                                    <span class="timeline-release-note"><?= Html::encode($entry['note']) ?></span>
+                                                <?php endif; ?>
+                                            </span>
+                                        </a>
+                                    <?php else: ?>
+                                        <p class="timeline-text"><?= Html::encode($entry['label']) ?></p>
+                                    <?php endif; ?>
                                 </li>
                             <?php endforeach; ?>
                         </ol>
                     <?php endif; ?>
 
-                    <div class="prose-history mt-8 max-w-3xl text-fg-muted leading-relaxed">
-                        <?= nl2br(Html::encode($profile->history)) ?>
-                    </div>
+                    <?php if ($profile?->history): ?>
+                        <div class="prose-history mt-8 max-w-3xl text-fg-muted leading-relaxed">
+                            <?= nl2br(Html::encode($profile->history)) ?>
+                        </div>
+                    <?php endif; ?>
                 </article>
             <?php endif; ?>
         </div>
@@ -259,6 +368,12 @@ $baseSortUrl = ['/' . $kind . '/' . $kind . '/view', 'slug' => $model->slug];
                         <span class="h-px flex-1 bg-line"></span>
                     </div>
                     <dl class="text-sm divide-y divide-line/70">
+                        <?php if ($roleLabels): ?>
+                            <div class="flex items-start gap-4 py-2.5">
+                                <dt class="w-24 shrink-0 text-fg-subtle">Role</dt>
+                                <dd class="flex-1 text-right text-fg"><?= Html::encode($roleHeadline) ?></dd>
+                            </div>
+                        <?php endif; ?>
                         <?php if ($location): ?>
                             <div class="flex items-start gap-4 py-2.5">
                                 <dt class="w-24 shrink-0 text-fg-subtle">Based in</dt>
@@ -278,7 +393,7 @@ $baseSortUrl = ['/' . $kind . '/' . $kind . '/view', 'slug' => $model->slug];
                             </div>
                         <?php endif; ?>
                         <div class="flex items-start gap-4 py-2.5">
-                            <dt class="w-24 shrink-0 text-fg-subtle"><?= Html::encode($gamesLabel) ?></dt>
+                            <dt class="w-24 shrink-0 text-fg-subtle">Games</dt>
                             <dd class="flex-1 text-right text-fg font-mono text-xs"><?= number_format($stats['games']) ?></dd>
                         </div>
                     </dl>
@@ -329,3 +444,7 @@ $baseSortUrl = ['/' . $kind . '/' . $kind . '/view', 'slug' => $model->slug];
         </aside>
     </div>
 </section>
+
+<button type="button" class="back-to-top" data-back-to-top aria-label="Back to top">
+    <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
+</button>

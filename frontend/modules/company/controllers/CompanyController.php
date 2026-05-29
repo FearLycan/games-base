@@ -3,6 +3,7 @@
 namespace frontend\modules\company\controllers;
 
 use common\components\AccessControl;
+use common\components\CompanyTimeline;
 use common\models\Developer;
 use common\models\Game;
 use common\models\Publisher;
@@ -68,17 +69,45 @@ class CompanyController extends Controller
         $sort = Yii::$app->request->get('sort', 'reviews');
 
         $stats = $this->buildStats($developer?->id, $publisher?->id);
-        $dataProvider = $this->buildGamesProvider($developer?->id, $publisher?->id, $role, $sort);
+        $stats['games'] = $stats['totalCount']; // normalized total for the shared view
 
-        return $this->render('view', [
+        $roleLabels = [];
+        $statCards = [];
+        if ($developer) {
+            $roleLabels[] = 'Developer';
+            $statCards[] = ['value' => number_format($stats['developedCount']), 'label' => 'Games developed'];
+        }
+        if ($publisher) {
+            $roleLabels[] = 'Publisher';
+            $statCards[] = ['value' => number_format($stats['publishedCount']), 'label' => 'Games published'];
+        }
+        if ($stats['topGenre']) {
+            $statCards[] = ['value' => $stats['topGenre'], 'label' => 'Most common genre', 'accent' => true];
+        }
+        if ($stats['avgRating'] !== null) {
+            $statCards[] = ['value' => $stats['avgRating'] . '%', 'label' => 'Avg. Steam rating'];
+        }
+
+        $roleTabs = [];
+        if ($developer && $publisher) {
+            $roleTabs['all']       = ['All games', $stats['totalCount']];
+            $roleTabs['developed'] = ['Developed', $stats['developedCount']];
+            $roleTabs['published'] = ['Published', $stats['publishedCount']];
+        }
+
+        return $this->render('@frontend/views/company/_view', [
             'name'         => $name,
             'slug'         => $slug,
+            'kind'         => 'company',
             'profile'      => $profile,
-            'developer'    => $developer,
-            'publisher'    => $publisher,
+            'dataProvider' => $this->buildGamesProvider($developer?->id, $publisher?->id, $role, $sort),
             'stats'        => $stats,
-            'dataProvider' => $dataProvider,
+            'statCards'    => $statCards,
+            'roleLabels'   => $roleLabels,
+            'roleTabs'     => $roleTabs,
             'role'         => $role,
+            'gamesHeading' => 'Games',
+            'timeline'     => CompanyTimeline::build($developer?->id, $publisher?->id, $profile, $stats['totalCount']),
             'sort'         => $sort,
         ]);
     }
