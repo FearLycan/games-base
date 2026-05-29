@@ -2,6 +2,7 @@
 
 namespace console\controllers;
 
+use common\components\GamesCountRecounter;
 use common\models\Game;
 use Symfony\Component\DomCrawler\Crawler;
 use Yii;
@@ -199,14 +200,7 @@ class SteamController extends Controller
             }
         } while ($start < $total);
 
-        $controller = new GenreController(Yii::$app->controller->id, Yii::$app);
-        $controller->actionRecount();
-
-        $controller = new TagController(Yii::$app->controller->id, Yii::$app);
-        $controller->actionRecount();
-
-        $controller = new CategoryController(Yii::$app->controller->id, Yii::$app);
-        $controller->actionRecount();
+        (new GamesCountRecounter())->recountAll(['genre', 'tag', 'category', 'publisher', 'developer']);
 
         return ExitCode::OK;
     }

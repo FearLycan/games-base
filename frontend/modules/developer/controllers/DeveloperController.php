@@ -77,20 +77,8 @@ class DeveloperController extends Controller
 
         $query = Developer::find()
             ->alias('d')
-            ->select([
-                'd.id',
-                'd.name',
-                'd.slug',
-                'd.profile_id',
-                'games_count' => (new Query())
-                    ->select('COUNT(*)')
-                    ->from('{{%game_developer}} gd')
-                    ->innerJoin('{{%game}} g', 'g.id = gd.game_id')
-                    ->where('gd.developer_id = d.id')
-                    ->andWhere(['g.status' => Game::STATUS_ACTIVE, 'g.type' => Game::TYPE_GAME]),
-            ])
             ->with('profile')
-            ->having(['>', 'games_count', 0]);
+            ->where(['>', 'd.games_count', 0]);
 
         if ($country) {
             $query->innerJoin('{{%company_profile}} cp', 'cp.id = d.profile_id')
@@ -100,7 +88,7 @@ class DeveloperController extends Controller
         $query = match ($sort) {
             'name'    => $query->orderBy(['d.name' => SORT_ASC]),
             'newest'  => $query->orderBy(['d.id' => SORT_DESC]),
-            default   => $query->orderBy(['games_count' => SORT_DESC, 'd.name' => SORT_ASC]),
+            default   => $query->orderBy(['d.games_count' => SORT_DESC, 'd.name' => SORT_ASC]),
         };
 
         $dataProvider = new ActiveDataProvider([

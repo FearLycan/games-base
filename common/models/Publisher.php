@@ -15,6 +15,7 @@ use yii\db\ActiveRecord;
  * @property string|null     $slug
  * @property int|null        $status
  * @property int|null        $profile_id
+ * @property int             $games_count
  * @property string          $created_at
  * @property string|null     $updated_at
  *

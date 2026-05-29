@@ -76,20 +76,8 @@ class PublisherController extends Controller
 
         $query = Publisher::find()
             ->alias('p')
-            ->select([
-                'p.id',
-                'p.name',
-                'p.slug',
-                'p.profile_id',
-                'games_count' => (new Query())
-                    ->select('COUNT(*)')
-                    ->from('{{%game_publisher}} gp')
-                    ->innerJoin('{{%game}} g', 'g.id = gp.game_id')
-                    ->where('gp.publisher_id = p.id')
-                    ->andWhere(['g.status' => Game::STATUS_ACTIVE, 'g.type' => Game::TYPE_GAME]),
-            ])
             ->with('profile')
-            ->having(['>', 'games_count', 0]);
+            ->where(['>', 'p.games_count', 0]);
 
         if ($country) {
             $query->innerJoin('{{%company_profile}} cp', 'cp.id = p.profile_id')
@@ -99,7 +87,7 @@ class PublisherController extends Controller
         $query = match ($sort) {
             'name'    => $query->orderBy(['p.name' => SORT_ASC]),
             'newest'  => $query->orderBy(['p.id' => SORT_DESC]),
-            default   => $query->orderBy(['games_count' => SORT_DESC, 'p.name' => SORT_ASC]),
+            default   => $query->orderBy(['p.games_count' => SORT_DESC, 'p.name' => SORT_ASC]),
         };
 
         $dataProvider = new ActiveDataProvider([

@@ -42,8 +42,11 @@ and how long did it take".
   genre/recount
   tag/recount
   category/recount
+  developer/recount
+  publisher/recount
       Refresh the precomputed games_count columns (drive the directories and
-      landing pages). Also run automatically after steam/get-coming-soon.
+      landing pages). Genre/tag/category also run automatically after
+      steam/get-coming-soon.
       Cadence: daily, after steam/sync.
 
   sitemap/generate [--baseUrl=https://gamentator.com]
@@ -61,6 +64,8 @@ and how long did it take".
   30    3   * * *   docker compose exec -T php php yii genre/recount
   35    3   * * *   docker compose exec -T php php yii tag/recount
   40    3   * * *   docker compose exec -T php php yii category/recount
+  42    3   * * *   docker compose exec -T php php yii developer/recount
+  44    3   * * *   docker compose exec -T php php yii publisher/recount
   50    3   * * *   docker compose exec -T php php yii sitemap/generate
   0     4   * * 1   docker compose exec -T php php yii steam/create-app-list
 
