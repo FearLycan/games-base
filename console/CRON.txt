@@ -49,6 +49,13 @@ and how long did it take".
       steam/get-coming-soon.
       Cadence: daily, after steam/sync.
 
+  import/all   (or individually: import/developers, import/publishers)
+      Runs every profile importer. Each scans its console/data/import/<kind>/
+      drop folder for *.json files, upserts them by id, then deletes the file on
+      success (or moves it to failed/ if unparseable).
+      Safe to run often — only newly dropped files are read.
+      Cadence: every 5 min.
+
   sitemap/generate [--baseUrl=https://gamentator.com]
       Regenerates the gzipped XML sitemap set + index.
       Cadence: daily, after the catalog sync.
@@ -58,6 +65,7 @@ and how long did it take".
 --------------------------------------------------------------------------------
 
   # m   h   command
+  */5   *   * * *   docker compose exec -T php php yii import/all
   */15  *   * * *   docker compose exec -T php php yii steam/sync --limit=100
   0     */6 * * *   docker compose exec -T php php yii sale/synchronize
   15    3   * * *   docker compose exec -T php php yii steam/get-coming-soon

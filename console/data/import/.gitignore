@@ -1,0 +1,4 @@
+# Drop folder is runtime-only: ignore dropped feeds and the failed/ output,
+# keep just the folder docs.
+*.json
+*/failed/
