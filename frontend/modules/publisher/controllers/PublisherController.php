@@ -88,7 +88,9 @@ class PublisherController extends Controller
         $query = Publisher::find()
             ->alias('p')
             ->with('profile')
-            ->where(['>', 'p.games_count', 0]);
+            ->where(['>', 'p.games_count', 0])
+            ->andWhere(['not', ['p.name' => null]])
+            ->andWhere(['<>', 'p.name', '']);
 
         if ($country) {
             $query->innerJoin('{{%company_profile}} cp', 'cp.id = p.profile_id')

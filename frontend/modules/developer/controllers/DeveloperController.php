@@ -89,7 +89,9 @@ class DeveloperController extends Controller
         $query = Developer::find()
             ->alias('d')
             ->with('profile')
-            ->where(['>', 'd.games_count', 0]);
+            ->where(['>', 'd.games_count', 0])
+            ->andWhere(['not', ['d.name' => null]])
+            ->andWhere(['<>', 'd.name', '']);
 
         if ($country) {
             $query->innerJoin('{{%company_profile}} cp', 'cp.id = d.profile_id')
