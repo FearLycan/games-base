@@ -56,8 +56,11 @@ class SteamController extends Controller
                 ['status' => Game::STATUS_WAIT_TO_SYNC],
                 ['force_sync' => 1],
             ])*/
-            ->where(['status' => Game::STATUS_ACTIVE])
-            ->orderBy(['force_sync' => SORT_DESC, 'id' => SORT_DESC]);
+            ->where(['status' => Game::STATUS_WAIT_TO_SYNC])
+            ->orderBy([
+                //'force_sync' => SORT_DESC,
+                'id' => SORT_DESC
+            ]);
 
         if ($limit > 0) {
             $query->limit($limit);
