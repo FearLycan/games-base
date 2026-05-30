@@ -5,7 +5,7 @@ namespace backend\assets;
 use yii\web\AssetBundle;
 
 /**
- * Main backend application asset bundle.
+ * Main backend application asset bundle (Bootstrap 5).
  */
 class AppAsset extends AssetBundle
 {
@@ -18,6 +18,8 @@ class AppAsset extends AssetBundle
     ];
     public $depends = [
         'yii\web\YiiAsset',
-        'yii\bootstrap4\BootstrapAsset',
+        'yii\bootstrap5\BootstrapAsset',
+        'yii\bootstrap5\BootstrapPluginAsset',
+        'yii\bootstrap5\BootstrapIconAsset',
     ];
 }
