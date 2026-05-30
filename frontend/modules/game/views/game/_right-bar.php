@@ -29,6 +29,12 @@ $linkList = function (array $models, string $base) {
     }
     return implode(', ', $parts);
 };
+
+// Multi-store offers show in the sidebar only for the AJAX list preview
+// ($gameViewButton). On the full game page they render as the first main-column
+// section instead (view.php), so the sidebar skips them to avoid duplication.
+$showOffers = !empty($gameViewButton);
+$offerCurrency = CurrencyResolver::forVisitor();
 ?>
 
 <div class="game-details space-y-5" data-key="<?= $model->id ?>">
@@ -160,6 +166,26 @@ $linkList = function (array $models, string $base) {
         <?php endif; ?>
     </div>
 
+    <?php if ($showOffers && $this->beginCache("game-offers-{$model->id}-{$offerCurrency}", ['duration' => 1800])): ?>
+        <?php
+        // Offers + prices are slow-changing, so the rendered card is cached per
+        // game/currency. On a cache hit this whole block — including the offer
+        // query and sort — is skipped, which keeps list hovers cheap.
+        $offers = $model->getSortedOffers($offerCurrency);
+        $bestOffer = $model->getBestOffer($offerCurrency);
+        ?>
+        <?php if (!empty($offers)): ?>
+            <div class="rounded-2xl border border-line bg-canvas p-5 shadow-sm">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle">Where to buy</span>
+                    <span class="h-px flex-1 bg-line"></span>
+                </div>
+                <?= $this->render('_offers', ['offers' => $offers, 'bestOffer' => $bestOffer, 'offerCurrency' => $offerCurrency]) ?>
+            </div>
+        <?php endif; ?>
+        <?php $this->endCache(); ?>
+    <?php endif; ?>
+
     <?php if (!empty($model->categories)): ?>
         <div class="rounded-2xl border border-line bg-canvas p-5 shadow-sm">
             <div class="flex items-center gap-2 mb-3">
@@ -225,116 +251,6 @@ $linkList = function (array $models, string $base) {
                 </button>
             <?php endif; ?>
         </div>
-    <?php endif; ?>
-
-    <?php $offerCurrency = empty($gameViewButton) ? CurrencyResolver::forVisitor() : CurrencyResolver::fallback(); ?>
-    <?php $offers = empty($gameViewButton) ? $model->getSortedOffers($offerCurrency) : []; ?>
-    <?php $bestOffer = empty($gameViewButton) ? $model->getBestOffer($offerCurrency) : null; ?>
-    <?php if (!empty($offers)): ?>
-        <div class="rounded-2xl border border-line bg-canvas p-5 shadow-sm store-offers">
-            <div class="flex items-center gap-3 mb-4">
-                <span class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle">Where to buy</span>
-                <span class="h-px flex-1 bg-line"></span>
-                <div class="currency-switch" role="group" aria-label="Display currency">
-                    <?php foreach (CurrencyResolver::SUPPORTED as $currencyOption): ?>
-                        <button type="button"
-                                class="currency-opt"
-                                data-currency="<?= Html::encode($currencyOption) ?>"
-                                data-active="<?= $currencyOption === $offerCurrency ? 'true' : 'false' ?>">
-                            <?= Html::encode($currencyOption) ?>
-                        </button>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-
-            <div class="store-offers-list">
-                <?php foreach ($offers as $i => $offer): ?>
-                    <?php
-                    $price = $offer->getPrice($offerCurrency);
-                    $discount = $price ? $price->getDiscountPercent() : 0;
-                    $meta = implode(' · ', array_filter([$offer->edition, $offer->region]));
-                    $isBest = $bestOffer && $offer->id === $bestOffer->id;
-                    ?>
-
-                    <?php if ($isBest): ?>
-                        <a href="<?= Html::encode($offer->url) ?>"
-                           target="_blank"
-                           rel="nofollow noopener sponsored external"
-                           class="offer offer-best"
-                           style="animation-delay: <?= $i * 70 ?>ms">
-                            <span class="offer-best-tag">Best price</span>
-
-                            <div class="offer-best-head">
-                                <img class="offer-logo"
-                                     src="<?= Html::encode($offer->store->getLogo()) ?>"
-                                     alt="<?= Html::encode($offer->store->name) ?>"
-                                     loading="lazy">
-                                <div class="offer-body">
-                                    <div class="offer-store"><?= Html::encode($offer->store->name) ?></div>
-                                    <?php if ($meta !== ''): ?>
-                                        <div class="offer-meta"><?= Html::encode($meta) ?></div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-
-                            <div class="offer-best-price-row">
-                                <div class="offer-best-pricing">
-                                    <?php if ($discount > 0): ?>
-                                        <span class="offer-discount">−<?= $discount ?>%</span>
-                                    <?php endif; ?>
-                                    <div class="offer-best-amount">
-                                        <span class="offer-best-price"><?= Html::encode($price->getFinalPriceLabel()) ?></span>
-                                        <?php if ($discount > 0 && $price->getInitialPriceLabel() !== null): ?>
-                                            <span class="offer-best-initial"><?= Html::encode($price->getInitialPriceLabel()) ?></span>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                                <span class="offer-cta">Buy <span class="arrow" aria-hidden="true">→</span></span>
-                            </div>
-                        </a>
-                    <?php else: ?>
-                        <a href="<?= Html::encode($offer->url) ?>"
-                           target="_blank"
-                           rel="nofollow noopener sponsored external"
-                           class="offer"
-                           style="animation-delay: <?= $i * 70 ?>ms">
-                            <img class="offer-logo"
-                                 src="<?= Html::encode($offer->store->getLogo()) ?>"
-                                 alt="<?= Html::encode($offer->store->name) ?>"
-                                 loading="lazy">
-                            <div class="offer-body">
-                                <div class="offer-store"><?= Html::encode($offer->store->name) ?></div>
-                                <?php if ($meta !== ''): ?>
-                                    <div class="offer-meta"><?= Html::encode($meta) ?></div>
-                                <?php endif; ?>
-                            </div>
-                            <?php if ($price && $price->getFinalPriceLabel() !== null): ?>
-                                <div class="offer-pricing">
-                                    <?php if ($discount > 0): ?>
-                                        <span class="offer-discount">−<?= $discount ?>%</span>
-                                    <?php endif; ?>
-                                    <div class="offer-price"><?= Html::encode($price->getFinalPriceLabel()) ?></div>
-                                    <?php if ($discount > 0 && $price->getInitialPriceLabel() !== null): ?>
-                                        <div class="offer-initial"><?= Html::encode($price->getInitialPriceLabel()) ?></div>
-                                    <?php endif; ?>
-                                </div>
-                            <?php else: ?>
-                                <span class="offer-cta"><span class="arrow" aria-hidden="true">→</span></span>
-                            <?php endif; ?>
-                        </a>
-                    <?php endif; ?>
-                <?php endforeach; ?>
-            </div>
-        </div>
-        <?php $this->registerJs(<<<JS
-document.querySelectorAll('.currency-switch [data-currency]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-        if (btn.getAttribute('data-active') === 'true') return;
-        document.cookie = 'currency=' + btn.dataset.currency + ';path=/;max-age=31536000;samesite=lax';
-        location.reload();
-    });
-});
-JS, View::POS_END, 'currency-switch'); ?>
     <?php endif; ?>
 
     <?php if (!empty($gameViewButton)): ?>

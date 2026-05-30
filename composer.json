@@ -22,7 +22,8 @@
         "yiisoft/yii2-symfonymailer": "~4.0",
         "yiisoft/yii2-httpclient": "~2.0.15",
         "geoip2/geoip2": "~3.1",
-        "twbs/bootstrap-icons": "^1.13"
+        "twbs/bootstrap-icons": "^1.13",
+        "yiisoft/yii2-redis": "~2.0.18"
     },
     "require-dev": {
         "yiisoft/yii2-debug": "~2.1.25",

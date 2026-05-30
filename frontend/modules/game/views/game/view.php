@@ -1,5 +1,6 @@
 <?php
 
+use common\components\CurrencyResolver;
 use common\schema\builder\GamePageSchemaBuilder;
 use common\schema\JsonLdRenderer;
 use frontend\modules\game\models\Game;
@@ -37,6 +38,22 @@ if ($model->isBestseller()) {
     $saleLabel = ['text' => 'New & Noteworthy', 'class' => 'bg-sky-600 text-white'];
 } elseif ($model->isPopularUpcoming()) {
     $saleLabel = ['text' => 'Popular Upcoming', 'class' => 'bg-indigo-600 text-white'];
+}
+
+$offerCurrency = CurrencyResolver::forVisitor();
+$offers = $model->getSortedOffers($offerCurrency);
+$bestOffer = $model->getBestOffer($offerCurrency);
+
+// On-this-page jump nav + section numbering: only sections that actually render.
+$sections = [];
+if (!empty($offers))      { $sections[] = ['id' => 'where-to-buy', 'label' => 'Where to buy']; }
+$sections[]               =   ['id' => 'about',        'label' => 'About this game'];
+if (!empty($screenshots)) { $sections[] = ['id' => 'gallery',      'label' => 'Gallery']; }
+if (!empty($platforms))   { $sections[] = ['id' => 'requirements', 'label' => 'System requirements']; }
+$sections[]               =   ['id' => 'steam',        'label' => 'Get it on Steam'];
+$sectionNo = [];
+foreach ($sections as $i => $s) {
+    $sectionNo[$s['id']] = str_pad((string)($i + 1), 2, '0', STR_PAD_LEFT);
 }
 ?>
 
@@ -112,9 +129,39 @@ if ($model->isBestseller()) {
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div class="lg:col-span-8 lg:-mt-48 relative z-10 rounded-3xl bg-canvas p-6 sm:p-10 space-y-12">
 
-            <article>
+            <nav class="section-nav" aria-label="Jump to section">
+                <?php foreach ($sections as $s): ?>
+                    <a href="#<?= $s['id'] ?>" class="section-nav-link">
+                        <span class="section-nav-num"><?= $sectionNo[$s['id']] ?></span>
+                        <?= Html::encode($s['label']) ?>
+                    </a>
+                <?php endforeach; ?>
+            </nav>
+
+            <?php if (!empty($offers)): ?>
+                <article id="where-to-buy" class="scroll-mt-24">
+                    <header class="flex flex-wrap items-center gap-3 mb-5">
+                        <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['where-to-buy'] ?></span>
+                        <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">Where to buy</h2>
+                        <div class="currency-switch ml-auto" role="group" aria-label="Display currency">
+                            <?php foreach (CurrencyResolver::SUPPORTED as $currencyOption): ?>
+                                <button type="button"
+                                        class="currency-opt"
+                                        data-currency="<?= Html::encode($currencyOption) ?>"
+                                        data-active="<?= $currencyOption === $offerCurrency ? 'true' : 'false' ?>">
+                                    <?= Html::encode($currencyOption) ?>
+                                </button>
+                            <?php endforeach; ?>
+                        </div>
+                    </header>
+
+                    <?= $this->render('_offers', ['offers' => $offers, 'bestOffer' => $bestOffer, 'offerCurrency' => $offerCurrency]) ?>
+                </article>
+            <?php endif; ?>
+
+            <article id="about" class="scroll-mt-24">
                 <header class="flex items-center gap-3 mb-5">
-                    <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">01</span>
+                    <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['about'] ?></span>
                     <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">About this game</h2>
                 </header>
 
@@ -135,9 +182,9 @@ if ($model->isBestseller()) {
             </article>
 
             <?php if (!empty($screenshots)): ?>
-                <article data-gallery>
+                <article id="gallery" data-gallery class="scroll-mt-24">
                     <header class="flex items-center gap-3 mb-5">
-                        <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">02</span>
+                        <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['gallery'] ?></span>
                         <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">Gallery</h2>
                         <span class="ml-auto font-mono text-[11px] text-fg-subtle"><?= count($screenshots) ?> shots</span>
                     </header>
@@ -167,9 +214,9 @@ if ($model->isBestseller()) {
             <?php endif; ?>
 
             <?php if (!empty($platforms)): ?>
-                <article data-requirements>
+                <article id="requirements" data-requirements class="scroll-mt-24">
                     <header class="flex items-center gap-3 mb-5">
-                        <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">03</span>
+                        <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['requirements'] ?></span>
                         <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">System requirements</h2>
                     </header>
 
@@ -212,9 +259,9 @@ if ($model->isBestseller()) {
                 </article>
             <?php endif; ?>
 
-            <article>
+            <article id="steam" class="scroll-mt-24">
                 <header class="flex items-center gap-3 mb-5">
-                    <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">04</span>
+                    <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['steam'] ?></span>
                     <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">Get it on Steam</h2>
                 </header>
 
@@ -276,6 +323,10 @@ if ($model->isBestseller()) {
         </a>
     </div>
 </section>
+
+<button type="button" class="back-to-top" data-back-to-top aria-label="Back to top">
+    <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
+</button>
 
 <?php
 $js = <<<JS
@@ -349,6 +400,45 @@ $js = <<<JS
             });
         }
     }
+
+    // Section jump nav: smooth-scroll + press feedback.
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var behavior = reduce ? 'auto' : 'smooth';
+
+    function pulse(el) {
+        el.classList.remove('is-pulsing');
+        void el.offsetWidth;
+        el.classList.add('is-pulsing');
+    }
+
+    document.querySelectorAll('.section-nav-link').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            var target = document.getElementById(a.getAttribute('href').slice(1));
+            if (target) { e.preventDefault(); target.scrollIntoView({ behavior: behavior, block: 'start' }); }
+            pulse(a);
+        });
+    });
+
+    // Back to top.
+    var toTop = document.querySelector('[data-back-to-top]');
+    if (toTop) {
+        var toggleTop = function () { toTop.classList.toggle('is-visible', window.scrollY >= 600); };
+        window.addEventListener('scroll', toggleTop, { passive: true });
+        toggleTop();
+        toTop.addEventListener('click', function () {
+            pulse(toTop);
+            window.scrollTo({ top: 0, behavior: behavior });
+        });
+    }
+
+    // Currency switcher: store the choice and reload with prices in that currency.
+    document.querySelectorAll('.currency-switch [data-currency]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            if (btn.getAttribute('data-active') === 'true') return;
+            document.cookie = 'currency=' + btn.dataset.currency + ';path=/;max-age=31536000;samesite=lax';
+            location.reload();
+        });
+    });
 })();
 JS;
 $this->registerJs($js, View::POS_END);

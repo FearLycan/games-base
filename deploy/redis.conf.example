@@ -1,0 +1,54 @@
+# =============================================================================
+# Redis config template for MyDevil shared hosting (cache use).
+#
+# Usage on the server:
+#   1. Copy to your home dir and fill in the placeholders below.
+#   2. Start it (keep it alive in a screen session):
+#        screen -dmS redis redis-server ~/redis.conf
+#   3. Auto-start after a reboot — add to your crontab (`crontab -e`):
+#        @reboot screen -dmS redis redis-server /usr/home/LOGIN/redis.conf
+#
+# Replace every LOGIN with your hosting login and DOMENA with your domain.
+# =============================================================================
+
+# --- Connection ---------------------------------------------------------------
+# Prefer a unix socket: no TCP port exposed at all. Set port 0 to disable TCP.
+port 0
+unixsocket /usr/home/LOGIN/domains/DOMENA/redis.sock
+# Owner-only access to the socket file.
+unixsocketperm 700
+
+# If you must use TCP instead of (or alongside) the socket, comment out
+# `port 0` above, reserve a port in the MyDevil panel, set it here, and bind to
+# localhost so it is never reachable from outside:
+# port 12345
+# bind 127.0.0.1
+
+# --- Security -----------------------------------------------------------------
+# REQUIRED on shared hosting: without this, other hosting users can read and
+# write your cache. Use a long random secret and put the SAME value in the
+# app's REDIS_PASSWORD env var.
+requirepass CHANGE_ME_TO_A_LONG_RANDOM_SECRET
+
+# --- Memory / eviction (cache behaviour) --------------------------------------
+# Cap memory and evict least-recently-used keys when full — correct policy for
+# a pure cache (keys are disposable). Tune the limit to your plan.
+maxmemory 128mb
+maxmemory-policy allkeys-lru
+
+# --- Persistence --------------------------------------------------------------
+# This Redis is only a cache, so persistence is disabled: nothing to recover,
+# a cold start just repopulates from the DB. Leaves no dump.rdb / appendonly
+# files cluttering the home dir. Enable one of these only if you later store
+# non-disposable data here.
+save ""
+appendonly no
+
+# --- Process / files ----------------------------------------------------------
+# Run in the foreground; the `screen` session keeps it alive.
+daemonize no
+# Writable paths inside your home dir.
+dir /usr/home/LOGIN/domains/DOMENA/
+pidfile /usr/home/LOGIN/domains/DOMENA/redis.pid
+logfile /usr/home/LOGIN/domains/DOMENA/redis.log
+loglevel notice

@@ -31,6 +31,9 @@ phpunit.phar
 # local phpunit config
 /phpunit.xml
 
+# local environment variables (keep .env.example tracked)
+/.env
+
 # vagrant runtime
 /.vagrant
 /.claude

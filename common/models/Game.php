@@ -81,6 +81,8 @@ class Game extends ActiveRecord
     private ?array     $_saleTypes = null;
     /** @var GameOffer[]|null active store offers, store eager-loaded */
     private ?array     $_activeOffers = null;
+    /** @var array<string, GameOffer[]> sorted offers, keyed by display currency */
+    private array      $_sortedOffers = [];
 
     /**
      * @return array
@@ -412,6 +414,11 @@ class Game extends ActiveRecord
      */
     public function getSortedOffers(string $currency): array
     {
+        $currency = strtoupper($currency);
+        if (isset($this->_sortedOffers[$currency])) {
+            return $this->_sortedOffers[$currency];
+        }
+
         $offers = $this->getActiveOffers();
 
         usort($offers, static function (GameOffer $a, GameOffer $b) use ($currency): int {
@@ -423,23 +430,21 @@ class Game extends ActiveRecord
             return $fa <=> $fb;
         });
 
-        return $offers;
+        return $this->_sortedOffers[$currency] = $offers;
     }
 
     /**
      * The cheapest active offer that has a price in the given currency, or null.
+     * Offers are sorted cheapest-first with priced ones ahead of price-less ones,
+     * so the best deal is simply the first element when it has a price.
      *
      * @return GameOffer|null
      */
     public function getBestOffer(string $currency): ?GameOffer
     {
-        foreach ($this->getSortedOffers($currency) as $offer) {
-            if ($offer->getPrice($currency)) {
-                return $offer;
-            }
-        }
+        $best = $this->getSortedOffers($currency)[0] ?? null;
 
-        return null;
+        return $best && $best->getPrice($currency) ? $best : null;
     }
 
     public function setReview()

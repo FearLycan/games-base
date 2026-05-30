@@ -53,7 +53,10 @@ class SteamController extends Controller
                     ['status' => Game::STATUS_WAIT_TO_SYNC],
                      ['force_sync' => 1],
                  ])*/
-            ->andWhere(['status' => Game::STATUS_WAIT_TO_SYNC])
+            ->andWhere([
+                'status' => Game::STATUS_WAIT_TO_SYNC,
+                'type' => Game::TYPE_GAME
+            ])
             ->orderBy([
                 //'force_sync' => SORT_DESC,
                 'id' => SORT_DESC,
