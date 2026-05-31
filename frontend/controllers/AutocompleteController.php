@@ -18,7 +18,7 @@ use yii\web\Response;
 
 class AutocompleteController extends Controller
 {
-    private const int MIN_LENGTH = 2;
+    private const int MIN_LENGTH = 3;
     private const int LIMIT_GAMES = 6;
     private const int LIMIT_OTHER = 4;
     private const int CACHE_TTL = 1800;
@@ -49,7 +49,7 @@ class AutocompleteController extends Controller
         ];
     }
 
-/**
+    /**
      * Select2-compatible endpoint: returns `{results: [{id, text}], pagination: {more: bool}}`.
      * Backs the multi-select filters on /games (genre, tag, category, developer, publisher).
      */
@@ -58,12 +58,12 @@ class AutocompleteController extends Controller
         Yii::$app->response->format = Response::FORMAT_JSON;
 
         $modelClass = match ($type) {
-            'genre'     => Genre::class,
-            'tag'       => Tag::class,
-            'category'  => Category::class,
+            'genre' => Genre::class,
+            'tag' => Tag::class,
+            'category' => Category::class,
             'developer' => Developer::class,
             'publisher' => Publisher::class,
-            default     => null,
+            default => null,
         };
 
         if ($modelClass === null) {
@@ -103,9 +103,9 @@ class AutocompleteController extends Controller
 
         if (mb_strlen($query) < self::MIN_LENGTH) {
             return [
-                'query'   => $query,
-                'total'   => 0,
-                'groups'  => [],
+                'query'  => $query,
+                'total'  => 0,
+                'groups' => [],
             ];
         }
 
@@ -239,22 +239,20 @@ class AutocompleteController extends Controller
                     'title'       => $row['title'],
                     'subtitle'    => $year ?: 'Steam',
                     'image'       => $row['header_url'] ?? null,
-                    'url'         => Url::to([
-                        '/game/game/view',
-                        'id'   => $row['steam_appid'],
-                        'slug' => $row['slug'],
-                    ]),
+                    'url'         => Url::to(['/game/game/view', 'id' => $row['steam_appid'], 'slug' => $row['slug'],]),
                     'badge'       => '↑ ' . number_format((int)$stat['count']),
                     'steam_appid' => (int)$row['steam_appid'],
                 ];
             }
 
             return [
-                'groups' => $items ? [[
-                    'key'   => 'trending',
-                    'label' => 'Trending today',
-                    'items' => $items,
-                ]] : [],
+                'groups' => $items ? [
+                    [
+                        'key'   => 'trending',
+                        'label' => 'Trending today',
+                        'items' => $items,
+                    ],
+                ] : [],
             ];
         }, self::TRENDING_CACHE_TTL);
     }
@@ -278,7 +276,7 @@ class AutocompleteController extends Controller
             ->andWhere(['game.status' => Game::STATUS_ACTIVE])
             ->andWhere(['game.type' => Game::TYPE_GAME])
             ->joinWith(['review'], false)
-            ->orderBy(['review.total_reviews' => SORT_DESC, 'game.title' => SORT_ASC])
+            ->orderBy(['review.total_reviews' => SORT_DESC, 'game.title' => SORT_ASC, 'game.release_date' => SORT_DESC])
             ->limit(self::LIMIT_GAMES)
             ->asArray()
             ->all();
