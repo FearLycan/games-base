@@ -8,6 +8,7 @@ use yii\helpers\Url;
 /* @var $rank int */
 
 $rankStr = isset($rank) ? sprintf('%02d', $rank) : null;
+$price = $game->getDisplayPrice();
 ?>
 
 <a
@@ -33,8 +34,22 @@ $rankStr = isset($rank) ? sprintf('%02d', $rank) : null;
             <?= Html::encode($game->getMainGenre()) ?>
         </p>
     </div>
-    <span aria-hidden="true"
-          class="text-fg-subtle text-sm opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition">
-        →
-    </span>
+    <?php if ($price !== null): ?>
+        <div class="flex-none text-right leading-tight">
+            <div class="text-sm font-semibold tabular-nums <?= $price->free ? 'text-accent' : 'text-fg' ?>">
+                <?= Html::encode($price->final) ?>
+            </div>
+            <?php if ($price->isDiscounted()): ?>
+                <div class="mt-0.5 flex items-center justify-end gap-1">
+                    <span class="text-[10px] font-bold text-accent">−<?= $price->discount ?>%</span>
+                    <span class="text-[11px] text-fg-subtle line-through tabular-nums"><?= Html::encode($price->initial) ?></span>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php else: ?>
+        <span aria-hidden="true"
+              class="text-fg-subtle text-sm opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition">
+            →
+        </span>
+    <?php endif; ?>
 </a>

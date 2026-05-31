@@ -2,6 +2,7 @@
 
 namespace frontend\modules\game\models\searches;
 
+use common\models\GameOffer;
 use common\models\GameSale;
 use frontend\modules\game\models\Game;
 use Yii;
@@ -116,7 +117,18 @@ class GameSearch extends Game
 
         $query = Game::find()
             ->alias('game')
-            ->andWhere(['game.status' => self::STATUS_ACTIVE]);
+            ->andWhere(['game.status' => self::STATUS_ACTIVE])
+            // Eager-load everything the cards read (genre + cheapest offer with
+            // its prices/store) so a full page of cards costs a handful of
+            // queries instead of one per game. See Game::getDisplayPrice().
+            ->with([
+                'genres',
+                'gameOffers' => static function ($q): void {
+                    $q->andWhere(['game_offer.status' => GameOffer::STATUS_ACTIVE])
+                        ->orderBy(['game_offer.order' => SORT_ASC])
+                        ->with(['store', 'prices']);
+                },
+            ]);
 
         // game_type semantics:
         //   null  → no param in URL    → default to TYPE_GAME (sensible landing default)

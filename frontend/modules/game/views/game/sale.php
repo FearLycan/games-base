@@ -125,6 +125,7 @@ echo JsonLdRenderer::render([
                         $year = date('Y', $ts);
                     }
                 }
+                $price = $game->getDisplayPrice();
                 ?>
                 <a href="<?= Url::to(['/game/game/view', 'id' => $game->steam_appid, 'slug' => $game->slug]) ?>"
                    class="group block">
@@ -157,6 +158,18 @@ echo JsonLdRenderer::render([
                             <?php endif; ?>
                             <?php if ($year): ?>
                                 <span class="shrink-0"><?= Html::encode($year) ?></span>
+                            <?php endif; ?>
+
+                            <?php if ($price !== null): ?>
+                                <span class="ml-auto shrink-0 inline-flex items-baseline gap-1.5 normal-case tracking-normal">
+                                    <?php if ($price->isDiscounted()): ?>
+                                        <span class="rounded bg-accent/10 px-1.5 py-px text-[10px] font-bold text-accent">−<?= $price->discount ?>%</span>
+                                        <span class="text-fg-subtle line-through tabular-nums"><?= Html::encode($price->initial) ?></span>
+                                    <?php endif; ?>
+                                    <span class="text-[13px] font-semibold tabular-nums <?= $price->free ? 'text-accent' : 'text-fg' ?>">
+                                        <?= Html::encode($price->final) ?>
+                                    </span>
+                                </span>
                             <?php endif; ?>
                         </div>
                     </div>

@@ -2,6 +2,8 @@
 
 namespace common\models;
 
+use common\components\CurrencyResolver;
+use common\components\DisplayPrice;
 use common\components\GameQuery;
 use common\components\Helper;
 use DateTime;
@@ -326,6 +328,17 @@ class Game extends ActiveRecord
                 'game.status'    => self::STATUS_ACTIVE,
                 'game.type'      => self::TYPE_GAME,
             ])
+            // Eager-load the data the cards render (genre + cheapest offer with
+            // prices/store) so the cached list carries it too — homepage and
+            // sale pages then render prices without a query per game.
+            ->with([
+                'genres',
+                'gameOffers' => static function ($q): void {
+                    $q->andWhere(['game_offer.status' => GameOffer::STATUS_ACTIVE])
+                        ->orderBy(['game_offer.order' => SORT_ASC])
+                        ->with(['store', 'prices']);
+                },
+            ])
             ->orderBy(['game_sale.order' => SORT_ASC])
             ->limit($limit)
             ->all(), self::SALES_CACHE_TTL);
@@ -397,7 +410,24 @@ class Game extends ActiveRecord
             return $this->_activeOffers ??= [];
         }
 
-        return $this->_activeOffers ??= $this->getGameOffers()
+        if ($this->_activeOffers !== null) {
+            return $this->_activeOffers;
+        }
+
+        // On list/homepage pages the offers are eager-loaded for the whole page
+        // (see GameSearch::search() and self::getSales()), so reuse the loaded
+        // relation instead of firing one query per card. The active-status
+        // filter is reapplied here so we stay correct regardless of how the
+        // relation was populated; ordering only matters as a tie-break since
+        // getSortedOffers() re-sorts by price.
+        if ($this->isRelationPopulated('gameOffers')) {
+            return $this->_activeOffers = array_values(array_filter(
+                $this->gameOffers,
+                static fn(GameOffer $offer): bool => (int)$offer->status === GameOffer::STATUS_ACTIVE,
+            ));
+        }
+
+        return $this->_activeOffers = $this->getGameOffers()
             ->with(['store', 'prices'])
             ->where(['game_offer.status' => GameOffer::STATUS_ACTIVE])
             ->orderBy(['game_offer.order' => SORT_ASC])
@@ -445,6 +475,57 @@ class Game extends ActiveRecord
         $best = $this->getSortedOffers($currency)[0] ?? null;
 
         return $best && $best->getPrice($currency) ? $best : null;
+    }
+
+    /**
+     * The price to surface on cards and lists: the cheapest store offer in the
+     * visitor's currency when one exists, otherwise the Steam price. Free games
+     * report a "Free" label. Returns null when there is nothing to show (e.g. an
+     * unreleased title with no Steam price and no offers).
+     *
+     * Offers are read from the (eager-loaded, per-request memoized) relation, so
+     * rendering this for a whole grid of cards costs no extra queries.
+     *
+     * @param string|null $currency display currency; defaults to the visitor's.
+     */
+    public function getDisplayPrice(?string $currency = null): ?DisplayPrice
+    {
+        if ((int)$this->is_free === 1) {
+            return new DisplayPrice('Free', null, 0, true, DisplayPrice::SOURCE_FREE);
+        }
+
+        $currency ??= CurrencyResolver::forVisitor();
+
+        $best = $this->getBestOffer($currency);
+        if ($best !== null) {
+            $price = $best->getPrice($currency);
+            $finalLabel = $price?->getFinalPriceLabel();
+            if ($finalLabel !== null) {
+                $discount = $price->getDiscountPercent();
+
+                return new DisplayPrice(
+                    $finalLabel,
+                    $discount > 0 ? $price->getInitialPriceLabel() : null,
+                    $discount,
+                    false,
+                    DisplayPrice::SOURCE_OFFER,
+                );
+            }
+        }
+
+        if ((int)$this->steam_price_final > 0) {
+            $discount = $this->getDiscountPercent();
+
+            return new DisplayPrice(
+                $this->getFinalPrice(),
+                $discount > 0 ? $this->getInitialPrice() : null,
+                $discount,
+                false,
+                DisplayPrice::SOURCE_STEAM,
+            );
+        }
+
+        return null;
     }
 
     public function setReview()
