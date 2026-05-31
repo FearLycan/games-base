@@ -11,6 +11,7 @@ use yii\web\View;
 /* @var $this View */
 /* @var $model Game */
 /* @var $related Game[] */
+/* @var $dlcs Game[] */
 
 $this->title = $model->title . " - " . Yii::$app->params['meta-title'];
 $this->params['description'] = $model->short_description
@@ -48,6 +49,7 @@ $bestOffer = $model->getBestOffer($offerCurrency);
 $sections = [];
 if (!empty($offers))      { $sections[] = ['id' => 'where-to-buy', 'label' => 'Where to buy']; }
 $sections[]               =   ['id' => 'about',        'label' => 'About this game'];
+if (!empty($dlcs))        { $sections[] = ['id' => 'dlc',          'label' => 'DLC & add-ons']; }
 if (!empty($screenshots)) { $sections[] = ['id' => 'gallery',      'label' => 'Gallery']; }
 if (!empty($platforms))   { $sections[] = ['id' => 'requirements', 'label' => 'System requirements']; }
 $sections[]               =   ['id' => 'steam',        'label' => 'Get it on Steam'];
@@ -68,11 +70,21 @@ foreach ($sections as $i => $s) {
                      class="h-20 w-20 sm:h-28 sm:w-28 rounded-2xl object-cover ring-2 ring-white/15 shadow-2xl shadow-black/40 shrink-0">
 
                 <div class="min-w-0 flex-1">
-                    <?php if ($saleLabel): ?>
-                        <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-[0.18em] <?= $saleLabel['class'] ?>">
-                            <span class="h-1 w-1 rounded-full bg-current"></span>
-                            <?= Html::encode($saleLabel['text']) ?>
-                        </span>
+                    <?php if ($model->isDlc() || $saleLabel): ?>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <?php if ($model->isDlc()): ?>
+                                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-[0.18em] text-white ring-1 ring-inset ring-white/25 backdrop-blur">
+                                    <i class="fa-solid fa-puzzle-piece text-[9px] leading-none" aria-hidden="true"></i>
+                                    DLC
+                                </span>
+                            <?php endif; ?>
+                            <?php if ($saleLabel): ?>
+                                <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-[0.18em] <?= $saleLabel['class'] ?>">
+                                    <span class="h-1 w-1 rounded-full bg-current"></span>
+                                    <?= Html::encode($saleLabel['text']) ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
                     <?php endif; ?>
 
                     <h1 class="mt-3 font-display text-3xl sm:text-5xl font-bold text-white tracking-tight leading-tight">
@@ -129,6 +141,25 @@ foreach ($sections as $i => $s) {
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div class="lg:col-span-8 lg:-mt-48 relative z-10 rounded-3xl bg-canvas p-6 sm:p-10 space-y-12">
 
+            <?php if ($model->isDlc() && $model->fullGame): ?>
+                <?php $base = $model->fullGame; ?>
+                <a href="<?= Url::to(['/game/game/view', 'id' => $base->steam_appid, 'slug' => $base->slug]) ?>"
+                   class="dlc-parent-banner">
+                    <img src="<?= Html::encode($base->getIcon()) ?>"
+                         alt="<?= Html::encode($base->title) ?>"
+                         loading="lazy"
+                         class="dlc-parent-icon">
+                    <span class="dlc-parent-body">
+                        <span class="dlc-parent-kicker">Downloadable content</span>
+                        <span class="dlc-parent-title">Part of <strong><?= Html::encode($base->title) ?></strong></span>
+                    </span>
+                    <span class="dlc-parent-cta">
+                        View base game
+                        <span class="arrow" aria-hidden="true">→</span>
+                    </span>
+                </a>
+            <?php endif; ?>
+
             <nav class="section-nav" aria-label="Jump to section">
                 <?php foreach ($sections as $s): ?>
                     <a href="#<?= $s['id'] ?>" class="section-nav-link">
@@ -180,6 +211,18 @@ foreach ($sections as $i => $s) {
                     <p class="text-fg-subtle italic">No description available.</p>
                 <?php endif; ?>
             </article>
+
+            <?php if (!empty($dlcs)): ?>
+                <article id="dlc" class="scroll-mt-24">
+                    <header class="flex items-center gap-3 mb-5">
+                        <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['dlc'] ?></span>
+                        <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">DLC &amp; add-ons</h2>
+                        <span class="ml-auto font-mono text-[11px] text-fg-subtle"><?= count($dlcs) ?> item<?= count($dlcs) === 1 ? '' : 's' ?></span>
+                    </header>
+
+                    <?= $this->render('_dlc', ['dlcs' => $dlcs]) ?>
+                </article>
+            <?php endif; ?>
 
             <?php if (!empty($screenshots)): ?>
                 <article id="gallery" data-gallery class="scroll-mt-24">

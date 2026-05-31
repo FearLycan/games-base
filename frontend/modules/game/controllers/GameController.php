@@ -179,7 +179,35 @@ class GameController extends Controller
         return $this->render('view', [
             'model'   => $model,
             'related' => $this->findRelatedGames($model),
+            'dlcs'    => $this->findDlc($model),
         ]);
+    }
+
+    /**
+     * Active DLC for the given base game, with the data the DLC cards render
+     * (genre + cheapest offer with prices/store) eager-loaded so a list of them
+     * costs no extra query per row. A DLC itself has no DLC, so it returns [].
+     * Capped — some catalogue titles carry hundreds of add-ons.
+     *
+     * @return Game[]
+     */
+    protected function findDlc(Game $model, int $limit = 24): array
+    {
+        if ($model->isDlc()) {
+            return [];
+        }
+
+        return $model->getDlc()
+            ->with([
+                'genres',
+                'gameOffers' => static function ($q): void {
+                    $q->andWhere(['game_offer.status' => \common\models\GameOffer::STATUS_ACTIVE])
+                        ->orderBy(['game_offer.order' => SORT_ASC])
+                        ->with(['store', 'prices']);
+                },
+            ])
+            ->limit($limit)
+            ->all();
     }
 
     /**

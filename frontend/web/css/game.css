@@ -775,3 +775,238 @@
     }
 }
 
+/* ----------------------------------------------------------------------
+ * DLC & add-ons list (base game page) — compact "expansion" rows that read
+ * differently from the "more games like this" grid below.
+ * --------------------------------------------------------------------*/
+
+.dlc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dlc-row {
+    animation: offer-rise 460ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+.dlc-row-link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px;
+    border-radius: 14px;
+    border: 1px solid var(--color-line, #e2e8f0);
+    background: var(--color-canvas, #ffffff);
+    text-decoration: none;
+    transition: border-color 170ms ease, transform 170ms ease, box-shadow 170ms ease;
+}
+
+.dlc-row-link:hover {
+    border-color: var(--color-line-strong, #cbd5e1);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px -16px rgba(15, 23, 42, 0.28);
+}
+
+.dlc-thumb {
+    flex: 0 0 auto;
+    width: 104px;
+    aspect-ratio: 460 / 215;
+    border-radius: 9px;
+    overflow: hidden;
+    background: var(--color-surface-2, #f1f5f9);
+}
+
+.dlc-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 300ms ease;
+}
+
+.dlc-row-link:hover .dlc-thumb img {
+    transform: scale(1.05);
+}
+
+.dlc-body {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.dlc-title {
+    font-family: var(--font-display, "Lexend", system-ui, sans-serif);
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.3;
+    color: var(--color-fg, #0f172a);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 140ms ease;
+}
+
+.dlc-row-link:hover .dlc-title {
+    color: var(--color-accent, #059669);
+}
+
+.dlc-meta {
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-fg-subtle, #94a3b8);
+}
+
+.dlc-pricing {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dlc-discount {
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--color-accent, #059669);
+    background: var(--color-accent-soft, #ecfdf5);
+    padding: 2px 5px;
+    border-radius: 5px;
+}
+
+.dlc-price {
+    font-family: var(--font-display, "Lexend", system-ui, sans-serif);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--color-fg, #0f172a);
+    font-variant-numeric: tabular-nums;
+}
+
+.dlc-price.is-free {
+    color: var(--color-accent, #059669);
+}
+
+.dlc-arrow {
+    color: var(--color-line-strong, #cbd5e1);
+    transition: transform 180ms ease, color 180ms ease;
+}
+
+.dlc-row-link:hover .dlc-arrow {
+    transform: translateX(3px);
+    color: var(--color-accent, #059669);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dlc-row {
+        animation: none;
+    }
+    .dlc-row-link:hover {
+        transform: none;
+    }
+    .dlc-row-link:hover .dlc-thumb img {
+        transform: none;
+    }
+}
+
+/* ----------------------------------------------------------------------
+ * DLC parent banner — shown on a DLC's own page, links back to the base game.
+ * --------------------------------------------------------------------*/
+
+.dlc-parent-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    text-decoration: none;
+    border: 1px solid color-mix(in srgb, var(--color-accent, #059669) 28%, var(--color-line, #e2e8f0));
+    background:
+        radial-gradient(130% 130% at 0% 0%, var(--color-accent-soft, #ecfdf5) 0%, transparent 55%),
+        var(--color-canvas, #ffffff);
+    transition: border-color 170ms ease, box-shadow 170ms ease, transform 170ms ease;
+}
+
+.dlc-parent-banner:hover {
+    border-color: var(--color-accent, #059669);
+    box-shadow: 0 16px 34px -20px rgba(5, 150, 105, 0.45);
+}
+
+.dlc-parent-icon {
+    flex: 0 0 auto;
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    object-fit: cover;
+    box-shadow: 0 4px 14px -6px rgba(15, 23, 42, 0.35);
+}
+
+.dlc-parent-body {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.dlc-parent-kicker {
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-accent, #059669);
+}
+
+.dlc-parent-title {
+    font-family: var(--font-display, "Lexend", system-ui, sans-serif);
+    font-size: 16px;
+    line-height: 1.3;
+    color: var(--color-fg-muted, #475569);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dlc-parent-title strong {
+    color: var(--color-fg, #0f172a);
+    font-weight: 700;
+}
+
+.dlc-parent-cta {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-accent, #059669);
+}
+
+.dlc-parent-cta .arrow {
+    transition: transform 180ms ease;
+}
+
+.dlc-parent-banner:hover .dlc-parent-cta .arrow {
+    transform: translateX(4px);
+}
+
+@media (max-width: 640px) {
+    .dlc-parent-cta {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dlc-parent-banner:hover {
+        transform: none;
+    }
+}
+

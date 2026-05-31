@@ -23,6 +23,7 @@ use yii\httpclient\Client;
  * @property string|null    $title
  * @property string|null    $slug
  * @property int|null       $steam_appid
+ * @property int|null       $fullgame_appid
  * @property int|null       $required_age
  * @property int|null       $is_free
  * @property string|null    $type
@@ -54,6 +55,8 @@ use yii\httpclient\Client;
  * @property GameGenre[]    $gameGenres
  * @property GameSale[]     $gameSales
  * @property GameOffer[]    $gameOffers
+ * @property Game|null      $fullGame
+ * @property Game[]         $dlc
  */
 class Game extends ActiveRecord
 {
@@ -124,7 +127,7 @@ class Game extends ActiveRecord
     public function rules(): array
     {
         return [
-            [['steam_appid', 'status', 'steam_price_final', 'steam_price_initial'], 'integer'],
+            [['steam_appid', 'fullgame_appid', 'status', 'steam_price_final', 'steam_price_initial'], 'integer'],
             [['required_age', 'is_free', 'force_sync'], 'boolean'],
             [['detailed_description', 'about_the_game', 'short_description'], 'string'],
             [['release_date', 'created_at', 'updated_at', 'synchronized_at'], 'safe'],
@@ -398,6 +401,35 @@ class Game extends ActiveRecord
     }
 
     /**
+     * The base game this row is a DLC of, or null when it isn't a DLC.
+     * Linked by Steam appid (see {@see $fullgame_appid}), so it resolves even
+     * when the two rows were synced in either order.
+     *
+     * @return ActiveQuery
+     */
+    public function getFullGame(): ActiveQuery
+    {
+        return $this->hasOne(Game::class, ['steam_appid' => 'fullgame_appid']);
+    }
+
+    /**
+     * Active DLC / add-ons that belong to this game, newest first.
+     *
+     * @return ActiveQuery
+     */
+    public function getDlc(): ActiveQuery
+    {
+        return $this->hasMany(Game::class, ['fullgame_appid' => 'steam_appid'])
+            ->andWhere(['status' => self::STATUS_ACTIVE])
+            ->orderBy(['release_date' => SORT_DESC, 'id' => SORT_DESC]);
+    }
+
+    public function isDlc(): bool
+    {
+        return $this->type === self::TYPE_DLC;
+    }
+
+    /**
      * Active store offers for this game, ordered for display, with the related
      * store eager-loaded. Cached per request.
      *
@@ -574,6 +606,12 @@ class Game extends ActiveRecord
         $this->website = $information['website'];
         $this->steam_price_initial = $information['price_overview']['initial'] ?? 0;
         $this->steam_price_final = $information['price_overview']['final'] ?? 0;
+        // DLC entries carry `fullgame.appid` — the base game they belong to.
+        // Captured from the DLC side (authoritative, one per DLC) rather than
+        // walking the parent's `dlc` array; resolved later via getFullGame().
+        $this->fullgame_appid = isset($information['fullgame']['appid'])
+            ? (int)$information['fullgame']['appid']
+            : null;
         $this->save();
 
         $this->setCategories($information['categories'] ?? []);
