@@ -5,37 +5,26 @@ namespace frontend\models;
 use Yii;
 use yii\base\Model;
 
-/**
- * ContactForm is the model behind the contact form.
- */
 class ContactForm extends Model
 {
-    public $name;
-    public $email;
-    public $subject;
-    public $body;
+    public string $name = '';
+    public string $email = '';
+    public string $subject = '';
+    public string $body = '';
 
-
-    /**
-     * {@inheritdoc}
-     */
-    public function rules()
+    public function rules(): array
     {
         return [
-            // name, email, subject and body are required
             [['name', 'email', 'subject', 'body'], 'required'],
-            // email has to be a valid email address
+            ['name', 'string', 'max' => 50],
             ['email', 'email'],
+            ['email', 'string', 'max' => 60],
+            ['subject', 'string', 'max' => 200],
+            ['body', 'string', 'max' => 3000],
         ];
     }
 
-    /**
-     * Sends an email to the specified email address using the information collected by this model.
-     *
-     * @param string $email the target email address
-     * @return bool whether the email was sent
-     */
-    public function sendEmail($email)
+    public function sendEmail(string $email): bool
     {
         return Yii::$app->mailer->compose()
             ->setTo($email)
