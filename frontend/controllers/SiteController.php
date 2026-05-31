@@ -56,19 +56,6 @@ class SiteController extends Controller
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function actions()
-    {
-        return [
-            'captcha' => [
-                'class' => 'yii\captcha\CaptchaAction',
-                'fixedVerifyCode' => YII_ENV_TEST ? 'testme' : null,
-            ],
-        ];
-    }
-
-    /**
      * Replaces yii\web\ErrorAction so the error page can surface discovery
      * widgets (top genres + tags) on a 404 — turns a dead-end into a way out.
      * Mirrors ErrorAction's status-code handling.

@@ -342,23 +342,23 @@ if (!empty($this->params['breadcrumbs'])) {
                 <div>
                     <h4 class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle mb-4">Studios</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="<?= Url::to(['/developers']) ?>" class="text-fg-muted hover:text-fg transition">Developers</a></li>
-                        <li><a href="<?= Url::to(['/publishers']) ?>" class="text-fg-muted hover:text-fg transition">Publishers</a></li>
+                        <li><a href="<?= Url::to(['/developers']) ?>" class="text-fg-muted hover:text-fg transition developers">Developers</a></li>
+                        <li><a href="<?= Url::to(['/publishers']) ?>" class="text-fg-muted hover:text-fg transition publishers">Publishers</a></li>
                     </ul>
                 </div>
                 <div>
                     <h4 class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle mb-4">Discover</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="<?= Url::to(['/games/bestsellers']) ?>" class="text-fg-muted hover:text-fg transition">Bestsellers</a></li>
-                        <li><a href="<?= Url::to(['/games/new-and-noteworthy']) ?>" class="text-fg-muted hover:text-fg transition">New &amp; Noteworthy</a></li>
-                        <li><a href="<?= Url::to(['/games/upcoming']) ?>" class="text-fg-muted hover:text-fg transition">Upcoming</a></li>
+                        <li><a href="<?= Url::to(['/games/bestsellers']) ?>" class="text-fg-muted hover:text-fg transition bestsellers">Bestsellers</a></li>
+                        <li><a href="<?= Url::to(['/games/new-and-noteworthy']) ?>" class="text-fg-muted hover:text-fg transition new-and-noteworthy">New &amp; Noteworthy</a></li>
+                        <li><a href="<?= Url::to(['/games/upcoming']) ?>" class="text-fg-muted hover:text-fg transition upcoming">Upcoming</a></li>
                     </ul>
                 </div>
                 <div>
                     <h4 class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle mb-4">About</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="<?= Url::to(['/how-it-works']) ?>" class="text-fg-muted hover:text-fg transition">How it works</a></li>
-                        <li><a href="<?= Url::to(['/site/contact']) ?>" class="text-fg-muted hover:text-fg transition">Contact</a></li>
+                        <li><a href="<?= Url::to(['/how-it-works']) ?>" class="text-fg-muted hover:text-fg transition how-it-works">How it works</a></li>
+                        <li><a href="<?= Url::to(['/contact']) ?>" class="text-fg-muted hover:text-fg transition contact">Contact</a></li>
                     </ul>
                 </div>
             </div>

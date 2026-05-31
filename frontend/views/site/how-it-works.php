@@ -7,33 +7,40 @@ use yii\web\View;
 
 $this->title = 'How it works — ' . Yii::$app->params['meta-title'];
 $this->params['breadcrumbs'][] = 'How it works';
-$this->params['description'] = 'How Gamentator curates Steam games — where the data comes from, how often it refreshes, and what we filter out.';
+$this->params['description'] = 'How Gamentator curates Steam games: where the data comes from, how we compare prices across stores, how often it refreshes, and how we make money.';
 
 $steps = [
     [
         'eyebrow' => 'Step 1',
         'dot'     => 'bg-emerald-500',
         'title'   => 'We pull from Steam, directly',
-        'body'    => 'Every game, price, screenshot, and review count comes straight from the public Steam API and Steam store pages. No middlemen, no licensing deals — just the same data Valve publishes.',
+        'body'    => 'Every game, screenshot, and review count comes straight from the public Steam API and store pages. No middlemen on the data, no licensing deals. It\'s the same information Valve publishes.',
     ],
     [
         'eyebrow' => 'Step 2',
         'dot'     => 'bg-sky-500',
         'title'   => 'Rankings refresh every few hours',
-        'body'    => 'Bestsellers, new releases, and upcoming lists are rebuilt every six hours from Steam\'s own popularity signals. Catalog data — descriptions, tags, prices — refreshes daily.',
+        'body'    => 'Bestsellers, new releases, and upcoming lists rebuild every six hours from Steam\'s own popularity signals. The rest of the catalog (descriptions, tags, prices) refreshes once a day.',
     ],
     [
         'eyebrow' => 'Step 3',
         'dot'     => 'bg-indigo-500',
         'title'   => 'We filter out the noise',
-        'body'    => 'Asset flips, region-locked listings, DLC packs without context — those clutter Steam\'s native lists. We hide what we can, surface what looks worth a click.',
+        'body'    => 'Steam\'s native lists are full of asset flips, region-locked listings, and DLC with no context. We hide what we can and surface what looks worth a click.',
+    ],
+    [
+        'eyebrow' => 'Step 4',
+        'dot'     => 'bg-amber-500',
+        'title'   => 'We compare where to buy it',
+        'body'    => 'On every game we put the Steam price next to partner stores like Instant Gaming and flag the cheapest. Those outbound "Buy" buttons are affiliate links: buy through one and we may earn a small commission, at no extra cost to you. It doesn\'t change the price you pay, the stores we show, or where a game ranks.',
     ],
 ];
 
 $facts = [
-    ['label' => 'Data source',        'value' => 'Steam Web API + store scraping'],
-    ['label' => 'Affiliate links',    'value' => 'None'],
-    ['label' => 'Personalization',    'value' => 'None — same lists for everyone'],
+    ['label' => 'Data source',        'value' => 'Steam Web API + store pages'],
+    ['label' => 'Price comparison',   'value' => 'Steam + partner stores'],
+    ['label' => 'Affiliate links',    'value' => 'Yes, on store buttons'],
+    ['label' => 'Personalization',    'value' => 'None; same for everyone'],
     ['label' => 'Catalog refresh',    'value' => 'Daily'],
     ['label' => 'Ranking refresh',    'value' => 'Every 6 hours'],
     ['label' => 'Account required',   'value' => 'No'],

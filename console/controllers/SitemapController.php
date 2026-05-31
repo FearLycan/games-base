@@ -97,9 +97,11 @@ class SitemapController extends Controller
             ['/games/upcoming',            'daily',   '0.7'],
             ['/genres',                    'weekly',  '0.7'],
             ['/tags',                      'weekly',  '0.6'],
+            ['/categories',                'weekly',  '0.6'],
             ['/developers',                'weekly',  '0.6'],
             ['/publishers',                'weekly',  '0.6'],
             ['/how-it-works',              'monthly', '0.4'],
+            ['/contact',                   'monthly', '0.3'],
         ];
 
         foreach ($static as [$path, $changefreq, $priority]) {
