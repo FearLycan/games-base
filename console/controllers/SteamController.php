@@ -94,7 +94,11 @@ class SteamController extends Controller
             $this->stdout("Finished syncing {$total} game(s) in {$totalElapsed}s\n");
         }
 
-        (new GamesCountRecounter())->recountAll(['genre', 'tag', 'category', 'publisher', 'developer']);
+        if ($total) {
+            $this->stdout("Recounting games\n");
+            (new GamesCountRecounter())->recountAll(['genre', 'tag', 'category', 'publisher', 'developer']);
+            $this->stdout("Done\n");
+        }
 
         return ExitCode::OK;
     }
