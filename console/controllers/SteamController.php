@@ -11,12 +11,17 @@ use yii\console\Controller;
 use yii\console\ExitCode;
 use yii\helpers\VarDumper;
 use yii\httpclient\Client;
+use yii\mutex\FileMutex;
 
 class SteamController extends Controller
 {
     private const string APPDETAILS_URL = 'https://store.steampowered.com/api/appdetails';
     private const string SEARCH_URL = 'https://store.steampowered.com/search/results/';
     private const string APP_LIST_URL = 'http://api.steampowered.com/ISteamApps/GetAppList/v0002';
+
+    private const string LOCK_SYNC         = 'steam/sync';
+    private const string LOCK_COMING_SOON  = 'steam/coming-soon';
+    private const string LOCK_APP_LIST     = 'steam/create-app-list';
 
     private const int SYNC_DELAY_MIN = 2;
     private const int SYNC_DELAY_MAX = 4;
@@ -41,6 +46,11 @@ class SteamController extends Controller
     }
 
     public function actionSync(int $limit = 100): int
+    {
+        return $this->withLock(self::LOCK_SYNC, fn(): int => $this->runSync($limit));
+    }
+
+    private function runSync(int $limit): int
     {
         // Snapshot candidate appids up front instead of using each(): syncing a
         // game removes it from the matching set, which shifts each()'s OFFSET
@@ -141,6 +151,11 @@ class SteamController extends Controller
 
     public function actionGetComingSoon(): int
     {
+        return $this->withLock(self::LOCK_COMING_SOON, fn(): int => $this->runGetComingSoon());
+    }
+
+    private function runGetComingSoon(): int
+    {
         $client = new Client(['baseUrl' => self::SEARCH_URL]);
 
         $start = 0;
@@ -212,6 +227,11 @@ class SteamController extends Controller
 
     public function actionCreateAppList(): int
     {
+        return $this->withLock(self::LOCK_APP_LIST, fn(): int => $this->runCreateAppList());
+    }
+
+    private function runCreateAppList(): int
+    {
         $client = new Client(['baseUrl' => self::APP_LIST_URL]);
 
         $request = $client->createRequest()
@@ -253,5 +273,28 @@ class SteamController extends Controller
 
         $this->stdout("Dodano nowych gier: {$newCount}\n");
         return ExitCode::OK;
+    }
+
+    /**
+     * Runs $work while holding a named file lock, so overlapping cron invocations
+     * don't hit Steam in parallel. A busy lock is a no-op (exit OK), not an
+     * error — the next scheduled run will pick up where this one left off.
+     *
+     * @param callable():int $work
+     */
+    private function withLock(string $name, callable $work): int
+    {
+        $mutex = new FileMutex();
+
+        if (!$mutex->acquire($name)) {
+            $this->stdout("{$name}: another run is already in progress — skipping.\n");
+            return ExitCode::OK;
+        }
+
+        try {
+            return $work();
+        } finally {
+            $mutex->release($name);
+        }
     }
 }
