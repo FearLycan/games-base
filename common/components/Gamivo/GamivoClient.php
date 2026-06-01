@@ -4,6 +4,8 @@ namespace common\components\Gamivo;
 
 use Yii;
 use yii\httpclient\Client;
+use yii\httpclient\CurlTransport;
+use yii\httpclient\Request;
 use yii\httpclient\Response;
 
 /**
@@ -16,11 +18,19 @@ use yii\httpclient\Response;
  * Instant Gaming. Prices in the index are in EUR; other currencies are derived
  * by multiplying by the rates Gamivo publishes at /api/currency/list (EUR base).
  *
+ * Cloudflare blocks datacenter IPs: the endpoints answer fine from a normal
+ * (residential) IP but return 403 from a server. Set `proxy` to route the two
+ * outbound calls through an allowed IP when running from a blocked host.
+ *
  * Config (common/config/params.php, key `gamivo`):
  *   - elastic_url:   Elasticsearch base, e.g. https://search.gamivo.com/
  *   - currency_url:  public EUR-base currency feed
  *   - currencies:    which currencies to store, e.g. ['EUR', 'USD', 'PLN']
  *   - affiliate_query: query string appended to product URLs (e.g. "glv=you")
+ *   - proxy:         optional proxy URL, e.g. "http://user:pass@host:port" or
+ *                    "socks5://host:1080"; empty = direct connection
+ *   - proxy_auth:    optional "user:pass" if not embedded in `proxy`
+ *   - timeout:       per-request timeout in seconds (default 20)
  */
 class GamivoClient
 {
@@ -139,37 +149,69 @@ class GamivoClient
     private function sendSearch(string $query, int $size): ?Response
     {
         $base = $this->config('elastic_url', self::ELASTIC_URL);
-        $client = new Client(['baseUrl' => rtrim($base, '/')]);
-
-        try {
-            return $client->createRequest()
-                ->setMethod('POST')
-                ->setUrl('_search/')
-                ->addHeaders([
-                    'User-Agent' => self::USER_AGENT,
-                    'Origin'     => 'https://www.gamivo.com',
-                    'Referer'    => 'https://www.gamivo.com/',
-                ])
-                ->setFormat(Client::FORMAT_JSON)
-                ->setData([
-                    'size'    => $size,
-                    '_source' => self::SOURCE_FIELDS,
-                    'query'   => [
-                        'bool' => [
-                            'must'   => [['match' => ['name' => $query]]],
-                            'filter' => [
-                                ['term' => ['platform.slug' => self::PLATFORM_SLUG]],
-                                ['term' => ['productType.slug' => self::PRODUCT_TYPE_SLUG]],
-                            ],
+        $request = $this->httpClient(rtrim($base, '/'))
+            ->createRequest()
+            ->setMethod('POST')
+            ->setUrl('_search/')
+            ->addHeaders([
+                'User-Agent' => self::USER_AGENT,
+                'Origin'     => 'https://www.gamivo.com',
+                'Referer'    => 'https://www.gamivo.com/',
+            ])
+            ->setFormat(Client::FORMAT_JSON)
+            ->setData([
+                'size'    => $size,
+                '_source' => self::SOURCE_FIELDS,
+                'query'   => [
+                    'bool' => [
+                        'must'   => [['match' => ['name' => $query]]],
+                        'filter' => [
+                            ['term' => ['platform.slug' => self::PLATFORM_SLUG]],
+                            ['term' => ['productType.slug' => self::PRODUCT_TYPE_SLUG]],
                         ],
                     ],
-                ])
-                ->send();
+                ],
+            ]);
+
+        try {
+            return $this->withTransportOptions($request)->send();
         } catch (\Throwable $e) {
             $this->lastError = 'request failed: ' . $e->getMessage();
             Yii::warning("Gamivo search '{$query}' request failed: " . $e->getMessage(), __METHOD__);
             return null;
         }
+    }
+
+    /**
+     * Builds an HTTP client, switching to the cURL transport when a proxy is
+     * configured (the default stream transport can't tunnel HTTPS via a proxy).
+     */
+    private function httpClient(string $baseUrl = ''): Client
+    {
+        $config = $baseUrl !== '' ? ['baseUrl' => $baseUrl] : [];
+        if ($this->config('proxy') !== '') {
+            $config['transport'] = CurlTransport::class;
+        }
+
+        return new Client($config);
+    }
+
+    /** Applies the per-request timeout and proxy options (when configured). */
+    private function withTransportOptions(Request $request): Request
+    {
+        $options = ['timeout' => (int)($this->config('timeout', '20'))];
+
+        $proxy = $this->config('proxy');
+        if ($proxy !== '') {
+            // cURL-specific options; only reached when httpClient() picked CurlTransport.
+            $options[CURLOPT_PROXY] = $proxy;
+            $proxyAuth = $this->config('proxy_auth');
+            if ($proxyAuth !== '') {
+                $options[CURLOPT_PROXYUSERPWD] = $proxyAuth;
+            }
+        }
+
+        return $request->addOptions($options);
     }
 
     /** First 300 chars of a response body, newlines flattened, for logs. */
@@ -192,16 +234,16 @@ class GamivoClient
 
         $this->rates = ['EUR' => 1.0];
 
-        $client = new Client();
+        $request = $this->httpClient()
+            ->createRequest()
+            ->setMethod('GET')
+            ->setUrl($this->config('currency_url', self::CURRENCY_URL))
+            ->addHeaders([
+                'User-Agent' => self::USER_AGENT,
+                'Accept'     => 'application/json',
+            ]);
         try {
-            $response = $client->createRequest()
-                ->setMethod('GET')
-                ->setUrl($this->config('currency_url', self::CURRENCY_URL))
-                ->addHeaders([
-                    'User-Agent' => self::USER_AGENT,
-                    'Accept'     => 'application/json',
-                ])
-                ->send();
+            $response = $this->withTransportOptions($request)->send();
         } catch (\Throwable $e) {
             $this->lastError = 'rates request failed: ' . $e->getMessage();
             Yii::warning('Gamivo rates request failed: ' . $e->getMessage(), __METHOD__);

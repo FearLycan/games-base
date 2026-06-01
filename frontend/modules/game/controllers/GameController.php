@@ -3,6 +3,7 @@
 namespace frontend\modules\game\controllers;
 
 use common\components\AccessControl;
+use common\components\BotDetector;
 use common\models\Category;
 use common\models\GameImage;
 use common\models\GameSale;
@@ -286,11 +287,17 @@ class GameController extends Controller
     protected function findModel($id, $slug)
     {
         $key = Yii::$app->controller->id . $id . $slug;
-        $model = $this->cache->getOrSet($key, function () use ($id, $slug) {
+        // Only real visitors flag games for re-sync. Crawlers sweeping the whole
+        // catalogue would otherwise mark thousands of games as force_sync and
+        // starve first-time syncs of new games (status = STATUS_WAIT_TO_SYNC).
+        $allowSyncFlag = !BotDetector::isBot(Yii::$app->request->userAgent);
+        $model = $this->cache->getOrSet($key, function () use ($id, $slug, $allowSyncFlag) {
             $game = Game::findOne(['steam_appid' => $id, 'slug' => $slug, 'status' => Game::STATUS_ACTIVE]);
             // Viewed games get re-synced more often. Runs only on cache miss
             // (~hourly per game), so it's not a write on every request.
-            $game?->checkSyncDate();
+            if ($allowSyncFlag) {
+                $game?->checkSyncDate();
+            }
             return $game;
         }, 3600);
 

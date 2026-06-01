@@ -40,5 +40,12 @@ return [
         'currency_url'    => 'https://www.gamivo.com/api/currency/list',
         'currencies'      => ['EUR', 'USD', 'PLN'],
         'affiliate_query' => '',
+        // Cloudflare blocks datacenter IPs (production gets 403). Set a proxy in
+        // params-local.php to route the two outbound calls through an allowed IP:
+        //   'proxy'      => 'http://user:pass@host:port'  // or socks5://host:1080
+        //   'proxy_auth' => 'user:pass'                   // if not in the URL
+        'proxy'           => '',
+        'proxy_auth'      => '',
+        'timeout'         => 20,
     ],
 ];

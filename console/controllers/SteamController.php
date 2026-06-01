@@ -3,6 +3,7 @@
 namespace console\controllers;
 
 use common\components\GamesCountRecounter;
+use common\components\GameQuery;
 use common\models\Game;
 use Symfony\Component\DomCrawler\Crawler;
 use Yii;
@@ -31,6 +32,22 @@ class SteamController extends Controller
     private const int SEARCH_MAX_PAGES = 200;
 
     /**
+     * Throttle for the post-sync recount. With a 5-minute cron the recount would
+     * otherwise run ~every few minutes; once every 4 hours is plenty for category
+     * counts and saves the repeated full-table aggregation.
+     */
+    private const string RECOUNT_CACHE_KEY = 'steam/last-recount';
+    private const int RECOUNT_INTERVAL = 4 * 3600;
+
+    /**
+     * Fraction of each sync run reserved for first-time syncs (status =
+     * STATUS_WAIT_TO_SYNC). Guarantees new games keep getting synced even when a
+     * crawler has flooded the queue with force_sync re-syncs. Unused slots in
+     * either bucket spill over to the other, so capacity is never wasted.
+     */
+    private const float SYNC_NEW_RESERVED_RATIO = 0.4;
+
+    /**
      * When enabled, actionSync prints per-game progress (appid, title, time).
      * Off by default; turn on with `--verbose=1`.
      */
@@ -54,25 +71,8 @@ class SteamController extends Controller
     {
         // Snapshot candidate appids up front instead of using each(): syncing a
         // game removes it from the matching set, which shifts each()'s OFFSET
-        // and skips rows mid-iteration. A fixed list guarantees forward progress
-        // and preserves the force_sync priority captured at snapshot time.
-        $query = Game::find()
-            ->select('steam_appid')
-            ->andWhere([
-                'or',
-                ['status' => Game::STATUS_WAIT_TO_SYNC],
-                ['force_sync' => 1],
-            ])
-            ->orderBy([
-                'force_sync' => SORT_DESC,
-                'id'         => SORT_DESC,
-            ]);
-
-        if ($limit > 0) {
-            $query->limit($limit);
-        }
-
-        $appids = $query->column();
+        // and skips rows mid-iteration. A fixed list guarantees forward progress.
+        $appids = $this->collectSyncAppids($limit);
         $total = count($appids);
         $batchStart = microtime(true);
         if ($this->verbose) {
@@ -104,13 +104,84 @@ class SteamController extends Controller
             $this->stdout("Finished syncing {$total} game(s) in {$totalElapsed}s\n");
         }
 
-        if ($total) {
+        if ($total && $this->shouldRecount()) {
             $this->stdout("Recounting games\n");
             (new GamesCountRecounter())->recountAll(['genre', 'tag', 'category', 'publisher', 'developer']);
             $this->stdout("Done\n");
         }
 
         return ExitCode::OK;
+    }
+
+    /**
+     * Atomic "once per RECOUNT_INTERVAL" gate. cache->add() only writes (and
+     * returns true) when the key is absent; the entry then expires after the
+     * interval, so the next run past the window recounts again. Console cache is
+     * a persistent FileCache, so the gate survives across cron invocations.
+     */
+    private function shouldRecount(): bool
+    {
+        return Yii::$app->cache->add(self::RECOUNT_CACHE_KEY, time(), self::RECOUNT_INTERVAL);
+    }
+
+    /**
+     * Builds the ordered list of appids to sync for one run, reserving a share
+     * of the run for first-time syncs (status = STATUS_WAIT_TO_SYNC) so a flood
+     * of crawler-triggered force_sync re-syncs can't starve new games. Unused
+     * capacity in either bucket spills over to the other, so no slot is wasted.
+     *
+     * @return int[]
+     */
+    private function collectSyncAppids(int $limit): array
+    {
+        // No cap: sync everything, new games first.
+        if ($limit <= 0) {
+            return array_merge(
+                $this->newGamesQuery()->column(),
+                $this->forceSyncQuery()->column(),
+            );
+        }
+
+        // 1. New games up to their reserved share of the run.
+        $reservedNew = (int)ceil($limit * self::SYNC_NEW_RESERVED_RATIO);
+        $newAppids = $this->newGamesQuery()->limit($reservedNew)->column();
+
+        // 2. force_sync re-syncs fill the rest of the run.
+        $forceLimit = $limit - count($newAppids);
+        $forceAppids = $forceLimit > 0
+            ? $this->forceSyncQuery()->limit($forceLimit)->column()
+            : [];
+
+        // 3. If there were fewer re-syncs than expected, top up with more new
+        //    games so the run still does a full $limit of work.
+        $leftover = $limit - count($newAppids) - count($forceAppids);
+        if ($leftover > 0) {
+            $newAppids = array_merge($newAppids, $this->newGamesQuery()
+                ->offset(count($newAppids))
+                ->limit($leftover)
+                ->column());
+        }
+
+        return array_merge($newAppids, $forceAppids);
+    }
+
+    /** First-time syncs: games added by the app-list / coming-soon crawlers. */
+    private function newGamesQuery(): GameQuery
+    {
+        return Game::find()
+            ->select('steam_appid')
+            ->andWhere(['status' => Game::STATUS_WAIT_TO_SYNC])
+            ->orderBy(['id' => SORT_DESC]);
+    }
+
+    /** Already-synced games flagged for a refresh (viewed recently / stale). */
+    private function forceSyncQuery(): GameQuery
+    {
+        return Game::find()
+            ->select('steam_appid')
+            ->andWhere(['force_sync' => 1])
+            ->andWhere(['not', ['status' => Game::STATUS_WAIT_TO_SYNC]])
+            ->orderBy(['id' => SORT_DESC]);
     }
 
     public function actionGetInfo(int $app_id): int
