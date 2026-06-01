@@ -16,6 +16,7 @@ return [
     'schema.organization.logo' => 'https://gamentator.com/img/logo.png',
 
     'gtag'        => '',
+    'pagead2'     => '',
     'leadTag'     => '',
     'smart-links' => [],
 ];

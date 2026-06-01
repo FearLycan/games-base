@@ -19,8 +19,8 @@ AppAsset::register($this);
 $schemaNodes = [OrganizationSchemaFactory::fromParams()];
 if (!empty($this->params['breadcrumbs'])) {
     $breadcrumbSchema = BreadcrumbListSchemaFactory::fromView(
-        $this->params['breadcrumbs'],
-        ['label' => 'Home', 'url' => Yii::$app->homeUrl]
+            $this->params['breadcrumbs'],
+            ['label' => 'Home', 'url' => Yii::$app->homeUrl]
     );
     if ($breadcrumbSchema !== []) {
         $schemaNodes[] = $breadcrumbSchema;
@@ -143,6 +143,11 @@ if (!empty($this->params['breadcrumbs'])) {
                 gtag('config', '<?= Yii::$app->params['gtag'] ?>');
             </script>
         <?php endif; ?>
+
+        <?php if (isset(Yii::$app->params['pagead2']) && Yii::$app->params['pagead2']): ?>
+            <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<?= Yii::$app->params['pagead2'] ?>" crossorigin="anonymous"></script>
+        <?php endif; ?>
+
     </head>
     <body class="min-h-full flex flex-col font-body bg-canvas text-fg antialiased overflow-x-hidden selection:bg-accent/20 selection:text-fg">
     <?php $this->beginBody() ?>
