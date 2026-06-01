@@ -977,6 +977,20 @@ class Game extends ActiveRecord
     }
 
     /**
+     * Human-readable "last synced from Steam" date for display, or null when the
+     * game has never been synchronized. Formatting lives here (not in the view)
+     * so templates only render.
+     */
+    public function getLastSyncedLabel(): ?string
+    {
+        if (!$this->synchronized_at) {
+            return null;
+        }
+
+        return Yii::$app->formatter->asDate($this->synchronized_at, 'long');
+    }
+
+    /**
      * @return Platform[]
      */
     public function getAvailablePlatforms(): array

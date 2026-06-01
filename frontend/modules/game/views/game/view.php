@@ -317,6 +317,12 @@ foreach ($sections as $i => $s) {
                             frameborder="0"></iframe>
                 </div>
             </article>
+
+            <?php if ($lastSynced = $model->getLastSyncedLabel()): ?>
+                <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle/70">
+                    Data synced from Steam · <?= Html::encode($lastSynced) ?>
+                </p>
+            <?php endif; ?>
         </div>
 
         <aside class="lg:col-span-4 lg:-mt-48 relative z-10">
