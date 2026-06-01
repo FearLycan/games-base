@@ -14,6 +14,7 @@ use frontend\modules\game\models\Game;
 use frontend\modules\game\models\searches\GameSearch;
 use Yii;
 use yii\caching\Cache;
+use yii\caching\DbDependency;
 use yii\db\Expression;
 use yii\db\Query;
 use yii\filters\PageCache;
@@ -54,8 +55,31 @@ class GameController extends Controller
                 'variations' => [
                     Yii::$app->controller->action->id . Yii::$app->request->get('id'),
                 ],
+                // Drop the cached page as soon as the game is (re-)synced. A sync
+                // rewrites synchronized_at, so this dependency's value changes and
+                // the entry is invalidated — no cross-app cache deletion needed
+                // (console FileCache can't reach the frontend's Redis anyway).
+                // 'view' is keyed by steam_appid; 'details' by primary id.
+                'dependency' => $this->gameSyncDependency(
+                    Yii::$app->controller->action->id === 'details' ? 'id' : 'steam_appid',
+                    (int)Yii::$app->request->get('id'),
+                ),
             ],
         ];
+    }
+
+    /**
+     * Cache dependency that expires when the given game is (re-)synchronized.
+     * Used by both the full-page cache and the per-game model cache so a
+     * force_sync refresh is reflected immediately instead of after the TTL.
+     */
+    private function gameSyncDependency(string $column, int $id): DbDependency
+    {
+        return new DbDependency([
+            'sql'      => "SELECT [[synchronized_at]] FROM {{%game}} WHERE [[{$column}]] = :id",
+            'params'   => [':id' => $id],
+            'reusable' => true,
+        ]);
     }
 
     public function actionIndex(): string
@@ -286,22 +310,20 @@ class GameController extends Controller
      */
     protected function findModel($id, $slug)
     {
-        $key = Yii::$app->controller->id . $id . $slug;
-        // Only real visitors flag games for re-sync. Crawlers sweeping the whole
-        // catalogue would otherwise mark thousands of games as force_sync and
-        // starve first-time syncs of new games (status = STATUS_WAIT_TO_SYNC).
-        $allowSyncFlag = !BotDetector::isBot(Yii::$app->request->userAgent);
-        $model = $this->cache->getOrSet($key, function () use ($id, $slug, $allowSyncFlag) {
-            $game = Game::findOne(['steam_appid' => $id, 'slug' => $slug, 'status' => Game::STATUS_ACTIVE]);
-            // Viewed games get re-synced more often. Runs only on cache miss
-            // (~hourly per game), so it's not a write on every request.
-            if ($allowSyncFlag) {
-                $game?->checkSyncDate();
-            }
-            return $game;
-        }, 3600);
+        // No model-level cache here: the action is already wrapped in PageCache
+        // (same TTL + synchronized_at dependency), so this only runs on a page
+        // cache miss — roughly hourly per game. A second cache layer would share
+        // the same lifetime and add nothing.
+        $model = Game::findOne(['steam_appid' => $id, 'slug' => $slug, 'status' => Game::STATUS_ACTIVE]);
 
         if ($model !== null) {
+            // Viewed games get re-synced more often, but only real visitors flag
+            // them: a crawler sweeping the catalogue would otherwise mark
+            // thousands of games as force_sync and starve first-time syncs of new
+            // games (status = STATUS_WAIT_TO_SYNC).
+            if (!BotDetector::isBot(Yii::$app->request->userAgent)) {
+                $model->checkSyncDate();
+            }
             return $model;
         }
 

@@ -987,6 +987,13 @@ class Game extends ActiveRecord
             return null;
         }
 
+        // Hide the label once the data is stale (older than 5 days): a far-back
+        // date undermines trust more than showing nothing.
+        $synchronizedAt = new DateTime($this->synchronized_at);
+        if ($synchronizedAt < (new DateTime('now'))->modify('-5 days')) {
+            return null;
+        }
+
         return Yii::$app->formatter->asDate($this->synchronized_at, 'long');
     }
 
