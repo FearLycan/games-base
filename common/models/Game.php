@@ -625,6 +625,12 @@ class Game extends ActiveRecord
         $this->setPlatforms($information);
         $this->setReview();
 
+        // When a base game is synced, (re-)sync its whole DLC set too: missing
+        // DLC are queued as new stubs, existing active ones are flagged for a
+        // refresh. (Only base games carry a `dlc` array.) Fetching stays in the
+        // paced sync loop — we never hit Steam inline here.
+        $this->queueDlcSync($information['dlc'] ?? []);
+
         if (isset($information['metacritic'])) {
             $this->setMetacritic($information['metacritic']);
         }
@@ -647,6 +653,55 @@ class Game extends ActiveRecord
         $this->save();
 
         return $this;
+    }
+
+    /**
+     * Makes sure every DLC Steam lists for this base game gets (re-)synced when
+     * the base game is synced:
+     *   - DLC already in the table and active are flagged force_sync so the
+     *     queue refreshes them;
+     *   - DLC not in the table yet are inserted as WAIT_TO_SYNC stubs (steam_appid
+     *     only) so they enter the new-games bucket.
+     * The link back to this game (fullgame_appid) is left for each DLC's own
+     * sync, which is authoritative — see {@see setBaseInformation()}. Fetching
+     * never happens here: it stays in the paced, rate-limited sync loop.
+     *
+     * @param int[] $dlcAppids
+     */
+    private function queueDlcSync(array $dlcAppids): void
+    {
+        $dlcAppids = array_values(array_unique(
+            array_filter(array_map('intval', $dlcAppids), static fn(int $id): bool => $id > 0)
+        ));
+        if (!$dlcAppids) {
+            return;
+        }
+
+        // Flag existing, already-synced DLC for a refresh in one query. WAIT rows
+        // are skipped (already queued as new); SUCCESS_FALSE rows are skipped so
+        // we don't keep retrying DLC Steam can't serve.
+        self::updateAll(
+            ['force_sync' => true],
+            ['steam_appid' => $dlcAppids, 'status' => self::STATUS_ACTIVE]
+        );
+
+        // Insert stubs for any DLC not in the table yet.
+        $existing = array_flip(self::find()
+            ->select('steam_appid')
+            ->where(['steam_appid' => $dlcAppids])
+            ->column());
+
+        foreach ($dlcAppids as $appid) {
+            if (isset($existing[$appid])) {
+                continue;
+            }
+
+            $stub = new self();
+            $stub->steam_appid = $appid;
+            // save(false): a bare stub doesn't pass validation yet, same as the
+            // coming-soon importer. status defaults to STATUS_WAIT_TO_SYNC (0).
+            $stub->save(false);
+        }
     }
 
     public function trySetReleaseDate($date)
