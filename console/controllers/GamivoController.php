@@ -73,6 +73,12 @@ class GamivoController extends Controller
         $rates = $client->fetchRates();
         $currencies = $this->currencies();
 
+        if ($client->lastError !== null || count($rates) <= 1) {
+            $this->stderr('  ! Gamivo currency feed problem: '
+                . ($client->lastError ?? 'only EUR returned')
+                . " — this server may be blocked. Run `yii gamivo/diagnose` to check.\n");
+        }
+
         // Games we don't have a Gamivo offer for yet.
         $existing = GameOffer::find()->select('game_id')->where(['store_id' => $store->id]);
         $query = Game::find()
@@ -98,10 +104,14 @@ class GamivoController extends Controller
         }
 
         $games = $query->all();
-        $matched = $review = $missed = 0;
+        $matched = $review = $missed = $errors = 0;
 
         foreach ($games as $game) {
             $hits = $client->search((string)$game->title);
+            $searchError = $client->lastError;
+            if ($searchError !== null) {
+                $errors++;
+            }
             $result = $matcher->match((string)$game->title, $hits);
 
             // No title match, or the match has nothing buyable — treat as a miss.
@@ -109,7 +119,8 @@ class GamivoController extends Controller
                 $missed++;
                 GameStoreScan::record($game->id, $store->id, GameStoreScan::RESULT_NO_MATCH);
                 if ($this->verbose) {
-                    $this->stdout("· no match: {$game->title}\n");
+                    $reason = $searchError ?? (count($hits) . ' hits, no exact/buyable match');
+                    $this->stdout("· no match: {$game->title} ({$reason})\n");
                 }
                 $this->throttle();
                 continue;
@@ -139,7 +150,89 @@ class GamivoController extends Controller
             $this->throttle();
         }
 
-        $this->stdout(sprintf("Gamivo match — matched=%d review=%d missed=%d\n", $matched, $review, $missed));
+        $this->stdout(sprintf("Gamivo match — matched=%d review=%d missed=%d errors=%d\n", $matched, $review, $missed, $errors));
+        if ($errors > 0) {
+            $this->stderr("  ! {$errors} search request(s) failed — this server is likely blocked/unable to reach Gamivo. "
+                . "Run `yii gamivo/diagnose \"<a title you know exists>\"` for details.\n");
+        }
+        return ExitCode::OK;
+    }
+
+    /**
+     * Diagnoses connectivity to Gamivo from *this* machine — use it when every
+     * game comes back as "no match" to tell a blocked/unreachable server apart
+     * from a genuine matching gap. Prints the raw HTTP status and a body snippet
+     * for both the search (Elasticsearch) and the currency feed.
+     *
+     * Example: yii gamivo/diagnose "Elden Ring"
+     */
+    public function actionDiagnose(string $title = 'Elden Ring'): int
+    {
+        $client = new GamivoClient();
+
+        $this->stdout("Gamivo diagnostics (from this server)\n");
+        $this->stdout(str_repeat('-', 60) . "\n");
+
+        // 1) Currency feed (https://www.gamivo.com/api/currency/list)
+        $rates = $client->fetchRates();
+        $ratesOk = $client->lastError === null && count($rates) > 1;
+        $this->stdout(sprintf(
+            "currency feed : %s (%d rates%s)\n",
+            $ratesOk ? 'OK' : 'PROBLEM',
+            count($rates),
+            $client->lastError ? '; ' . $client->lastError : ''
+        ));
+        $this->stdout(sprintf(
+            "                EUR=%s USD=%s PLN=%s\n",
+            $rates['EUR'] ?? '-', $rates['USD'] ?? '-', $rates['PLN'] ?? '-'
+        ));
+
+        // 2) Search endpoint (https://search.gamivo.com/_search/)
+        $d = $client->diagnoseSearch($title);
+        $this->stdout(sprintf(
+            "search        : %s  http=%d  type=%s  bytes=%d  hitsTotal=%s  returned=%d%s\n",
+            $d['ok'] ? 'OK' : 'PROBLEM',
+            $d['status'],
+            $d['contentType'] !== '' ? $d['contentType'] : '-',
+            $d['length'],
+            $d['hitsTotal'] ?? '?',
+            $d['returned'],
+            $d['error'] ? '  error=' . $d['error'] : ''
+        ));
+        if (!$d['ok'] || $d['returned'] === 0) {
+            $this->stdout('  body snippet: ' . ($d['snippet'] !== '' ? $d['snippet'] : '(empty)') . "\n");
+        }
+
+        // 3) What the matcher sees for the title.
+        $hits = $client->search($title);
+        $result = (new GamivoMatcher())->match($title, $hits);
+        if ($result === null) {
+            $this->stdout("matcher       : NO MATCH among " . count($hits) . " steam/games hits\n");
+            foreach (array_slice($hits, 0, 8) as $hit) {
+                $this->stdout(sprintf(
+                    "  · [%s/%s] %s\n",
+                    $hit['platform']['slug'] ?? '?',
+                    $hit['region']['region'] ?? '?',
+                    $hit['name'] ?? '?'
+                ));
+            }
+        } else {
+            $hit = $result['hit'];
+            $this->stdout(sprintf(
+                "matcher       : %s → #%s %s | %s\n",
+                $result['confidence'],
+                $hit['id'] ?? '?',
+                $hit['region']['region'] ?? '?',
+                $hit['name'] ?? '?'
+            ));
+        }
+
+        $this->stdout(str_repeat('-', 60) . "\n");
+        $blocked = !$ratesOk || !$d['ok'] || ($d['status'] === 0);
+        $this->stdout($blocked
+            ? "VERDICT: this server looks BLOCKED or unable to reach Gamivo (see above).\n"
+            : "VERDICT: connectivity to Gamivo is OK from this server.\n");
+
         return ExitCode::OK;
     }
 
