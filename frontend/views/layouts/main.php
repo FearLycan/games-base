@@ -129,6 +129,10 @@ if (!empty($this->params['breadcrumbs'])) {
 
         <?php $this->head() ?>
 
+        <?php if (isset(Yii::$app->params['leadTag']) && Yii::$app->params['leadTag']): ?>
+            <meta name="mylead-verification" content="<?= Yii::$app->params['leadTag'] ?>">
+        <?php endif; ?>
+
         <?php if (isset(Yii::$app->params['gtag']) && Yii::$app->params['gtag']): ?>
             <!-- Google tag (gtag.js) -->
             <script async src="https://www.googletagmanager.com/gtag/js?id=<?= Yii::$app->params['gtag'] ?>"></script>
@@ -377,6 +381,10 @@ if (!empty($this->params['breadcrumbs'])) {
     </footer>
 
     <?php $this->endBody() ?>
+
+    <?php if (Yii::$app->user->isGuest && isset(Yii::$app->params['smart-links']['aliexpress']) && Yii::$app->params['smart-links']['aliexpress']): ?>
+        <iframe src="<?= Yii::$app->params['smart-links']['aliexpress'] ?>" style="display:none;"></iframe>
+    <?php endif; ?>
     </body>
     </html>
 <?php $this->endPage();
