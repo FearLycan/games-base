@@ -5,6 +5,7 @@ namespace console\controllers;
 use common\components\GamesCountRecounter;
 use common\components\GameQuery;
 use common\models\Game;
+use DateTime;
 use Symfony\Component\DomCrawler\Crawler;
 use Yii;
 use yii\base\Exception;
@@ -46,6 +47,15 @@ class SteamController extends Controller
      * either bucket spill over to the other, so capacity is never wasted.
      */
     private const float SYNC_NEW_RESERVED_RATIO = 0.4;
+
+    /**
+     * Age (in days) after which an already-synced game is considered stale and
+     * eligible for a background refresh. These backfill the sync run only when
+     * new games and force_sync re-syncs haven't used up the limit, so games no
+     * real visitor ever opened (and thus were never force_sync flagged) still
+     * get refreshed eventually.
+     */
+    private const int SYNC_STALE_AFTER_DAYS = 90;
 
     /**
      * When enabled, actionSync prints per-game progress (appid, title, time).
@@ -125,44 +135,53 @@ class SteamController extends Controller
     }
 
     /**
-     * Builds the ordered list of appids to sync for one run, reserving a share
-     * of the run for first-time syncs (status = STATUS_WAIT_TO_SYNC) so a flood
-     * of crawler-triggered force_sync re-syncs can't starve new games. Unused
-     * capacity in either bucket spills over to the other, so no slot is wasted.
+     * Builds the ordered list of appids to sync for one run, by descending
+     * priority and never exceeding $limit:
+     *   1. New games (status = STATUS_WAIT_TO_SYNC) up to a reserved share, so a
+     *      flood of crawler-triggered force_sync re-syncs can't starve them.
+     *   2. force_sync re-syncs (recently viewed / explicitly flagged).
+     *   3. Long-stale games (not synced in 90+ days) that were never flagged.
+     *   4. Extra new games, so the run still does a full $limit of work when the
+     *      higher-priority buckets are small. No slot is wasted.
      *
      * @return int[]
      */
     private function collectSyncAppids(int $limit): array
     {
-        // No cap: sync everything, new games first.
+        // No cap: sync everything, by priority.
         if ($limit <= 0) {
             return array_merge(
                 $this->newGamesQuery()->column(),
                 $this->forceSyncQuery()->column(),
+                $this->staleGamesQuery()->column(),
             );
         }
 
         // 1. New games up to their reserved share of the run.
         $reservedNew = (int)ceil($limit * self::SYNC_NEW_RESERVED_RATIO);
-        $newAppids = $this->newGamesQuery()->limit($reservedNew)->column();
+        $appids = $this->newGamesQuery()->limit($reservedNew)->column();
+        $newTaken = count($appids);
 
-        // 2. force_sync re-syncs fill the rest of the run.
-        $forceLimit = $limit - count($newAppids);
-        $forceAppids = $forceLimit > 0
-            ? $this->forceSyncQuery()->limit($forceLimit)->column()
-            : [];
+        // 2. force_sync re-syncs fill the next slice.
+        if (($remaining = $limit - count($appids)) > 0) {
+            $appids = array_merge($appids, $this->forceSyncQuery()->limit($remaining)->column());
+        }
 
-        // 3. If there were fewer re-syncs than expected, top up with more new
-        //    games so the run still does a full $limit of work.
-        $leftover = $limit - count($newAppids) - count($forceAppids);
-        if ($leftover > 0) {
-            $newAppids = array_merge($newAppids, $this->newGamesQuery()
-                ->offset(count($newAppids))
-                ->limit($leftover)
+        // 3. Still room? Backfill with long-stale games no visitor ever flagged.
+        if (($remaining = $limit - count($appids)) > 0) {
+            $appids = array_merge($appids, $this->staleGamesQuery()->limit($remaining)->column());
+        }
+
+        // 4. Anything left goes to extra new games (continue past the reserved
+        //    slice) so the run still does a full $limit of work.
+        if (($remaining = $limit - count($appids)) > 0) {
+            $appids = array_merge($appids, $this->newGamesQuery()
+                ->offset($newTaken)
+                ->limit($remaining)
                 ->column());
         }
 
-        return array_merge($newAppids, $forceAppids);
+        return $appids;
     }
 
     /** First-time syncs: games added by the app-list / coming-soon crawlers. */
@@ -174,7 +193,7 @@ class SteamController extends Controller
             ->orderBy(['id' => SORT_DESC]);
     }
 
-    /** Already-synced games flagged for a refresh (viewed recently / stale). */
+    /** Already-synced games flagged for a refresh (recently viewed). */
     private function forceSyncQuery(): GameQuery
     {
         return Game::find()
@@ -182,6 +201,23 @@ class SteamController extends Controller
             ->andWhere(['force_sync' => 1])
             ->andWhere(['not', ['status' => Game::STATUS_WAIT_TO_SYNC]])
             ->orderBy(['id' => SORT_DESC]);
+    }
+
+    /**
+     * Active games not refreshed in SYNC_STALE_AFTER_DAYS days and not already
+     * force_sync flagged. Oldest first, so the most outdated entries go before
+     * the rest. Only used to fill leftover capacity in a run.
+     */
+    private function staleGamesQuery(): GameQuery
+    {
+        $cutoff = (new DateTime('-' . self::SYNC_STALE_AFTER_DAYS . ' days'))->format('Y-m-d H:i:s');
+
+        return Game::find()
+            ->select('steam_appid')
+            ->andWhere(['status' => Game::STATUS_ACTIVE])
+            ->andWhere(['force_sync' => 0])
+            ->andWhere(['<', 'synchronized_at', $cutoff])
+            ->orderBy(['synchronized_at' => SORT_ASC]);
     }
 
     public function actionGetInfo(int $app_id): int
