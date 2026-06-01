@@ -29,4 +29,16 @@ return [
         'currencies'         => ['EUR', 'USD', 'PLN'],
         'affiliate_query'    => '',
     ],
+
+    // Gamivo integration. The storefront is behind Cloudflare, but its product
+    // search is a public Elasticsearch endpoint (search.gamivo.com) and the
+    // currency rates feed (/api/currency/list, EUR base) is public too — both
+    // sit outside Cloudflare, so no scraping is involved. Set `affiliate_query`
+    // (e.g. 'glv=yourid') in params-local.php to monetize outbound links.
+    'gamivo' => [
+        'elastic_url'     => 'https://search.gamivo.com/',
+        'currency_url'    => 'https://www.gamivo.com/api/currency/list',
+        'currencies'      => ['EUR', 'USD', 'PLN'],
+        'affiliate_query' => '',
+    ],
 ];
