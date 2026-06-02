@@ -73,7 +73,7 @@ $selectClass = 'h-10 max-w-[14rem] appearance-none rounded-lg border border-line
             'dataProvider' => $dataProvider,
             'itemView'     => '_achievement-tile',
             'summary'      => false,
-            'layout'       => "<div class=\"grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4\">{items}</div>\n{pager}",
+            'layout'       => "<div class=\"grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 fade-up\">{items}</div>\n{pager}",
             'itemOptions'  => ['tag' => 'div'],
             'emptyText'    => '<div class="rounded-2xl border border-dashed border-line-strong bg-surface/40 px-6 py-14 text-center"><p class="font-display text-lg font-semibold text-fg">No matches</p><p class="mt-1.5 text-sm text-fg-muted">No achievements match your filters. ' . Html::a('Clear', ['/user/profile/achievements'], ['class' => 'font-medium text-accent hover:underline']) . '</p></div>',
             'pager'        => ['class' => \common\widgets\Pager::class],

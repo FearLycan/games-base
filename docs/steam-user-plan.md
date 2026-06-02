@@ -138,3 +138,6 @@ Dashboard `/profile` (Profile tab) liczony z zsynchronizowanych danych (helpery/
 0.1 → 0.2 → 1 → 2 → 3.1 → 3.2 → 3.3 → 3.4 → 4 → 5 → 6.1 → 6.2
 
 (6.1 i 6.2 są niezależne od reszty — można wcisnąć w dowolnym momencie jako „szybkie wygrane".)
+
+## Backlog / do dołożenia przy okazji
+- **Staggered `fade-up`** — wdrożone na stronach konta (profil, biblioteka, wishlist, settings, achievements). Przy każdej kolejnej edycji innych widoków (homepage, strona gry, listy gier/gatunków/tagów, developer/publisher/company, kontakt) **dokładać ten sam efekt** kluczowym sekcjom/kartom: `class="… fade-up"` + rosnący inline `animation-delay` (.04s, .1s, .16s…). Wzorzec opisany w pamięci `feedback-staggered-fade-up`.

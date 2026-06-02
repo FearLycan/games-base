@@ -33,11 +33,12 @@ if ($hasAchievements) { $groups[] = ['id' => 'achievements', 'label' => 'Achieve
 if ($hasDiscover)     { $groups[] = ['id' => 'discover', 'label' => 'Discover']; }
 
 /** Renders a small game grid section. @var common\models\UserGame[] $games */
-$gameSection = function (string $title, array $games, string $titleClass = 'text-fg'): void {
+$gameSection = function (string $title, array $games, string $delay = '.06s', string $titleClass = 'text-fg'): void {
     if ($games === []) {
         return;
     }
-    echo '<section><h2 class="mb-4 font-display text-lg font-semibold ' . $titleClass . '">' . Html::encode($title) . '</h2>';
+    echo '<section class="fade-up" style="animation-delay:' . $delay . '">';
+    echo '<h2 class="mb-4 font-display text-lg font-semibold ' . $titleClass . '">' . Html::encode($title) . '</h2>';
     echo '<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">';
     foreach ($games as $g) {
         echo $this->render('_game-tile', ['model' => $g]);
@@ -71,7 +72,7 @@ $gameSection = function (string $title, array $games, string $titleClass = 'text
 
             <!-- Overview -->
             <section id="overview" class="scroll-mt-32 space-y-8">
-                <div class="flex items-center gap-4 fade-up">
+                <div class="flex items-center gap-4 fade-up" style="animation-delay:.04s">
                     <?php if ($user->steam_avatar): ?>
                         <img src="<?= Html::encode($user->steam_avatar) ?>" alt=""
                              class="rounded-2xl object-cover outline outline-1 -outline-offset-1 outline-black/10" style="height:72px;width:72px">
@@ -87,7 +88,7 @@ $gameSection = function (string $title, array $games, string $titleClass = 'text
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 fade-up" style="animation-delay:.1s">
                     <?php
                     $cards = [
                         ['Games', number_format($stats->gamesCount()), 'text-fg'],
@@ -124,12 +125,12 @@ $gameSection = function (string $title, array $games, string $titleClass = 'text
             <?php if ($hasGames): ?>
                 <!-- Games -->
                 <section id="games" class="scroll-mt-32 space-y-10">
-                    <?php $gameSection('Most played', $topPlayed); ?>
-                    <?php $gameSection('Recently played', $recent); ?>
-                    <?php $gameSection('100% completed', $perfect, 'text-amber-500'); ?>
+                    <?php $gameSection('Most played', $topPlayed, '.06s'); ?>
+                    <?php $gameSection('Recently played', $recent, '.12s'); ?>
+                    <?php $gameSection('100% completed', $perfect, '.18s', 'text-amber-500'); ?>
 
                     <?php if ($genres !== []): ?>
-                        <section>
+                        <section class="fade-up" style="animation-delay:.24s">
                             <h2 class="mb-4 font-display text-lg font-semibold text-fg">Top genres <span class="text-sm font-normal text-fg-subtle">by playtime</span></h2>
                             <div class="rounded-2xl border border-line bg-surface/40 p-5 space-y-3">
                                 <?php foreach ($genres as $genre): ?>
@@ -151,7 +152,7 @@ $gameSection = function (string $title, array $games, string $titleClass = 'text
                 <!-- Achievements -->
                 <section id="achievements" class="scroll-mt-32 space-y-10">
                     <?php if ($recentUnlocks !== []): ?>
-                        <section>
+                        <section class="fade-up" style="animation-delay:.06s">
                             <h2 class="mb-4 font-display text-lg font-semibold text-fg">Recent unlocks</h2>
                             <div class="overflow-hidden rounded-2xl border border-line bg-surface/40 divide-y divide-line">
                                 <?php foreach ($recentUnlocks as $ua): ?>
@@ -174,7 +175,7 @@ $gameSection = function (string $title, array $games, string $titleClass = 'text
                     <?php endif; ?>
 
                     <?php if ($rarest !== null && $rarest->achievement !== null): ?>
-                        <section>
+                        <section class="fade-up" style="animation-delay:.12s">
                             <h2 class="mb-4 font-display text-lg font-semibold text-fg">Rarest unlock</h2>
                             <div class="flex items-center gap-4 rounded-2xl border border-line bg-surface/40 p-5">
                                 <?php if ($rarest->achievement->icon): ?>
@@ -200,7 +201,7 @@ $gameSection = function (string $title, array $games, string $titleClass = 'text
                 <!-- Discover -->
                 <section id="discover" class="scroll-mt-32 space-y-10">
                     <?php if ($deals !== []): ?>
-                        <section>
+                        <section class="fade-up" style="animation-delay:.06s">
                             <h2 class="mb-4 font-display text-lg font-semibold text-fg">Wishlist deals <span class="text-sm font-normal text-fg-subtle">on sale now</span></h2>
                             <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                                 <?php foreach ($deals as $d): ?>
@@ -211,7 +212,7 @@ $gameSection = function (string $title, array $games, string $titleClass = 'text
                     <?php endif; ?>
 
                     <?php if ($recommended !== []): ?>
-                        <section>
+                        <section class="fade-up" style="animation-delay:.12s">
                             <h2 class="mb-4 font-display text-lg font-semibold text-fg">Recommended for you <span class="text-sm font-normal text-fg-subtle">based on what you play</span></h2>
                             <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                                 <?php foreach ($recommended as $rg): ?>

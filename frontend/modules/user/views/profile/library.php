@@ -99,7 +99,7 @@ $shown = $dataProvider->getTotalCount();
             'dataProvider' => $dataProvider,
             'itemView'     => '_game-tile',
             'summary'      => false,
-            'layout'       => "<div class=\"grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4\">{items}</div>\n{pager}",
+            'layout'       => "<div class=\"grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 fade-up\">{items}</div>\n{pager}",
             'itemOptions'  => ['tag' => 'div'],
             'emptyText'    => '<div class="rounded-2xl border border-dashed border-line-strong bg-surface/40 px-6 py-14 text-center"><p class="font-display text-lg font-semibold text-fg">No matches</p><p class="mt-1.5 text-sm text-fg-muted">No games match your filters. ' . Html::a('Clear filters', ['/user/profile/library'], ['class' => 'font-medium text-accent hover:underline']) . '</p></div>',
             'pager'        => ['class' => \common\widgets\Pager::class],
