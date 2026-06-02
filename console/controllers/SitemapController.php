@@ -117,7 +117,7 @@ class SitemapController extends Controller
     private function iterateGameEntries(string $baseUrl): Generator
     {
         $query = Game::find()
-            ->select(['steam_appid', 'slug', 'updated_at', 'synchronized_at', 'created_at'])
+            ->select(['steam_appid', 'slug', 'updated_at', 'synchronized_at', 'created_at', 'achievements_total'])
             ->where(['status' => Game::STATUS_ACTIVE, 'type' => Game::TYPE_GAME])
             ->andWhere(['not', ['slug' => null]])
             ->andWhere(['<>', 'slug', ''])
@@ -126,12 +126,26 @@ class SitemapController extends Controller
 
         foreach ($query->batch(1000) as $rows) {
             foreach ($rows as $row) {
+                $gamePath = '/game/' . (int)$row['steam_appid'] . '/' . rawurlencode((string)$row['slug']);
+                $lastmod = $this->resolveLastModified($row['updated_at'] ?: ($row['synchronized_at'] ?? null), $row['created_at'] ?? null);
+
                 yield [
-                    'loc'        => $this->buildAbsoluteUrl($baseUrl, '/game/' . (int)$row['steam_appid'] . '/' . rawurlencode((string)$row['slug'])),
-                    'lastmod'    => $this->resolveLastModified($row['updated_at'] ?: ($row['synchronized_at'] ?? null), $row['created_at'] ?? null),
+                    'loc'        => $this->buildAbsoluteUrl($baseUrl, $gamePath),
+                    'lastmod'    => $lastmod,
                     'changefreq' => 'weekly',
                     'priority'   => '0.8',
                 ];
+
+                // The achievements sub-page exists only when the game has any —
+                // mirrors the 301 redirect in GameController::actionAchievements().
+                if ((int)($row['achievements_total'] ?? 0) > 0) {
+                    yield [
+                        'loc'        => $this->buildAbsoluteUrl($baseUrl, $gamePath . '/achievements'),
+                        'lastmod'    => $lastmod,
+                        'changefreq' => 'monthly',
+                        'priority'   => '0.5',
+                    ];
+                }
             }
         }
     }

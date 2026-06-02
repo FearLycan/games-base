@@ -42,7 +42,7 @@ class GameController extends Controller
                     [
                         'allow'   => true,
                         'actions' => [
-                            'view', 'search-list', 'list', 'list-by-tag', 'sale', 'genres', 'tags', 'categories', 'index', 'details',
+                            'view', 'achievements', 'search-list', 'list', 'list-by-tag', 'sale', 'genres', 'tags', 'categories', 'index', 'details',
                         ],
                         'roles'   => ['?'],
                     ],
@@ -50,7 +50,7 @@ class GameController extends Controller
             ],
             [
                 'class'      => PageCache::class,
-                'only'       => ['view', 'details'],
+                'only'       => ['view', 'achievements', 'details'],
                 'duration'   => YII_DEBUG ? 1 : 3600,
                 'variations' => [
                     Yii::$app->controller->action->id . Yii::$app->request->get('id'),
@@ -205,6 +205,55 @@ class GameController extends Controller
             'model'   => $model,
             'related' => $this->findRelatedGames($model),
             'dlcs'    => $this->findDlc($model),
+        ]);
+    }
+
+    public function actionAchievements($id, $slug)
+    {
+        $model = $this->findModel($id, $slug);
+
+        // The achievements page only makes sense when there are achievements to
+        // show; otherwise send visitors back to the game page (301) so the empty
+        // URL doesn't sit in the index.
+        if (!$model->hasAchievements()) {
+            return $this->redirect(['/game/game/view', 'id' => $model->steam_appid, 'slug' => $model->slug], 301);
+        }
+
+        $achievements = $model->achievements;
+        $shown = count($achievements);
+
+        // remaining > 0 only happens in appdetails-fallback mode (no API key),
+        // where Steam exposes just a highlighted subset. Cap the decorative
+        // "locked" placeholders so a 500-achievement game isn't a wall of ghosts.
+        $remaining = max(0, (int)$model->achievements_total - $shown);
+
+        // Display extras computed here so the view only renders. rarest = the
+        // hardest achievement to earn (lowest known unlock rate); tierCounts
+        // drives the rarity filter chips (only non-empty tiers get a chip).
+        $rarest = null;
+        $hiddenCount = 0;
+        $tierCounts = ['ultra' => 0, 'rare' => 0, 'uncommon' => 0, 'common' => 0];
+        foreach ($achievements as $achievement) {
+            if ($achievement->hidden) {
+                $hiddenCount++;
+            }
+            if ($achievement->percent !== null) {
+                $tierCounts[$achievement->getRarityTier()]++;
+                if ($rarest === null || $achievement->percent < $rarest->percent) {
+                    $rarest = $achievement;
+                }
+            }
+        }
+
+        return $this->render('achievements', [
+            'model'        => $model,
+            'achievements' => $achievements,
+            'shown'        => $shown,
+            'remaining'    => $remaining,
+            'lockedCount'  => min($remaining, 12),
+            'rarest'       => $rarest,
+            'hiddenCount'  => $hiddenCount,
+            'tierCounts'   => $tierCounts,
         ]);
     }
 

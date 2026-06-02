@@ -62,6 +62,7 @@ return [
                 'how-it-works'                                         => 'site/how-it-works',
                 'contact'                                              => 'site/contact',
                 'game/tag/<slug>'                                      => 'game/game/list-by-tag',
+                'game/<id:\d+>/<slug>/achievements'                    => 'game/game/achievements',
                 'game/<id>/<slug>'                                     => 'game/game/view',
                 '<alias:games>/<slug>'                                 => 'game/game/list',
                 'game/<action>'                                        => 'game/game/<action>',

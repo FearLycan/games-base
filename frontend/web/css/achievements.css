@@ -1,0 +1,560 @@
+/* ----------------------------------------------------------------------
+ * Achievements page for /game/<id>/<slug>/achievements (achievements.php).
+ * Registered from that view only. Shares the site's tokens (emerald accent,
+ * Lexend / Fira Code) and leans on the trophy/unlock motif.
+ * --------------------------------------------------------------------*/
+
+/* --- Hero backdrop --------------------------------------------------- */
+
+.ach-hero {
+    background-color: #0b1220;
+    background-size: cover;
+    background-position: center 30%;
+    background-repeat: no-repeat;
+}
+
+.ach-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(95deg,
+            rgba(11, 18, 32, 0.78) 0%,
+            rgba(11, 18, 32, 0.58) 45%,
+            rgba(11, 18, 32, 0.30) 100%),
+        linear-gradient(180deg,
+            rgba(11, 18, 32, 0.20) 0%,
+            rgba(11, 18, 32, 0.10) 40%,
+            rgba(11, 18, 32, 0.55) 100%);
+    pointer-events: none;
+}
+
+.ach-hero-text {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+.ach-back {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.78);
+    transition: color 150ms ease, transform 150ms ease;
+}
+
+.ach-back:hover {
+    color: #ffffff;
+}
+
+.ach-back span {
+    transition: transform 150ms ease;
+}
+
+.ach-back:hover span {
+    transform: translateX(-3px);
+}
+
+.ach-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-accent, #059669) 88%, transparent);
+    color: #ffffff;
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    box-shadow: 0 6px 18px -8px rgba(5, 150, 105, 0.7);
+}
+
+/* --- Stat strip ----------------------------------------------------- */
+
+.ach-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    border: 1px solid var(--color-line, #e2e8f0);
+    background: var(--color-canvas, #ffffff);
+    box-shadow: 0 12px 30px -22px rgba(15, 23, 42, 0.35);
+}
+
+.ach-stat-value {
+    font-family: var(--font-display, "Lexend", system-ui, sans-serif);
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--color-fg, #0f172a);
+    font-variant-numeric: tabular-nums;
+}
+
+.ach-stat-label {
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-fg-subtle, #94a3b8);
+}
+
+/* --- Achievement grid ----------------------------------------------- */
+
+.ach-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+}
+
+@media (min-width: 768px) {
+    .ach-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@keyframes ach-pop {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ach-card {
+    --tier: var(--color-fg-subtle, #94a3b8);
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid var(--color-line, #e2e8f0);
+    background: var(--color-canvas, #ffffff);
+    overflow: hidden;
+    transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+    animation: ach-pop 440ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 28ms);
+}
+
+/* A hair of the rarity colour bleeds in from the left edge. */
+.ach-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--tier);
+    opacity: 0.85;
+}
+
+.ach-card:hover {
+    border-color: color-mix(in srgb, var(--tier) 45%, var(--color-line, #e2e8f0));
+    transform: translateY(-2px);
+    box-shadow: 0 18px 34px -22px color-mix(in srgb, var(--tier) 60%, transparent);
+}
+
+.ach-card-icon {
+    position: relative;
+    flex: 0 0 auto;
+    width: 58px;
+    height: 58px;
+    border-radius: 13px;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    background:
+        radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, var(--tier) 16%, transparent) 0%, transparent 70%),
+        var(--color-surface, #f8fafc);
+    border: 1px solid var(--color-line, #e2e8f0);
+    color: var(--tier);
+    font-size: 22px;
+}
+
+.ach-card-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.ach-card-body {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ach-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ach-card-name {
+    font-family: var(--font-display, "Lexend", system-ui, sans-serif);
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.3;
+    color: var(--color-fg, #0f172a);
+    min-width: 0;
+}
+
+.ach-hidden-badge {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-fg-muted, #475569);
+    background: var(--color-surface-2, #f1f5f9);
+    border: 1px solid var(--color-line, #e2e8f0);
+}
+
+.ach-card-desc {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--color-fg-muted, #475569);
+}
+
+/* Hidden achievements: blur the description so the page doesn't spoil it,
+ * reveal on hover / keyboard focus of the card. */
+.ach-card-desc.is-spoiler {
+    filter: blur(4px);
+    user-select: none;
+    transition: filter 200ms ease;
+}
+
+.ach-card:hover .ach-card-desc.is-spoiler,
+.ach-card:focus-within .ach-card-desc.is-spoiler {
+    filter: blur(0);
+    user-select: auto;
+}
+
+/* --- Rarity meter ---------------------------------------------------- */
+
+.ach-rarity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 2px;
+}
+
+.ach-rarity-bar {
+    position: relative;
+    flex: 1;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--color-surface-2, #f1f5f9);
+    overflow: hidden;
+}
+
+.ach-rarity-bar span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 999px;
+    background: var(--tier);
+}
+
+.ach-rarity-label {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-fg, #0f172a);
+    font-variant-numeric: tabular-nums;
+}
+
+.ach-rarity-tier {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--tier);
+}
+
+/* Rarity tiers — colour the left edge, icon glow, bar and tier label. */
+.ach-tier-common   { --tier: #94a3b8; }
+.ach-tier-uncommon { --tier: #0ea5e9; }
+.ach-tier-rare     { --tier: #8b5cf6; }
+.ach-tier-ultra    { --tier: #f59e0b; }
+
+/* --- Locked / ghost placeholders (appdetails fallback) -------------- */
+
+.ach-card-locked {
+    --tier: var(--color-fg-subtle, #94a3b8);
+    border-style: dashed;
+    background: var(--color-surface, #f8fafc);
+}
+
+.ach-card-locked::before {
+    opacity: 0.3;
+}
+
+.ach-card-locked:hover {
+    transform: none;
+    border-color: var(--color-line-strong, #cbd5e1);
+    box-shadow: none;
+}
+
+.ach-card-locked .ach-card-icon {
+    background: var(--color-surface-2, #f1f5f9);
+    color: var(--color-fg-subtle, #94a3b8);
+    border-style: dashed;
+}
+
+.ach-card-locked .ach-card-name {
+    color: var(--color-fg-subtle, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 12px;
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+}
+
+.ach-card-locked .ach-card-desc {
+    color: var(--color-fg-subtle, #94a3b8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ach-card {
+        animation: none;
+    }
+    .ach-card:hover {
+        transform: none;
+    }
+}
+
+/* --- Toolbar: rarity filter + sort ---------------------------------- */
+
+.ach-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.ach-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ach-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--color-line, #e2e8f0);
+    background: var(--color-canvas, #ffffff);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-fg-muted, #475569);
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+/* Tier chips carry their colour via .ach-tier-* (--tier); the "All" chip has
+ * no tier, so give it a neutral dot/active tint. The selector is more specific
+ * than .ach-tier-* so it never bleeds onto coloured chips. */
+.ach-filter-chip[data-ach-filter="all"] {
+    --tier: var(--color-fg-subtle, #94a3b8);
+}
+
+.ach-filter-chip:hover {
+    border-color: var(--color-line-strong, #cbd5e1);
+    color: var(--color-fg, #0f172a);
+}
+
+.ach-filter-chip[data-active="true"] {
+    border-color: color-mix(in srgb, var(--tier) 55%, var(--color-line, #e2e8f0));
+    background: color-mix(in srgb, var(--tier) 12%, var(--color-canvas, #ffffff));
+    color: var(--color-fg, #0f172a);
+}
+
+.ach-filter-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--tier);
+}
+
+.ach-filter-count {
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--color-fg-subtle, #94a3b8);
+    font-variant-numeric: tabular-nums;
+}
+
+.ach-filter-chip[data-active="true"] .ach-filter-count {
+    color: var(--color-fg-muted, #475569);
+}
+
+.ach-sort {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 999px;
+    background: var(--color-surface, #f8fafc);
+    border: 1px solid var(--color-line, #e2e8f0);
+}
+
+.ach-sort-opt {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: transparent;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-fg-subtle, #94a3b8);
+    transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+.ach-sort-opt:hover {
+    color: var(--color-fg, #0f172a);
+}
+
+.ach-sort-opt[data-active="true"] {
+    background: var(--color-canvas, #ffffff);
+    color: var(--color-accent, #059669);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+/* Search field grows to fill the row; wraps to its own line when tight. */
+.ach-search {
+    flex: 1 1 200px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--color-line, #e2e8f0);
+    background: var(--color-surface, #f8fafc);
+    transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.ach-search:focus-within {
+    background: var(--color-canvas, #ffffff);
+    border-color: var(--color-accent, #059669);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent, #059669) 18%, transparent);
+}
+
+.ach-search-icon {
+    flex: 0 0 auto;
+    font-size: 12px;
+    color: var(--color-fg-subtle, #94a3b8);
+}
+
+.ach-search:focus-within .ach-search-icon {
+    color: var(--color-accent, #059669);
+}
+
+.ach-search-input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-family: var(--font-body, "Lexend", system-ui, sans-serif);
+    font-size: 13px;
+    color: var(--color-fg, #0f172a);
+}
+
+.ach-search-input::placeholder {
+    color: var(--color-fg-subtle, #94a3b8);
+}
+
+.ach-empty {
+    grid-column: 1 / -1;
+    padding: 32px 16px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--color-fg-subtle, #94a3b8);
+}
+
+/* --- Closing CTA ---------------------------------------------------- */
+
+.ach-cta {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding: 22px 24px;
+    border-radius: 24px;
+    border: 1px solid color-mix(in srgb, var(--color-accent, #059669) 26%, var(--color-line, #e2e8f0));
+    background:
+        radial-gradient(130% 130% at 0% 0%, var(--color-accent-soft, #ecfdf5) 0%, transparent 55%),
+        var(--color-canvas, #ffffff);
+}
+
+.ach-cta-mark {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: var(--color-accent, #059669);
+    color: #ffffff;
+    font-size: 22px;
+    box-shadow: 0 12px 26px -12px rgba(5, 150, 105, 0.6);
+}
+
+.ach-cta-body {
+    min-width: 0;
+    flex: 1 1 220px;
+}
+
+.ach-cta-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 12px;
+    background: var(--color-accent, #059669);
+    color: #ffffff;
+    padding: 14px 22px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 14px 30px -14px rgba(5, 150, 105, 0.55);
+    transition: background 160ms ease, transform 160ms ease;
+}
+
+.ach-cta-btn:hover {
+    background: color-mix(in srgb, var(--color-accent, #059669) 90%, #000);
+    transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ach-cta-btn:hover {
+        transform: none;
+    }
+}

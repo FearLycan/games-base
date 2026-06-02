@@ -14,7 +14,7 @@ $steps = [
         'eyebrow' => 'Step 1',
         'dot'     => 'bg-emerald-500',
         'title'   => 'We pull from Steam, directly',
-        'body'    => 'Every game, screenshot, and review count comes straight from the public Steam API and store pages. No middlemen on the data, no licensing deals. It\'s the same information Valve publishes.',
+        'body'    => 'Every game, screenshot, achievement, and review count comes straight from the public Steam API and store pages. No middlemen on the data, no licensing deals. It\'s the same information Valve publishes.',
     ],
     [
         'eyebrow' => 'Step 2',

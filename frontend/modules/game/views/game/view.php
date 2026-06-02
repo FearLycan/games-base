@@ -50,6 +50,7 @@ $sections = [];
 if (!empty($offers))      { $sections[] = ['id' => 'where-to-buy', 'label' => 'Where to buy']; }
 $sections[]               =   ['id' => 'about',        'label' => 'About this game'];
 if (!empty($dlcs))        { $sections[] = ['id' => 'dlc',          'label' => 'DLC & add-ons']; }
+if ($model->hasAchievements()) { $sections[] = ['id' => 'achievements', 'label' => 'Achievements']; }
 if (!empty($screenshots)) { $sections[] = ['id' => 'gallery',      'label' => 'Gallery']; }
 if (!empty($platforms))   { $sections[] = ['id' => 'requirements', 'label' => 'System requirements']; }
 $sections[]               =   ['id' => 'steam',        'label' => 'Get it on Steam'];
@@ -221,6 +222,53 @@ foreach ($sections as $i => $s) {
                     </header>
 
                     <?= $this->render('_dlc', ['dlcs' => $dlcs]) ?>
+                </article>
+            <?php endif; ?>
+
+            <?php if ($model->hasAchievements()): ?>
+                <?php
+                $achievementsUrl = Url::to(['/game/game/achievements', 'id' => $model->steam_appid, 'slug' => $model->slug]);
+                $previewAchievements = array_slice($model->achievements, 0, 6);
+                ?>
+                <article id="achievements" class="scroll-mt-24">
+                    <header class="flex items-center gap-3 mb-5">
+                        <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['achievements'] ?></span>
+                        <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">Achievements</h2>
+                        <span class="ml-auto font-mono text-[11px] text-fg-subtle"><?= number_format((int)$model->achievements_total) ?> total</span>
+                    </header>
+
+                    <a href="<?= Html::encode($achievementsUrl) ?>"
+                       class="group flex items-center gap-4 rounded-2xl border border-line bg-surface/40 p-4 sm:p-5 hover:border-line-strong hover:bg-surface transition">
+                        <?php if (!empty($previewAchievements)): ?>
+                            <div class="flex -space-x-3 shrink-0">
+                                <?php foreach ($previewAchievements as $achievement): ?>
+                                    <?php if ($achievement->icon): ?>
+                                        <img src="<?= Html::encode($achievement->icon) ?>"
+                                             alt="<?= Html::encode($achievement->name) ?>"
+                                             title="<?= Html::encode($achievement->name) ?>"
+                                             loading="lazy"
+                                             class="h-11 w-11 rounded-lg object-cover ring-2 ring-canvas shadow-sm">
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
+                                <i class="fa-solid fa-trophy" aria-hidden="true"></i>
+                            </span>
+                        <?php endif; ?>
+
+                        <div class="min-w-0 flex-1">
+                            <p class="font-display font-semibold text-fg">
+                                <?= number_format((int)$model->achievements_total) ?> achievement<?= (int)$model->achievements_total === 1 ? '' : 's' ?> to unlock
+                            </p>
+                            <p class="mt-0.5 text-sm text-fg-muted">Browse the full achievement showcase for this game.</p>
+                        </div>
+
+                        <span class="shrink-0 inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-accent">
+                            View all
+                            <span class="transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
+                        </span>
+                    </a>
                 </article>
             <?php endif; ?>
 

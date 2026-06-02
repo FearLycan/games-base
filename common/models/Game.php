@@ -36,6 +36,7 @@ use yii\httpclient\Client;
  * @property int|null       $steam_deck
  * @property int|null       $steam_price_initial
  * @property int|null       $steam_price_final
+ * @property int            $achievements_total
  * @property boolean        $force_sync
  * @property string         $created_at
  * @property string|null    $updated_at
@@ -54,7 +55,8 @@ use yii\httpclient\Client;
  * @property GameCategory[] $gameCategories
  * @property GameGenre[]    $gameGenres
  * @property GameSale[]     $gameSales
- * @property GameOffer[]    $gameOffers
+ * @property GameOffer[]      $gameOffers
+ * @property GameAchievement[] $achievements
  * @property Game|null      $fullGame
  * @property Game[]         $dlc
  */
@@ -127,7 +129,7 @@ class Game extends ActiveRecord
     public function rules(): array
     {
         return [
-            [['steam_appid', 'fullgame_appid', 'status', 'steam_price_final', 'steam_price_initial'], 'integer'],
+            [['steam_appid', 'fullgame_appid', 'status', 'steam_price_final', 'steam_price_initial', 'achievements_total'], 'integer'],
             [['required_age', 'is_free', 'force_sync'], 'boolean'],
             [['detailed_description', 'about_the_game', 'short_description'], 'string'],
             [['release_date', 'created_at', 'updated_at', 'synchronized_at'], 'safe'],
@@ -401,6 +403,19 @@ class Game extends ActiveRecord
     }
 
     /**
+     * Gets query for [[Achievements]]. Ordered most-common first (by global
+     * unlock rate) so the rarest sit at the bottom; rows without a known rate
+     * (appdetails fallback) keep their synced order via the id tie-break.
+     *
+     * @return ActiveQuery
+     */
+    public function getAchievements(): ActiveQuery
+    {
+        return $this->hasMany(GameAchievement::class, ['game_id' => 'id'])
+            ->orderBy(['percent' => SORT_DESC, 'id' => SORT_ASC]);
+    }
+
+    /**
      * The base game this row is a DLC of, or null when it isn't a DLC.
      * Linked by Steam appid (see {@see $fullgame_appid}), so it resolves even
      * when the two rows were synced in either order.
@@ -619,6 +634,7 @@ class Game extends ActiveRecord
         $this->setPublisher($information['publishers'] ?? []);
         $this->setGenres($information['genres'] ?? []);
         $this->setScreenshots($information['screenshots'] ?? []);
+        $this->setAchievements($information['achievements'] ?? []);
         $this->setBackground($information['background'] ?? '');
         $this->setHeader($information['header_image'] ?? '');
         $this->setIcons();
@@ -976,6 +992,135 @@ class Game extends ActiveRecord
         return $this->_screenshots;
     }
 
+    /**
+     * (Re-)syncs this game's achievements.
+     *
+     * Preferred source is Steam's ISteamUserStats/GetSchemaForGame, which lists
+     * *every* achievement (display name, description, locked/unlocked icons and
+     * the hidden flag) — but it needs a web API key. We enrich those rows with
+     * the global unlock rate from GetGlobalAchievementPercentagesForApp (rarity).
+     *
+     * When the key is missing or the schema call returns nothing we fall back to
+     * the appdetails `highlighted` subset (name + icon only) so the page still
+     * shows something. Either way the rows are replaced wholesale and
+     * `achievements_total` is set to the authoritative count for the source.
+     *
+     * @param array $appdetailsAchievements the appdetails `achievements` node
+     *                                       ({total, highlighted}), used as the
+     *                                       fallback and for the total.
+     */
+    public function setAchievements($appdetailsAchievements): void
+    {
+        $total = (int)($appdetailsAchievements['total'] ?? 0);
+        $schema = $this->fetchAchievementSchema();
+
+        GameAchievement::deleteAll(['game_id' => $this->id]);
+
+        if ($schema !== []) {
+            $percents = $this->fetchAchievementPercents();
+            $total = count($schema);
+
+            foreach ($schema as $item) {
+                $display = trim((string)($item['displayName'] ?? ''));
+                if ($display === '') {
+                    continue;
+                }
+                $apiName = (string)($item['name'] ?? '');
+                $description = trim((string)($item['description'] ?? ''));
+
+                $achievement = new GameAchievement();
+                $achievement->game_id = $this->id;
+                $achievement->api_name = $apiName !== '' ? $apiName : null;
+                $achievement->name = $display;
+                $achievement->description = $description !== '' ? $description : null;
+                $achievement->icon = $item['icon'] ?? null;
+                $achievement->icon_locked = $item['icongray'] ?? null;
+                $achievement->hidden = !empty($item['hidden']);
+                $achievement->percent = $apiName !== '' && isset($percents[$apiName]) ? $percents[$apiName] : null;
+                $achievement->save();
+            }
+        } else {
+            // Fallback: appdetails only ever exposes a highlighted subset.
+            foreach ($appdetailsAchievements['highlighted'] ?? [] as $item) {
+                $name = trim((string)($item['name'] ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+
+                $achievement = new GameAchievement();
+                $achievement->game_id = $this->id;
+                $achievement->name = $name;
+                $achievement->icon = $item['path'] ?? null;
+                $achievement->save();
+            }
+        }
+
+        $this->achievements_total = $total;
+    }
+
+    /**
+     * Full achievement schema from Steam's web API, or [] when unavailable (no
+     * key configured, game has no stats, or the request failed). Network errors
+     * are swallowed so a flaky achievements call never aborts a game sync.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function fetchAchievementSchema(): array
+    {
+        $key = Yii::$app->params['steamkey'] ?? null;
+        if (!$key) {
+            return [];
+        }
+
+        try {
+            $response = (new Client(['baseUrl' => 'https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/']))
+                ->createRequest()
+                ->setMethod('GET')
+                ->setData(['key' => $key, 'appid' => $this->steam_appid, 'l' => 'english'])
+                ->send();
+        } catch (\Throwable) {
+            return [];
+        }
+
+        if (!$response->isOk) {
+            return [];
+        }
+
+        return $response->data['game']['availableGameStats']['achievements'] ?? [];
+    }
+
+    /**
+     * Map of achievement apiname => global unlock percentage (rarity). Needs no
+     * key. Returns [] on any failure — rarity is purely additive.
+     *
+     * @return array<string, float>
+     */
+    private function fetchAchievementPercents(): array
+    {
+        try {
+            $response = (new Client(['baseUrl' => 'https://api.steampowered.com/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v2/']))
+                ->createRequest()
+                ->setMethod('GET')
+                ->setData(['gameid' => $this->steam_appid, 'format' => 'json'])
+                ->send();
+        } catch (\Throwable) {
+            return [];
+        }
+
+        if (!$response->isOk) {
+            return [];
+        }
+
+        $map = [];
+        foreach ($response->data['achievementpercentages']['achievements'] ?? [] as $row) {
+            if (isset($row['name'])) {
+                $map[(string)$row['name']] = (float)$row['percent'];
+            }
+        }
+
+        return $map;
+    }
+
     public function setPlatforms($information)
     {
         foreach ($information['platforms'] as $platform => $available) {
@@ -1206,6 +1351,16 @@ class Game extends ActiveRecord
     public function getMainGenre(): string
     {
         return $this->_mainGenre ??= ($this->genres[0]->name ?? '');
+    }
+
+    /**
+     * Whether this game has any achievements worth showing — true when Steam
+     * reported a total or we stored at least one highlighted row. Drives the
+     * achievements page link, teaser and sitemap entry.
+     */
+    public function hasAchievements(): bool
+    {
+        return (int)$this->achievements_total > 0 || !empty($this->achievements);
     }
 
     public function getSaleLabel(): string
