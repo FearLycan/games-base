@@ -675,14 +675,8 @@
 
 .section-nav {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 6px;
-    overflow-x: auto;
-    scrollbar-width: none;
-}
-
-.section-nav::-webkit-scrollbar {
-    display: none;
 }
 
 .section-nav-link {
