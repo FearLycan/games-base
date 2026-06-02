@@ -27,7 +27,7 @@ class DeveloperController extends Controller
                     [
                         'allow'   => true,
                         'actions' => ['view', 'index'],
-                        'roles'   => ['?'],
+                        'roles'   => ['?', '@'],
                     ],
                 ],
             ],

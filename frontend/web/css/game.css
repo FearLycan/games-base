@@ -675,12 +675,19 @@
 
 .section-nav {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.section-nav::-webkit-scrollbar {
+    display: none;
 }
 
 .section-nav-link {
     display: inline-flex;
+    flex: none;
     align-items: center;
     gap: 7px;
     padding: 6px 12px 6px 8px;
@@ -688,6 +695,7 @@
     border: 1px solid var(--color-line, #e5e7eb);
     font-size: 12px;
     font-weight: 500;
+    white-space: nowrap;
     color: var(--color-fg-muted, #4b5563);
     transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
 }
@@ -695,6 +703,13 @@
 .section-nav-link:hover {
     background: var(--color-surface, #fafafa);
     border-color: var(--color-line-strong, #d1d5db);
+    color: var(--color-fg, #0a0a0a);
+}
+
+/* Active section (scrollspy) */
+.section-nav-link[data-active="true"] {
+    background: var(--color-accent-soft, #ecfdf5);
+    border-color: color-mix(in srgb, var(--color-accent, #059669) 45%, var(--color-line, #e2e8f0));
     color: var(--color-fg, #0a0a0a);
 }
 

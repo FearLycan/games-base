@@ -199,6 +199,14 @@
                     ? `<span class="ml-auto text-[11px] font-mono text-fg-subtle shrink-0">${escapeHtml(item.badge)}</span>`
                     : '';
 
+                const price = item.price
+                    ? `<span class="ml-auto flex items-center gap-1.5 shrink-0 tabular-nums">
+                        ${item.discount ? `<span class="rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-accent">-${item.discount}%</span>` : ''}
+                        ${item.price_original ? `<span class="text-[11px] text-fg-subtle line-through">${escapeHtml(item.price_original)}</span>` : ''}
+                        <span class="text-xs font-semibold text-fg">${escapeHtml(item.price)}</span>
+                       </span>`
+                    : badge;
+
                 const trackAttr = item.steam_appid
                     ? `data-steam-appid="${escapeHtml(item.steam_appid)}"`
                     : '';
@@ -214,7 +222,7 @@
                             <div class="result-title text-sm font-medium text-fg truncate transition-colors">${highlight(item.title, query)}</div>
                             ${subtitle}
                         </div>
-                        ${badge}
+                        ${price}
                         <svg class="result-arrow h-4 w-4 text-accent shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                             <polyline points="12 5 19 12 12 19"></polyline>
@@ -394,4 +402,97 @@
             }
         }
     });
+})();
+
+// Logged-in user dropdown (avatar button -> library / wishlist / achievements).
+(function () {
+    const root = document.querySelector('[data-user-menu]');
+    if (!root) {
+        return;
+    }
+
+    const button = root.querySelector('[data-user-menu-button]');
+    const panel = root.querySelector('[data-user-menu-panel]');
+    const chevron = root.querySelector('[data-user-menu-chevron]');
+    if (!button || !panel) {
+        return;
+    }
+
+    // Closed state: faded out, nudged up and non-interactive. Toggling these
+    // (rather than the `hidden` attribute) lets the transition run both ways.
+    const closedClasses = ['opacity-0', '-translate-y-1', 'pointer-events-none'];
+
+    function setOpen(open) {
+        if (open) {
+            panel.classList.remove(...closedClasses);
+        } else {
+            panel.classList.add(...closedClasses);
+        }
+        button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+        if (chevron) chevron.classList.toggle('rotate-180', open);
+    }
+
+    function isOpen() {
+        return button.getAttribute('aria-expanded') === 'true';
+    }
+
+    button.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setOpen(!isOpen());
+    });
+
+    // Click outside closes; clicks inside the panel (e.g. the sign-out form) don't.
+    document.addEventListener('click', (e) => {
+        if (isOpen() && !root.contains(e.target)) {
+            setOpen(false);
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isOpen()) {
+            setOpen(false);
+            button.focus();
+        }
+    });
+})();
+
+// Sticky in-page section nav (scrollspy) — e.g. the profile dashboard.
+// Highlights the pill whose section is currently in view.
+(function () {
+    var nav = document.querySelector('[data-scrollspy]');
+    if (!nav || !('IntersectionObserver' in window)) {
+        return;
+    }
+
+    var links = {};
+    nav.querySelectorAll('[data-scrollspy-link]').forEach(function (link) {
+        links[link.getAttribute('data-scrollspy-link')] = link;
+    });
+
+    var sections = Object.keys(links)
+        .map(function (id) { return document.getElementById(id); })
+        .filter(Boolean);
+    if (sections.length === 0) {
+        return;
+    }
+
+    function setActive(id) {
+        Object.keys(links).forEach(function (key) {
+            links[key].setAttribute('data-active', key === id ? 'true' : 'false');
+        });
+    }
+
+    // Top margin clears the sticky site header + this nav; the big bottom margin
+    // means a section counts as "active" once its top reaches the upper band.
+    var observer = new IntersectionObserver(function (entries) {
+        var inView = entries
+            .filter(function (e) { return e.isIntersecting; })
+            .sort(function (a, b) { return a.boundingClientRect.top - b.boundingClientRect.top; });
+        if (inView.length) {
+            setActive(inView[0].target.id);
+        }
+    }, { rootMargin: '-120px 0px -55% 0px', threshold: 0 });
+
+    sections.forEach(function (section) { observer.observe(section); });
 })();

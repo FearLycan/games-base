@@ -1,5 +1,6 @@
 <?php
 
+use frontend\modules\user\UserModule;
 use yii\log\FileTarget;
 use common\models\User;
 use common\components\WebUser;
@@ -32,10 +33,19 @@ return [
             'identityClass'   => User::class,
             'enableAutoLogin' => true,
             'identityCookie'  => ['name' => '_identity', 'httpOnly' => true],
+            'loginUrl'        => ['/user/auth/login'],
         ],
         'session'      => [
             // this is the name of the session cookie used for login on the frontend
             'name' => 'session',
+        ],
+        'authClientCollection' => [
+            'class'   => \yii\authclient\Collection::class,
+            'clients' => [
+                'steam' => [
+                    'class' => \common\components\auth\SteamOpenId::class,
+                ],
+            ],
         ],
         'log'          => [
             'traceLevel' => YII_DEBUG ? 3 : 0,
@@ -54,6 +64,12 @@ return [
             'showScriptName'  => false,
             'rules'           => [
                 '/'                                                    => 'homepage/home/index',
+                'login'                                                => 'user/auth/login',
+                'logout'                                               => 'user/auth/logout',
+                'signup'                                               => 'user/auth/signup',
+                'auth/<authclient:\w+>'                                => 'user/auth/auth',
+                'profile'                                              => 'user/profile/index',
+                'profile/<action>'                                     => 'user/profile/<action>',
                 'games'                                                => 'game/game/index',
                 'games/<type:bestsellers|new-and-noteworthy|upcoming>' => 'game/game/sale',
                 'genres'                                               => 'game/game/genres',
@@ -89,6 +105,9 @@ return [
         ],
         'company'   => [
             'class' => CompanyModule::class,
+        ],
+        'user'   => [
+            'class' => UserModule::class,
         ],
     ],
     'params'              => $params,

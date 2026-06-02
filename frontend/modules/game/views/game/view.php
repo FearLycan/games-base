@@ -161,9 +161,11 @@ foreach ($sections as $i => $s) {
                 </a>
             <?php endif; ?>
 
-            <nav class="section-nav" aria-label="Jump to section">
-                <?php foreach ($sections as $s): ?>
-                    <a href="#<?= $s['id'] ?>" class="section-nav-link">
+            <nav class="section-nav sticky top-16 z-20 -mx-6 sm:-mx-10 border-b border-line bg-canvas/95 px-6 sm:px-10 py-3 backdrop-blur"
+                 data-scrollspy aria-label="Jump to section">
+                <?php foreach ($sections as $i => $s): ?>
+                    <a href="#<?= $s['id'] ?>" class="section-nav-link"
+                       data-scrollspy-link="<?= $s['id'] ?>" data-active="<?= $i === 0 ? 'true' : 'false' ?>">
                         <span class="section-nav-num"><?= $sectionNo[$s['id']] ?></span>
                         <?= Html::encode($s['label']) ?>
                     </a>
@@ -171,7 +173,7 @@ foreach ($sections as $i => $s) {
             </nav>
 
             <?php if (!empty($offers)): ?>
-                <article id="where-to-buy" class="scroll-mt-24">
+                <article id="where-to-buy" class="scroll-mt-32">
                     <header class="flex flex-wrap items-center gap-3 mb-5">
                         <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['where-to-buy'] ?></span>
                         <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">Where to buy</h2>
@@ -191,7 +193,7 @@ foreach ($sections as $i => $s) {
                 </article>
             <?php endif; ?>
 
-            <article id="about" class="scroll-mt-24">
+            <article id="about" class="scroll-mt-32">
                 <header class="flex items-center gap-3 mb-5">
                     <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['about'] ?></span>
                     <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">About this game</h2>
@@ -214,7 +216,7 @@ foreach ($sections as $i => $s) {
             </article>
 
             <?php if (!empty($dlcs)): ?>
-                <article id="dlc" class="scroll-mt-24">
+                <article id="dlc" class="scroll-mt-32">
                     <header class="flex items-center gap-3 mb-5">
                         <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['dlc'] ?></span>
                         <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">DLC &amp; add-ons</h2>
@@ -230,7 +232,7 @@ foreach ($sections as $i => $s) {
                 $achievementsUrl = Url::to(['/game/game/achievements', 'id' => $model->steam_appid, 'slug' => $model->slug]);
                 $previewAchievements = array_slice($model->achievements, 0, 6);
                 ?>
-                <article id="achievements" class="scroll-mt-24">
+                <article id="achievements" class="scroll-mt-32">
                     <header class="flex items-center gap-3 mb-5">
                         <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['achievements'] ?></span>
                         <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">Achievements</h2>
@@ -273,7 +275,7 @@ foreach ($sections as $i => $s) {
             <?php endif; ?>
 
             <?php if (!empty($screenshots)): ?>
-                <article id="gallery" data-gallery class="scroll-mt-24">
+                <article id="gallery" data-gallery class="scroll-mt-32">
                     <header class="flex items-center gap-3 mb-5">
                         <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['gallery'] ?></span>
                         <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">Gallery</h2>
@@ -305,7 +307,7 @@ foreach ($sections as $i => $s) {
             <?php endif; ?>
 
             <?php if (!empty($platforms)): ?>
-                <article id="requirements" data-requirements class="scroll-mt-24">
+                <article id="requirements" data-requirements class="scroll-mt-32">
                     <header class="flex items-center gap-3 mb-5">
                         <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['requirements'] ?></span>
                         <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">System requirements</h2>
@@ -350,7 +352,7 @@ foreach ($sections as $i => $s) {
                 </article>
             <?php endif; ?>
 
-            <article id="steam" class="scroll-mt-24">
+            <article id="steam" class="scroll-mt-32">
                 <header class="flex items-center gap-3 mb-5">
                     <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['steam'] ?></span>
                     <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">Get it on Steam</h2>

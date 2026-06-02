@@ -280,3 +280,19 @@
 .select2-container--default .select2-selection--multiple .select2-selection__choice__display{
     padding-left: 7px;
 }
+
+/* Pagination (common\widgets\Pager). The active/disabled classes land on the
+   <li>, so target the inner <a> and beat the Tailwind utilities on it. */
+.pager-active > a,
+.pager-active > a:hover {
+    background-color: var(--color-accent, #059669);
+    border-color: var(--color-accent, #059669);
+    color: #fff;
+}
+
+.pager-disabled > a,
+.pager-disabled > a:hover {
+    opacity: .45;
+    pointer-events: none;
+    background-color: transparent;
+}

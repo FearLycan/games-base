@@ -4,11 +4,14 @@ namespace frontend\modules\game\controllers;
 
 use common\components\AccessControl;
 use common\components\BotDetector;
+use common\components\steam\SteamAchievementSync;
 use common\models\Category;
 use common\models\GameImage;
 use common\models\GameSale;
 use common\models\Genre;
 use common\models\Tag;
+use common\models\UserAchievement;
+use common\models\UserGame;
 use frontend\components\Controller;
 use frontend\modules\game\models\Game;
 use frontend\modules\game\models\searches\GameSearch;
@@ -44,7 +47,7 @@ class GameController extends Controller
                         'actions' => [
                             'view', 'achievements', 'search-list', 'list', 'list-by-tag', 'sale', 'genres', 'tags', 'categories', 'index', 'details',
                         ],
-                        'roles'   => ['?'],
+                        'roles'   => ['?', '@'],
                     ],
                 ],
             ],
@@ -245,6 +248,24 @@ class GameController extends Controller
             }
         }
 
+        // The signed-in user's own progress, when they own this game. Map of
+        // api_name => unlocked_at lets the view mark each row earned/locked.
+        $userGame = null;
+        $userUnlocked = [];
+        if (!Yii::$app->user->isGuest) {
+            $userId = (int)Yii::$app->user->id;
+            $userGame = UserGame::findOne(['user_id' => $userId, 'game_id' => $model->id]);
+            if ($userGame !== null) {
+                $this->refreshUserAchievements($userGame);
+                $rows = UserAchievement::find()
+                    ->select(['api_name', 'unlocked_at'])
+                    ->where(['user_id' => $userId, 'game_id' => $model->id])
+                    ->asArray()
+                    ->all();
+                $userUnlocked = array_column($rows, 'unlocked_at', 'api_name');
+            }
+        }
+
         return $this->render('achievements', [
             'model'        => $model,
             'achievements' => $achievements,
@@ -254,7 +275,35 @@ class GameController extends Controller
             'rarest'       => $rarest,
             'hiddenCount'  => $hiddenCount,
             'tierCounts'   => $tierCounts,
+            'userGame'     => $userGame,
+            'userUnlocked' => $userUnlocked,
         ]);
+    }
+
+    /**
+     * On-demand achievement refresh for the page owner: at most once per 24h per
+     * game, and only for a public profile. This is the one place we may call
+     * Steam in the request cycle (a single GetPlayerAchievements call) — the bulk
+     * fill stays on the paced cron. Failures are swallowed so the page still loads.
+     */
+    private function refreshUserAchievements(UserGame $userGame): void
+    {
+        $user = Yii::$app->user->identity;
+        if (!$user->isSteamProfilePublic()) {
+            return;
+        }
+
+        $fresh = $userGame->ach_synced_at !== null
+            && strtotime($userGame->ach_synced_at) >= strtotime('-24 hours');
+        if ($fresh) {
+            return;
+        }
+
+        try {
+            (new SteamAchievementSync($user))->syncGame($userGame);
+        } catch (\Throwable) {
+            // keep whatever we had; the cron will catch up
+        }
     }
 
     /**

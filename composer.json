@@ -23,7 +23,8 @@
         "yiisoft/yii2-httpclient": "~2.0.15",
         "geoip2/geoip2": "~3.1",
         "twbs/bootstrap-icons": "^1.13",
-        "yiisoft/yii2-redis": "~2.0.18"
+        "yiisoft/yii2-redis": "~2.0.18",
+        "yiisoft/yii2-authclient": "~2.2"
     },
     "require-dev": {
         "yiisoft/yii2-debug": "~2.1.25",

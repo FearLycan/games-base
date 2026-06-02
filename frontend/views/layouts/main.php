@@ -184,6 +184,79 @@ if (!empty($this->params['breadcrumbs'])) {
                 <a href="<?= Url::to(['/games']) ?>" class="hover:text-fg transition">Games</a>
                 <a href="<?= Url::to(['/genres']) ?>" class="hover:text-fg transition">Genres</a>
                 <a href="<?= Url::to(['/tags']) ?>" class="hover:text-fg transition">Tags</a>
+                <?php if (Yii::$app->user->isGuest): ?>
+                    <a href="<?= Url::to(['/user/auth/login']) ?>" class="hover:text-fg transition">Login</a>
+                <?php else: ?>
+                    <?php $identity = Yii::$app->user->identity; ?>
+                    <div class="relative" data-user-menu>
+                        <button type="button"
+                                data-user-menu-button
+                                aria-haspopup="true"
+                                aria-expanded="false"
+                                class="flex h-9 items-center gap-2 rounded-full border border-line bg-surface/60 py-1 pl-1 pr-2.5 text-fg transition-colors hover:border-line-strong hover:bg-surface-2 cursor-pointer">
+                            <?php if ($identity->steam_avatar): ?>
+                                <img src="<?= Html::encode($identity->steam_avatar) ?>" alt="" width="28" height="28"
+                                     class="h-7 w-7 rounded-full object-cover outline outline-1 -outline-offset-1 outline-black/10">
+                            <?php else: ?>
+                                <span class="grid h-7 w-7 place-items-center rounded-full bg-fg text-canvas text-xs font-semibold"><?= Html::encode(mb_strtoupper(mb_substr($identity->username, 0, 1))) ?></span>
+                            <?php endif; ?>
+                            <span class="max-w-[9rem] truncate text-sm font-medium"><?= Html::encode($identity->username) ?></span>
+                            <svg data-user-menu-chevron class="h-4 w-4 shrink-0 text-fg-subtle transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="m6 9 6 6 6-6"></path>
+                            </svg>
+                        </button>
+
+                        <div data-user-menu-panel
+                             role="menu"
+                             aria-hidden="true"
+                             class="absolute right-0 mt-2 w-64 origin-top-right -translate-y-1 rounded-xl border border-line bg-canvas p-1.5 opacity-0 pointer-events-none shadow-[0_4px_6px_-2px_rgba(15,23,42,.08),0_14px_30px_-10px_rgba(15,23,42,.22)] transition duration-150 ease-out will-change-transform z-50">
+                            <div class="flex items-center gap-3 px-2.5 py-2">
+                                <?php if ($identity->steam_avatar): ?>
+                                    <img src="<?= Html::encode($identity->steam_avatar) ?>" alt="" width="36" height="36"
+                                         class="h-9 w-9 rounded-lg object-cover outline outline-1 -outline-offset-1 outline-black/10">
+                                <?php endif; ?>
+                                <div class="min-w-0">
+                                    <p class="truncate text-sm font-semibold text-fg"><?= Html::encode($identity->username) ?></p>
+                                    <?php if ($identity->steam_profile_url): ?>
+                                        <a href="<?= Html::encode($identity->steam_profile_url) ?>" target="_blank" rel="noopener noreferrer" class="text-xs text-fg-subtle hover:text-accent transition-colors">Steam profile ↗</a>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <div class="my-1 border-t border-line"></div>
+
+                            <a href="<?= Url::to(['/user/profile/index']) ?>" role="menuitem" class="flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg">
+                                <svg class="h-[18px] w-[18px] shrink-0 text-fg-subtle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M5.5 21a8.38 8.38 0 0 1 13 0"></path></svg>
+                                Profile
+                            </a>
+                            <a href="<?= Url::to(['/user/profile/library']) ?>" role="menuitem" class="flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg">
+                                <svg class="h-[18px] w-[18px] shrink-0 text-fg-subtle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
+                                Library
+                            </a>
+                            <a href="<?= Url::to(['/user/profile/wishlist']) ?>" role="menuitem" class="flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg">
+                                <svg class="h-[18px] w-[18px] shrink-0 text-fg-subtle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A3.5 3.5 0 0 0 12 6 3.5 3.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"></path></svg>
+                                Wishlist
+                            </a>
+                            <a href="<?= Url::to(['/user/profile/achievements']) ?>" role="menuitem" class="flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg">
+                                <svg class="h-[18px] w-[18px] shrink-0 text-fg-subtle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+                                Achievements
+                            </a>
+
+                            <div class="my-1 border-t border-line"></div>
+
+                            <a href="<?= Url::to(['/user/profile/settings']) ?>" role="menuitem" class="flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg">
+                                <svg class="h-[18px] w-[18px] shrink-0 text-fg-subtle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M6 21v-1a6 6 0 0 1 12 0v1"></path></svg>
+                                Account settings
+                            </a>
+                            <?= Html::beginForm(['/user/auth/logout'], 'post') ?>
+                                <button type="submit" role="menuitem" class="flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm text-fg-muted transition-colors hover:bg-red-50 hover:text-red-600">
+                                    <svg class="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path></svg>
+                                    Sign out
+                                </button>
+                            <?= Html::endForm() ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </nav>
 
             <button type="button"
@@ -213,6 +286,28 @@ if (!empty($this->params['breadcrumbs'])) {
                 <a href="<?= Url::to(['/games']) ?>" class="py-2.5 hover:text-fg transition">Games</a>
                 <a href="<?= Url::to(['/genres']) ?>" class="py-2.5 hover:text-fg transition">Genres</a>
                 <a href="<?= Url::to(['/tags']) ?>" class="py-2.5 hover:text-fg transition">Tags</a>
+                <?php if (Yii::$app->user->isGuest): ?>
+                    <a href="<?= Url::to(['/user/auth/login']) ?>" class="py-2.5 hover:text-fg transition">Login</a>
+                <?php else: ?>
+                    <?php $mIdentity = Yii::$app->user->identity; ?>
+                    <div class="mt-2 flex items-center gap-3 border-t border-line pt-3">
+                        <?php if ($mIdentity->steam_avatar): ?>
+                            <img src="<?= Html::encode($mIdentity->steam_avatar) ?>" alt="" width="32" height="32"
+                                 class="h-8 w-8 rounded-full object-cover outline outline-1 -outline-offset-1 outline-black/10">
+                        <?php else: ?>
+                            <span class="grid h-8 w-8 place-items-center rounded-full bg-fg text-canvas text-xs font-semibold"><?= Html::encode(mb_strtoupper(mb_substr($mIdentity->username, 0, 1))) ?></span>
+                        <?php endif; ?>
+                        <span class="truncate text-sm font-semibold text-fg"><?= Html::encode($mIdentity->username) ?></span>
+                    </div>
+                    <a href="<?= Url::to(['/user/profile/index']) ?>" class="py-2.5 hover:text-fg transition">Profile</a>
+                    <a href="<?= Url::to(['/user/profile/library']) ?>" class="py-2.5 hover:text-fg transition">Library</a>
+                    <a href="<?= Url::to(['/user/profile/wishlist']) ?>" class="py-2.5 hover:text-fg transition">Wishlist</a>
+                    <a href="<?= Url::to(['/user/profile/achievements']) ?>" class="py-2.5 hover:text-fg transition">Achievements</a>
+                    <a href="<?= Url::to(['/user/profile/settings']) ?>" class="py-2.5 hover:text-fg transition">Account settings</a>
+                    <?= Html::beginForm(['/user/auth/logout'], 'post', ['class' => 'py-2.5']) ?>
+                        <button type="submit" class="cursor-pointer text-left text-red-600 hover:text-red-700 transition">Sign out</button>
+                    <?= Html::endForm() ?>
+                <?php endif; ?>
             </div>
         </nav>
     </header>

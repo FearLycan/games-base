@@ -27,7 +27,7 @@ class PublisherController extends Controller
                     [
                         'allow'   => true,
                         'actions' => ['view', 'index'],
-                        'roles'   => ['?'],
+                        'roles'   => ['?', '@'],
                     ],
                 ],
             ],

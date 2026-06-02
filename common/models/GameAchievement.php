@@ -2,6 +2,7 @@
 
 namespace common\models;
 
+use common\enums\AchievementRarity;
 use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveQuery;
 use yii\db\ActiveRecord;
@@ -102,36 +103,26 @@ class GameAchievement extends ActiveRecord
         return rtrim(rtrim(number_format((float)$this->percent, 1), '0'), '.') . '%';
     }
 
+    /** Rarity tier derived from the global unlock rate (single source of truth). */
+    public function getRarity(): AchievementRarity
+    {
+        return AchievementRarity::fromPercent($this->percent !== null ? (float)$this->percent : null);
+    }
+
     /**
-     * Rarity bucket derived from the global unlock rate. Drives the colour of
-     * the rarity pill/bar on the achievements page. Falls back to 'common' when
-     * the rate is unknown so the UI always has a class to apply.
+     * Rarity bucket key derived from the global unlock rate. Drives the colour of
+     * the rarity pill/bar on the achievements page.
      *
      * @return 'ultra'|'rare'|'uncommon'|'common'
      */
     public function getRarityTier(): string
     {
-        $percent = $this->percent;
-        if ($percent === null) {
-            return 'common';
-        }
-
-        return match (true) {
-            $percent < 5  => 'ultra',
-            $percent < 20 => 'rare',
-            $percent < 50 => 'uncommon',
-            default       => 'common',
-        };
+        return $this->getRarity()->value;
     }
 
     /** Human label for the rarity tier, e.g. "Ultra rare". */
     public function getRarityLabel(): string
     {
-        return [
-            'ultra'    => 'Ultra rare',
-            'rare'     => 'Rare',
-            'uncommon' => 'Uncommon',
-            'common'   => 'Common',
-        ][$this->getRarityTier()];
+        return $this->getRarity()->label();
     }
 }

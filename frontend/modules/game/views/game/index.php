@@ -279,18 +279,7 @@ $chipGroup = function (string $name, array $options, $currentValue, ?string $any
             'summary'      => false,
             'layout'       => "<div class=\"grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-7\">{items}</div>\n{pager}",
             'itemOptions'  => ['tag' => 'div'],
-            'pager'        => [
-                'options'              => ['class' => 'mt-12 flex flex-wrap items-center justify-center gap-1.5 list-none p-0'],
-                'linkContainerOptions' => ['class' => 'pager-item'],
-                'linkOptions'          => ['class' => 'inline-flex items-center justify-center min-w-10 h-10 px-3.5 rounded-lg border border-line text-sm font-medium text-fg-muted hover:bg-surface hover:border-line-strong transition'],
-                'activePageCssClass'   => 'pager-active',
-                'disabledPageCssClass' => 'pager-disabled',
-                'firstPageLabel'       => false,
-                'lastPageLabel'        => false,
-                'prevPageLabel'        => '<i class="fa-solid fa-angle-left"></i>',
-                'nextPageLabel'        => '<i class="fa-solid fa-angle-right"></i>',
-                'maxButtonCount'       => 7,
-            ],
+            'pager'        => ['class' => \common\widgets\Pager::class],
         ]) ?>
     </div>
 <?php endif; ?>

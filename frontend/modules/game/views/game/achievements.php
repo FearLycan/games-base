@@ -15,6 +15,8 @@ use yii\web\View;
 /* @var $rarest GameAchievement|null */
 /* @var $hiddenCount int */
 /* @var $tierCounts array{ultra:int,rare:int,uncommon:int,common:int} */
+/* @var $userGame common\models\UserGame|null */
+/* @var $userUnlocked array<string,string|null> api_name => unlocked_at, for the signed-in owner */
 
 $this->title = $model->title . ' Achievements - ' . Yii::$app->params['meta-title'];
 $this->params['description'] = sprintf(
@@ -30,6 +32,19 @@ $this->params['breadcrumbs'][] = 'Achievements';
 $this->registerCssFile('@web/css/achievements.css');
 
 $total = (int)$model->achievements_total;
+$ownsGame = $userGame !== null;
+$userPercent = $ownsGame ? $userGame->getCompletionPercent() : null;
+
+// Earned/locked counts among the listed achievements, for the owner's filter chips.
+$earnedShownCount = 0;
+if ($ownsGame) {
+    foreach ($achievements as $a) {
+        if ($a->api_name !== null && array_key_exists($a->api_name, $userUnlocked)) {
+            $earnedShownCount++;
+        }
+    }
+}
+$lockedShownCount = max(0, $shown - $earnedShownCount);
 ?>
 
 <section class="ach-hero relative left-1/2 w-screen -ml-[50vw] mb-10 sm:mb-12"
@@ -77,6 +92,27 @@ $total = (int)$model->achievements_total;
     </div>
 </section>
 
+<?php if ($ownsGame && $userPercent !== null): ?>
+    <?php $perfect = $userGame->isPerfect(); ?>
+    <section class="mb-10">
+        <div class="ach-progress<?= $perfect ? ' is-perfect' : '' ?>">
+            <div class="ach-progress-head">
+                <span class="ach-progress-title">
+                    <i class="fa-solid fa-<?= $perfect ? 'trophy' : 'circle-check' ?>" aria-hidden="true"></i>
+                    <?= $perfect ? 'Completed 100%' : 'Your progress' ?>
+                </span>
+                <span class="ach-progress-count">
+                    <strong><?= number_format((int)$userGame->ach_unlocked) ?></strong> / <?= number_format((int)$userGame->ach_total) ?>
+                    <span class="ach-progress-pct"><?= $userPercent ?>%</span>
+                </span>
+            </div>
+            <div class="ach-progress-bar">
+                <span style="width:<?= $userPercent ?>%"></span>
+            </div>
+        </div>
+    </section>
+<?php endif; ?>
+
 <?php if (!empty($achievements)): ?>
     <section class="mb-12">
         <header class="flex flex-wrap items-center gap-3 mb-5">
@@ -86,6 +122,23 @@ $total = (int)$model->achievements_total;
             <span class="hidden sm:block h-px flex-1 bg-line"></span>
             <span class="font-mono text-[11px] text-fg-subtle"><?= number_format($shown) ?> shown</span>
         </header>
+
+        <?php if ($ownsGame): ?>
+            <div class="ach-owned" role="group" aria-label="Filter by your progress">
+                <span class="ach-owned-label">Show</span>
+                <button type="button" class="ach-filter-chip" data-ach-owned="all" data-active="true">
+                    All <span class="ach-filter-count"><?= number_format($shown) ?></span>
+                </button>
+                <button type="button" class="ach-filter-chip" data-ach-owned="earned" data-active="false">
+                    <i class="fa-solid fa-check text-[9px]" aria-hidden="true"></i>
+                    Unlocked <span class="ach-filter-count"><?= number_format($earnedShownCount) ?></span>
+                </button>
+                <button type="button" class="ach-filter-chip" data-ach-owned="locked" data-active="false">
+                    <i class="fa-solid fa-lock text-[9px]" aria-hidden="true"></i>
+                    Missing <span class="ach-filter-count"><?= number_format($lockedShownCount) ?></span>
+                </button>
+            </div>
+        <?php endif; ?>
 
         <?php if ($rarest !== null): ?>
             <?php
@@ -99,7 +152,7 @@ $total = (int)$model->achievements_total;
             <div class="ach-toolbar mb-6">
                 <div class="ach-filter" role="group" aria-label="Filter by rarity">
                     <button type="button" class="ach-filter-chip" data-ach-filter="all" data-active="true">
-                        All <span class="ach-filter-count"><?= number_format($shown) ?></span>
+                        All rarities <span class="ach-filter-count"><?= number_format($shown) ?></span>
                     </button>
                     <?php foreach ($tierMeta as $key => $label): ?>
                         <?php if (($tierCounts[$key] ?? 0) > 0): ?>
@@ -138,11 +191,15 @@ $total = (int)$model->achievements_total;
                 $percent = $achievement->percent !== null ? (float)$achievement->percent : null;
                 $isHidden = (bool)$achievement->hidden;
                 $desc = $achievement->description;
+                $earned = $ownsGame && $achievement->api_name !== null && array_key_exists($achievement->api_name, $userUnlocked);
+                $earnedAt = $earned ? $userUnlocked[$achievement->api_name] : null;
+                $ownClass = $ownsGame ? ($earned ? ' is-earned' : ' is-unearned') : '';
                 ?>
-                <article class="ach-card ach-tier-<?= $tier ?>"
+                <article class="ach-card ach-tier-<?= $tier ?><?= $ownClass ?>"
                          style="--i: <?= $i ?>"
                          data-percent="<?= $percent !== null ? $percent : '' ?>"
                          data-tier="<?= $percent !== null ? $tier : '' ?>"
+                         data-earned="<?= $ownsGame ? ($earned ? '1' : '0') : '' ?>"
                          data-name="<?= Html::encode(mb_strtolower($achievement->name)) ?>"><?php /* sortable + filterable + searchable */ ?>
                     <div class="ach-card-icon">
                         <?php if ($achievement->icon): ?>
@@ -157,7 +214,16 @@ $total = (int)$model->achievements_total;
                     <div class="ach-card-body">
                         <div class="ach-card-head">
                             <h3 class="ach-card-name"><?= Html::encode($achievement->name) ?></h3>
-                            <?php if ($isHidden): ?>
+                            <?php if ($ownsGame && $earned): ?>
+                                <span class="ach-earned-badge" title="<?= $earnedAt ? 'Unlocked ' . Html::encode(Yii::$app->formatter->asDate($earnedAt, 'long')) : 'Unlocked' ?>">
+                                    <i class="fa-solid fa-check text-[9px]" aria-hidden="true"></i>
+                                    <?= $earnedAt ? Html::encode(Yii::$app->formatter->asDate($earnedAt, 'medium')) : 'Unlocked' ?>
+                                </span>
+                            <?php elseif ($ownsGame): ?>
+                                <span class="ach-unearned-badge" title="Not unlocked yet">
+                                    <i class="fa-solid fa-lock text-[9px]" aria-hidden="true"></i> Locked
+                                </span>
+                            <?php elseif ($isHidden): ?>
                                 <span class="ach-hidden-badge" title="Hidden achievement">
                                     <i class="fa-solid fa-eye-slash text-[9px]" aria-hidden="true"></i> Hidden
                                 </span>
@@ -246,6 +312,7 @@ $js = <<<JS
 
     var sortButtons = document.querySelectorAll('[data-ach-sort]');
     var filterButtons = document.querySelectorAll('[data-ach-filter]');
+    var ownedButtons = document.querySelectorAll('[data-ach-owned]');
     var search = document.querySelector('[data-ach-search]');
     var empty = grid.querySelector('[data-ach-empty]');
 
@@ -254,7 +321,7 @@ $js = <<<JS
     var cards = Array.prototype.slice.call(grid.querySelectorAll('.ach-card:not(.ach-card-locked)'));
     var locked = Array.prototype.slice.call(grid.querySelectorAll('.ach-card-locked'));
 
-    var state = { sort: 'common', filter: 'all', query: '' };
+    var state = { sort: 'common', filter: 'all', owned: 'all', query: '' };
 
     function value(card) {
         var raw = card.getAttribute('data-percent');
@@ -276,7 +343,9 @@ $js = <<<JS
         ordered.forEach(function (card) {
             var tierOk = state.filter === 'all' || card.getAttribute('data-tier') === state.filter;
             var queryOk = state.query === '' || (card.getAttribute('data-name') || '').indexOf(state.query) !== -1;
-            var match = tierOk && queryOk;
+            var ownedOk = state.owned === 'all'
+                || card.getAttribute('data-earned') === (state.owned === 'earned' ? '1' : '0');
+            var match = tierOk && queryOk && ownedOk;
             card.hidden = !match;
             if (match) visible++;
             // appendChild moves the existing node, so this reorders in place.
@@ -285,7 +354,7 @@ $js = <<<JS
 
         // Ghosts only make sense in the unfiltered, unsearched default view.
         locked.forEach(function (card) {
-            card.hidden = state.filter !== 'all' || state.query !== '';
+            card.hidden = state.filter !== 'all' || state.query !== '' || state.owned !== 'all';
             grid.appendChild(card);
         });
 
@@ -310,6 +379,7 @@ $js = <<<JS
 
     wire(sortButtons, 'sort', 'data-ach-sort');
     wire(filterButtons, 'filter', 'data-ach-filter');
+    wire(ownedButtons, 'owned', 'data-ach-owned');
 
     if (search) {
         search.addEventListener('input', function () {

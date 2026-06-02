@@ -27,7 +27,7 @@ class CompanyController extends Controller
                     [
                         'allow'   => true,
                         'actions' => ['view'],
-                        'roles'   => ['?'],
+                        'roles'   => ['?', '@'],
                     ],
                 ],
             ],

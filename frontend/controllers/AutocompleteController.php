@@ -3,10 +3,12 @@
 namespace frontend\controllers;
 
 use common\components\AccessControl;
+use common\components\CurrencyResolver;
 use common\models\Category;
 use common\models\Developer;
 use common\models\Game;
 use common\models\GameImage;
+use common\models\GameOffer;
 use common\models\Genre;
 use common\models\Publisher;
 use common\models\Tag;
@@ -109,7 +111,8 @@ class AutocompleteController extends Controller
             ];
         }
 
-        $cacheKey = 'autocomplete:' . md5(mb_strtolower($query));
+        // Prices are currency-specific, so vary the cache by the visitor's currency.
+        $cacheKey = 'autocomplete:' . CurrencyResolver::forVisitor() . ':' . md5(mb_strtolower($query));
 
         return $this->cache->getOrSet($cacheKey, function () use ($query) {
             $games = $this->searchGames($query);
@@ -259,50 +262,42 @@ class AutocompleteController extends Controller
 
     private function searchGames(string $query): array
     {
-        $rows = Game::find()
-            ->select([
-                'game.id',
-                'game.steam_appid',
-                'game.title',
-                'game.slug',
-                'game.release_date',
-                'header_url' => GameImage::find()
-                    ->select('url')
-                    ->where("game_id = game.id AND type = 'header' AND status = " . GameImage::STATUS_ACTIVE)
-                    ->limit(1),
-            ])
+        $currency = CurrencyResolver::forVisitor();
+
+        $games = Game::find()
             ->alias('game')
             ->onlyWithTitle($query)
             ->andWhere(['game.status' => Game::STATUS_ACTIVE])
             ->andWhere(['game.type' => Game::TYPE_GAME])
             ->joinWith(['review'], false)
+            // Offers for the displayed price; matches the cards' pricing.
+            ->with(['gameOffers' => fn($q) => $q->andWhere(['game_offer.status' => GameOffer::STATUS_ACTIVE])->with(['store', 'prices'])])
             ->orderBy(['review.total_reviews' => SORT_DESC, 'game.title' => SORT_ASC, 'game.release_date' => SORT_DESC])
             ->limit(self::LIMIT_GAMES)
-            ->asArray()
             ->all();
 
-        return array_map(function ($row) {
+        return array_map(function (Game $game) use ($currency): array {
             $year = '';
-            if (!empty($row['release_date'])) {
-                $ts = strtotime($row['release_date']);
+            if (!empty($game->release_date)) {
+                $ts = strtotime($game->release_date);
                 if ($ts) {
                     $year = date('Y', $ts);
                 }
             }
 
+            $price = $game->getDisplayPrice($currency);
+
             return [
-                'title'       => $row['title'],
-                'subtitle'    => $year ?: 'Steam',
-                'image'       => $row['header_url'] ?? null,
-                'url'         => Url::to([
-                    '/game/game/view',
-                    'id'   => $row['steam_appid'],
-                    'slug' => $row['slug'],
-                ]),
-                'badge'       => $year,
-                'steam_appid' => (int)$row['steam_appid'],
+                'title'          => $game->title,
+                'subtitle'       => $year ?: 'Steam',
+                'image'          => $game->getHeader(),
+                'url'            => Url::to(['/game/game/view', 'id' => $game->steam_appid, 'slug' => $game->slug]),
+                'price'          => $price?->final,
+                'price_original' => $price && $price->isDiscounted() ? $price->initial : null,
+                'discount'       => $price->discount ?? 0,
+                'steam_appid'    => (int)$game->steam_appid,
             ];
-        }, $rows);
+        }, $games);
     }
 
     /**
