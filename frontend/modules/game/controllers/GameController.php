@@ -4,6 +4,7 @@ namespace frontend\modules\game\controllers;
 
 use common\components\AccessControl;
 use common\components\BotDetector;
+use common\components\CurrencyResolver;
 use common\components\steam\SteamAchievementSync;
 use common\models\Category;
 use common\models\GameImage;
@@ -57,6 +58,10 @@ class GameController extends Controller
                 'duration'   => YII_DEBUG ? 1 : 3600,
                 'variations' => [
                     Yii::$app->controller->action->id . Yii::$app->request->get('id'),
+                    // Prices are rendered in the visitor's currency (cookie/GeoIP),
+                    // so the cached page must vary by it — otherwise switching the
+                    // currency reloads but keeps the previously cached one.
+                    CurrencyResolver::forVisitor(),
                 ],
                 // Drop the cached page as soon as the game is (re-)synced. A sync
                 // rewrites synchronized_at, so this dependency's value changes and
