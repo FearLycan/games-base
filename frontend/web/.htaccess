@@ -1,4 +1,29 @@
 RewriteEngine On
+
+# Standard Yii2 pretty-URL front controller: route everything that is not a
+# real file/directory through index.php. The route is read from PATH_INFO by
+# the UrlManager (enablePrettyUrl), so there is no need to pass ?r=.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)\?*$ index.php?r=$1 [L,QSA]
+RewriteRule . index.php [L]
+
+# Disable directory listing
+Options -Indexes
+
+# Block WordPress probing anywhere in the path (e.g. /cms/wp-includes, /a/b/wp-login.php)
+RedirectMatch 403 (?i)(^|/)wordpress(/|$)
+RedirectMatch 403 (?i)(^|/)wp-
+RedirectMatch 403 (?i)(^|/)xmlrpc\.php$
+
+# Block sensitive files: VCS, IDE, config dotfiles
+# (.well-known is intentionally NOT blocked so ACME/Let's Encrypt keeps working)
+RedirectMatch 403 (?i)(^|/)\.(env|git|svn|hg|idea|vscode|ht)
+
+# Block backups, dumps, sources, archives, logs.
+# NOTE: do NOT block `gz` — the sitemap sub-files are real `.xml.gz` files under
+# /sitemap/ (see console SitemapController) and must stay publicly fetchable.
+RedirectMatch 403 (?i)\.(bak|backup|old|orig|save|swp|sql|tar|tgz|zip|rar|7z|log|ini|sh|yml|yaml|dist|inc|phps|lock)$
+RedirectMatch 403 (?i)(composer|package)\.(json|lock)$
+
+# Block DB/admin tool probing anywhere in the path (e.g. /cms/phpmyadmin)
+RedirectMatch 403 (?i)(^|/)(phpmyadmin|pma|myadmin|dbadmin|adminer|mysql|sqladmin)
