@@ -679,6 +679,26 @@
     gap: 6px;
 }
 
+/* On phones the jump links would otherwise stack into several rows; switch to
+ * a single horizontally-scrollable row with the scrollbar hidden. */
+@media (max-width: 640px) {
+    .section-nav {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .section-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .section-nav-link {
+        scroll-snap-align: start;
+    }
+}
+
 .section-nav-link {
     display: inline-flex;
     flex: none;
@@ -798,6 +818,10 @@
 .dlc-row {
     animation: offer-rise 460ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
     animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+.dlc-row[hidden] {
+    display: none;
 }
 
 .dlc-row-link {

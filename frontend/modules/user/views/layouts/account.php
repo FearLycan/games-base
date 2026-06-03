@@ -35,7 +35,7 @@ $cooldown = $identity->getSyncCooldownLabel();
 ?>
 <div>
     <div class="mb-8 flex items-end justify-between gap-4 border-b border-line fade-up" style="animation-delay:.04s;">
-        <nav class="flex gap-1 overflow-x-auto -mx-1 px-1" aria-label="Account sections" style="overflow: hidden;">
+        <nav class="account-tabs flex gap-1 overflow-x-auto -mx-1 px-1" aria-label="Account sections">
             <?php foreach ($tabs as $tab): ?>
                 <?php $isActive = $tab['key'] === $active; ?>
                 <a href="<?= Url::to($tab['url']) ?>"

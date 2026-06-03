@@ -240,7 +240,7 @@ foreach ($sections as $i => $s) {
                     </header>
 
                     <a href="<?= Html::encode($achievementsUrl) ?>"
-                       class="group flex items-center gap-4 rounded-2xl border border-line bg-surface/40 p-4 sm:p-5 hover:border-line-strong hover:bg-surface transition">
+                       class="group flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-2xl border border-line bg-surface/40 p-4 sm:p-5 hover:border-line-strong hover:bg-surface transition">
                         <?php if (!empty($previewAchievements)): ?>
                             <div class="flex -space-x-3 shrink-0">
                                 <?php foreach ($previewAchievements as $achievement): ?>
@@ -480,6 +480,21 @@ $js = <<<JS
                     p.setAttribute('data-active', p.getAttribute('data-requirements-panel') === target ? 'true' : 'false');
                 });
             });
+        });
+    }
+
+    // DLC list: show more / less (collapsed to first 3 rows)
+    var dlcToggle = document.querySelector('[data-dlc-toggle]');
+    if (dlcToggle) {
+        var dlcHidden = document.querySelectorAll('[data-dlc-hidden]');
+        var dlcIcon = dlcToggle.querySelector('[data-dlc-icon]');
+        dlcToggle.addEventListener('click', function () {
+            var expanded = dlcToggle.getAttribute('data-expanded') === 'true';
+            dlcHidden.forEach(function (row) { row.hidden = expanded; });
+            dlcToggle.setAttribute('data-expanded', expanded ? 'false' : 'true');
+            dlcToggle.querySelector('[data-dlc-more]').hidden = !expanded;
+            dlcToggle.querySelector('[data-dlc-less]').hidden = expanded;
+            if (dlcIcon) dlcIcon.style.transform = expanded ? '' : 'rotate(180deg)';
         });
     }
 

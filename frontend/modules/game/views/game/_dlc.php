@@ -14,7 +14,7 @@ use yii\helpers\Url;
         $price = $dlc->getDisplayPrice();
         $year = $dlc->release_date ? date('Y', strtotime($dlc->release_date)) : null;
         ?>
-        <li class="dlc-row" style="--i: <?= $i ?>">
+        <li class="dlc-row" style="--i: <?= $i ?>" <?= $i >= 3 ? 'data-dlc-hidden hidden' : '' ?>>
             <a href="<?= Url::to(['/game/game/view', 'id' => $dlc->steam_appid, 'slug' => $dlc->slug]) ?>"
                class="dlc-row-link">
                 <span class="dlc-thumb">
@@ -45,3 +45,14 @@ use yii\helpers\Url;
         </li>
     <?php endforeach; ?>
 </ul>
+
+<?php if (count($dlcs) > 3): ?>
+    <button type="button"
+            data-dlc-toggle
+            data-expanded="false"
+            class="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline">
+        <span data-dlc-more>Show all <?= count($dlcs) ?></span>
+        <span data-dlc-less hidden>Show less</span>
+        <span aria-hidden="true" class="transition-transform" data-dlc-icon>↓</span>
+    </button>
+<?php endif; ?>

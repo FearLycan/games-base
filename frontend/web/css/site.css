@@ -296,3 +296,17 @@
     pointer-events: none;
     background-color: transparent;
 }
+
+/* ----------------------------------------------------------------------
+ * Account tabs (frontend/modules/user/views/layouts/account.php).
+ * Horizontal scroll on narrow screens so tabs never wrap/stack; the
+ * scrollbar itself is hidden to keep the underline rail clean.
+ * --------------------------------------------------------------------*/
+.account-tabs {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.account-tabs::-webkit-scrollbar {
+    display: none;
+}
