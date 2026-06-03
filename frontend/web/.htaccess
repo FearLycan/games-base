@@ -1,3 +1,5 @@
+AddType application/x-httpd-php83 .php
+
 RewriteEngine On
 
 # Standard Yii2 pretty-URL front controller: route everything that is not a
