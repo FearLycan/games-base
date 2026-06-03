@@ -48,4 +48,23 @@ return [
         'proxy_auth'      => '',
         'timeout'         => 20,
     ],
+
+    // GameSeal integration. GameSeal runs on Shopware 6 behind Cloudflare and
+    // its Store API is disabled, so there is no JSON search endpoint — we scrape
+    // the storefront's AJAX `suggest` dropdown. Prices render in EUR on the
+    // default (prefix-less) storefront; we convert to the other currencies with
+    // ECB reference rates. Set `affiliate_query` (e.g. 'ref=yourid') in
+    // params-local.php to monetize outbound links. If the server's datacenter IP
+    // gets a Cloudflare challenge, set a residential `proxy` (see `gameseal`
+    // notes mirror the Gamivo ones). See common\components\GameSeal\GsClient.
+    'gameseal' => [
+        'home_url'        => 'https://gameseal.com/',
+        'suggest_url'     => 'https://gameseal.com/suggest',
+        'rates_url'       => 'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml',
+        'currencies'      => ['EUR', 'USD', 'PLN'],
+        'affiliate_query' => '',
+        'proxy'           => '',
+        'proxy_auth'      => '',
+        'timeout'         => 20,
+    ],
 ];
