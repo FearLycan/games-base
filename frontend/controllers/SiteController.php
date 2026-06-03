@@ -2,6 +2,7 @@
 
 namespace frontend\controllers;
 
+use common\components\NotFoundLogger;
 use common\models\Genre;
 use common\models\Tag;
 use frontend\models\ContactForm;
@@ -28,6 +29,9 @@ class SiteController extends Controller
         }
 
         Yii::$app->response->setStatusCodeByException($exception);
+
+        // Capture referrer + request context so broken inbound links can be traced.
+        NotFoundLogger::log($exception);
 
         $name = method_exists($exception, 'getName') ? $exception->getName() : 'Error';
         $message = $exception->getMessage();

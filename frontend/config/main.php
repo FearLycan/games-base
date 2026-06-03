@@ -53,6 +53,18 @@ return [
                 [
                     'class'  => FileTarget::class,
                     'levels' => ['error', 'warning'],
+                    // 404 context is logged at info level under its own category;
+                    // keep it out of the main error log to avoid duplication/noise.
+                    'except' => [\common\components\NotFoundLogger::CATEGORY . '*'],
+                ],
+                [
+                    // Dedicated 404/4xx tracing — referrer + request context.
+                    'class'      => FileTarget::class,
+                    'levels'     => ['info'],
+                    // Wildcard captures both human (`notfound`) and bot (`notfound.bot`).
+                    'categories' => [\common\components\NotFoundLogger::CATEGORY . '*'],
+                    'logFile'    => '@runtime/logs/notfound.log',
+                    'logVars'    => [], // we capture exactly the fields we need
                 ],
             ],
         ],
