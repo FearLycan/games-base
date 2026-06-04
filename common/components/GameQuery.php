@@ -3,6 +3,8 @@
 namespace common\components;
 
 use common\models\Game;
+use common\models\GameOffer;
+use common\models\GameStoreScan;
 use yii\db\ActiveQuery;
 
 /**
@@ -55,6 +57,39 @@ class GameQuery extends ActiveQuery
     public function active(string $alias = 'game'): GameQuery
     {
         return $this->andWhere([$alias . '.status' => Game::STATUS_ACTIVE]);
+    }
+
+    /**
+     * Scope — games eligible for a keyshop match attempt on $storeId.
+     *
+     * Narrows the 200k-row catalogue to titles a keyshop could plausibly carry
+     * and that we haven't settled yet: active, real games (not DLC/tools/demos),
+     * non-free, actually priced on Steam, without an offer on this store, and —
+     * unless $ignoreCooldown — past their miss-backoff window
+     * (see {@see GameStoreScan::record()}). The priced filter is the big cut:
+     * free/unpriced Steam apps are never sold on keyshops, so re-searching them
+     * every cooldown is wasted traffic. Newest games first.
+     */
+    public function keyshopMatchCandidates(int $storeId, bool $ignoreCooldown = false): GameQuery
+    {
+        $alreadyOffered = GameOffer::find()
+            ->select('game_id')
+            ->where(['store_id' => $storeId]);
+
+        $this->andWhere(['status' => Game::STATUS_ACTIVE, 'type' => Game::TYPE_GAME])
+            ->andWhere(['or', ['is_free' => 0], ['is_free' => null]])
+            ->andWhere(['>', 'steam_price_final', 0])
+            ->andWhere(['not in', 'id', $alreadyOffered]);
+
+        if (!$ignoreCooldown) {
+            $coolingDown = GameStoreScan::find()
+                ->select('game_id')
+                ->where(['store_id' => $storeId])
+                ->andWhere(['>', 'next_check_at', date('Y-m-d H:i:s')]);
+            $this->andWhere(['not in', 'id', $coolingDown]);
+        }
+
+        return $this->orderBy(['id' => SORT_DESC]);
     }
 
     /**

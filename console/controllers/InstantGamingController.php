@@ -36,9 +36,6 @@ class InstantGamingController extends Controller
     private const int DELAY_MIN = 3;
     private const int DELAY_MAX = 7;
 
-    /** How long before a previously-scanned game is eligible for matching again. */
-    private const int REMATCH_COOLDOWN_DAYS = 90;
-
     public bool $verbose = false;
 
     /** Ignore the cooldown and re-scan games checked recently (incl. past misses). */
@@ -72,26 +69,9 @@ class InstantGamingController extends Controller
         $rates = $client->fetchRates();
         $currencies = $this->currencies();
 
-        // Games we don't have an IG offer for yet.
-        $existing = GameOffer::find()->select('game_id')->where(['store_id' => $store->id]);
-        $query = Game::find()
-            ->where(['status' => Game::STATUS_ACTIVE, 'type' => Game::TYPE_GAME])
-            // Skip free-to-play games entirely — they aren't sold on stores.
-            ->andWhere(['or', ['is_free' => 0], ['is_free' => null]])
-            ->andWhere(['not in', 'id', $existing])
-            ->orderBy(['id' => SORT_DESC]);
-
-        // Skip games already checked within the cooldown so misses aren't
-        // re-queried every run (--recheck forces a full re-scan).
-        if (!$this->recheck) {
-            $cutoff = (new \DateTime('-' . self::REMATCH_COOLDOWN_DAYS . ' days'))->format('Y-m-d H:i:s');
-            $recentlyScanned = GameStoreScan::find()
-                ->select('game_id')
-                ->where(['store_id' => $store->id])
-                ->andWhere(['>=', 'checked_at', $cutoff]);
-            $query->andWhere(['not in', 'id', $recentlyScanned]);
-        }
-
+        // Priced, real games without an IG offer that aren't still serving a
+        // miss-backoff (--recheck ignores the backoff and re-scans everything).
+        $query = Game::find()->keyshopMatchCandidates($store->id, $this->recheck);
         if ($limit > 0) {
             $query->limit($limit);
         }
@@ -113,14 +93,10 @@ class InstantGamingController extends Controller
                 continue;
             }
 
+            // A match (confident or review) lives in game_offer; no scan row —
+            // game_offer already excludes it from the candidate set above.
             $confident = $result['confidence'] === IgMatcher::CONFIDENCE_HIGH;
-            if ($this->saveOffer($store, $game, $result['hit'], $client, $rates, $currencies, $confident)) {
-                GameStoreScan::record(
-                    $game->id,
-                    $store->id,
-                    $confident ? GameStoreScan::RESULT_MATCHED : GameStoreScan::RESULT_REVIEW
-                );
-            }
+            $this->saveOffer($store, $game, $result['hit'], $client, $rates, $currencies, $confident);
 
             if ($confident) {
                 $matched++;
