@@ -116,9 +116,13 @@ class SitemapController extends Controller
 
     private function iterateGameEntries(string $baseUrl): Generator
     {
+        // Adult (18+) games are hidden from guests on the public frontend, so they
+        // must not appear in the sitemap — exclude them directly on the is_adult flag
+        // (the AdultContent helper always reads "show" in the console context).
         $query = Game::find()
             ->select(['steam_appid', 'slug', 'updated_at', 'synchronized_at', 'created_at', 'achievements_total'])
             ->where(['status' => Game::STATUS_ACTIVE, 'type' => Game::TYPE_GAME])
+            ->andWhere(['is_adult' => 0])
             ->andWhere(['not', ['slug' => null]])
             ->andWhere(['<>', 'slug', ''])
             ->andWhere(['not', ['steam_appid' => null]])
@@ -286,7 +290,7 @@ class SitemapController extends Controller
                     ->from($pivotTable . ' pv')
                     ->innerJoin('{{%game}} g', 'g.id = pv.game_id')
                     ->where('pv.' . $foreignKey . ' = c.id')
-                    ->andWhere(['g.status' => Game::STATUS_ACTIVE, 'g.type' => Game::TYPE_GAME]),
+                    ->andWhere(['g.status' => Game::STATUS_ACTIVE, 'g.type' => Game::TYPE_GAME, 'g.is_adult' => 0]),
             ])
             ->asArray()
             ->all();

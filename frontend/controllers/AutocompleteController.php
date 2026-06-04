@@ -275,7 +275,9 @@ class AutocompleteController extends Controller
             ->joinWith(['review'], false)
             // Offers for the displayed price; matches the cards' pricing.
             ->with(['gameOffers' => fn($q) => $q->andWhere(['game_offer.status' => GameOffer::STATUS_ACTIVE])->with(['store', 'prices'])])
-            ->orderBy(['review.total_reviews' => SORT_DESC, 'game.title' => SORT_ASC, 'game.release_date' => SORT_DESC])
+            // addOrderBy: onlyWithTitle() already set the relevance order; these
+            // are tie-breakers, so they must come after it, not replace it.
+            ->addOrderBy(['review.total_reviews' => SORT_DESC, 'game.title' => SORT_ASC, 'game.release_date' => SORT_DESC])
             ->limit(self::LIMIT_GAMES)
             ->all();
 

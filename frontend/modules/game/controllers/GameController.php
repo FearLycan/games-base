@@ -494,7 +494,8 @@ class GameController extends Controller
             ->andWhere(['status' => Game::STATUS_ACTIVE])
             ->hideAdultCatalog('game')
             ->joinWith(['review'])
-            ->orderBy(['review.total_reviews' => SORT_DESC, 'game.title' => SORT_ASC])
+            // addOrderBy: onlyWithTitle() sets the relevance order first; this is the tie-breaker.
+            ->addOrderBy(['review.total_reviews' => SORT_DESC, 'game.title' => SORT_ASC])
             ->limit(10)
             ->asArray()
             ->all();
