@@ -190,6 +190,11 @@ foreach ($sections as $i => $s) {
                     </header>
 
                     <?= $this->render('_offers', ['offers' => $offers, 'bestOffer' => $bestOffer, 'offerCurrency' => $offerCurrency]) ?>
+
+                    <?php $priceSeries = $model->getPriceSeries($offerCurrency); ?>
+                    <?php if (count($priceSeries) >= 2): ?>
+                        <?= $this->render('_price-history', ['series' => $priceSeries, 'currency' => $offerCurrency]) ?>
+                    <?php endif; ?>
                 </article>
             <?php endif; ?>
 

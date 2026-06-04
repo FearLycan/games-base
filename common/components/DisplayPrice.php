@@ -25,6 +25,14 @@ final readonly class DisplayPrice
         public int $discount,
         public bool $free,
         public string $source,
+        /** Name of the store this price comes from (e.g. "Steam", "Gamivo"), or null. */
+        public ?string $store = null,
+        /** Slug of that store, for logos/links, or null. */
+        public ?string $storeSlug = null,
+        /** Whether that store is a first-party storefront rather than a keyshop. */
+        public bool $storeOfficial = false,
+        /** Whether this is the lowest price ever recorded for the game (and it was once higher). */
+        public bool $historicalLow = false,
     ) {
     }
 

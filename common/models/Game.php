@@ -322,20 +322,377 @@ class Game extends ActiveRecord
     /**
      * @return Game[]
      */
-    public static function getSales(int $type, int $limit = 30): array
+    public static function getSales(int $type, int $limit = 30, bool $excludeFree = false): array
     {
-        $key = ['game.sales', $type, $limit];
+        $key = ['game.sales', $type, $limit, $excludeFree];
 
-        return Yii::$app->cache->getOrSet($key, static fn(): array => self::find()
-            ->joinWith(['gameSales'])
-            ->where([
-                'game_sale.type' => $type,
-                'game.status'    => self::STATUS_ACTIVE,
-                'game.type'      => self::TYPE_GAME,
-            ])
-            // Eager-load the data the cards render (genre + cheapest offer with
-            // prices/store) so the cached list carries it too — homepage and
-            // sale pages then render prices without a query per game.
+        return Yii::$app->cache->getOrSet($key, static function () use ($type, $limit, $excludeFree): array {
+            $query = self::find()
+                ->joinWith(['gameSales'])
+                ->where([
+                    'game_sale.type' => $type,
+                    'game.status'    => self::STATUS_ACTIVE,
+                    'game.type'      => self::TYPE_GAME,
+                ])
+                // Eager-load the data the cards render (genre + cheapest offer with
+                // prices/store) so the cached list carries it too — homepage and
+                // sale pages then render prices without a query per game.
+                ->with([
+                    'genres',
+                    'gameOffers' => static function ($q): void {
+                        $q->andWhere(['game_offer.status' => GameOffer::STATUS_ACTIVE])
+                            ->orderBy(['game_offer.order' => SORT_ASC])
+                            ->with(['store', 'prices']);
+                    },
+                ])
+                ->orderBy(['game_sale.order' => SORT_ASC])
+                ->limit($limit);
+
+            // The homepage hides free-to-play (no price to compare); the dedicated
+            // sale pages still show everything.
+            if ($excludeFree) {
+                $query->andWhere(['game.is_free' => 0]);
+            }
+
+            return $query->all();
+        }, self::SALES_CACHE_TTL);
+    }
+
+    /**
+     * Deal board: games with the biggest absolute money saved on their cheapest
+     * active offer in the visitor's currency. Cheapest-offer eager-loaded like
+     * {@see getSales()} so cards render without per-row queries; free games are
+     * excluded — the price column is the whole point.
+     *
+     * @return Game[]
+     */
+    public static function getBestDeals(int $limit = 8, ?string $currency = null): array
+    {
+        return self::dealRanking('saving', $limit, $currency);
+    }
+
+    /**
+     * Deal board: like {@see getBestDeals()} but ranked by discount percentage
+     * rather than absolute money saved.
+     *
+     * @return Game[]
+     */
+    public static function getBiggestDiscounts(int $limit = 8, ?string $currency = null): array
+    {
+        return self::dealRanking('discount', $limit, $currency);
+    }
+
+    /**
+     * Shared deal ranking. Per game it takes the cheapest active offer in the
+     * given currency (the one we display), keeps only the discounted ones, and
+     * orders by absolute money saved ('saving') or discount percent ('discount').
+     *
+     * @return Game[]
+     */
+    private static function dealRanking(string $mode, int $limit, ?string $currency): array
+    {
+        $currency = strtoupper($currency ?? CurrencyResolver::forVisitor());
+        $key = ['game.deals', $mode, $currency, $limit];
+
+        return Yii::$app->cache->getOrSet($key, static function () use ($mode, $limit, $currency): array {
+            // ROW_NUMBER picks each game's cheapest offer so the ranking stays
+            // consistent with the price the card actually shows.
+            $cheapest = (new \yii\db\Query())
+                ->select([
+                    'o.game_id',
+                    'p.price_initial',
+                    'p.price_final',
+                    'rn' => new \yii\db\Expression(
+                        'ROW_NUMBER() OVER (PARTITION BY o.game_id ORDER BY p.price_final ASC)'
+                    ),
+                ])
+                ->from('{{%game_offer}} o')
+                ->innerJoin('{{%game_offer_price}} p', 'p.offer_id = o.id AND p.currency = :cur', [':cur' => $currency])
+                ->where(['o.status' => GameOffer::STATUS_ACTIVE])
+                ->andWhere(['>', 'p.price_final', 0]);
+
+            $order = $mode === 'discount'
+                ? '(t.price_initial - t.price_final) / t.price_initial DESC'
+                : '(t.price_initial - t.price_final) DESC';
+
+            $ids = (new \yii\db\Query())
+                ->select('t.game_id')
+                ->from(['t' => $cheapest])
+                ->innerJoin('{{%game}} g', 'g.id = t.game_id')
+                ->where([
+                    't.rn'      => 1,
+                    'g.status'  => self::STATUS_ACTIVE,
+                    'g.type'    => self::TYPE_GAME,
+                    'g.is_free' => 0,
+                ])
+                ->andWhere('t.price_initial > t.price_final')
+                ->orderBy(new \yii\db\Expression($order))
+                ->limit($limit)
+                ->column();
+
+            return self::loadOrderedGames(array_map('intval', $ids));
+        }, self::SALES_CACHE_TTL);
+    }
+
+    /**
+     * Deal board: games with the most local wishlist adds (non-free), cheapest
+     * offer eager-loaded. Falls back to bestsellers when wishlist data is too
+     * thin to fill the slot.
+     *
+     * @return Game[]
+     */
+    public static function getMostWishlisted(int $limit = 8): array
+    {
+        $key = ['game.most-wishlisted', $limit];
+
+        return Yii::$app->cache->getOrSet($key, static function () use ($limit): array {
+            $ids = (new \yii\db\Query())
+                ->select('w.game_id')
+                ->from('{{%user_wishlist}} w')
+                ->innerJoin('{{%game}} g', 'g.id = w.game_id')
+                ->where([
+                    'g.status'  => self::STATUS_ACTIVE,
+                    'g.type'    => self::TYPE_GAME,
+                    'g.is_free' => 0,
+                ])
+                ->groupBy('w.game_id')
+                ->orderBy(new \yii\db\Expression('COUNT(*) DESC'))
+                ->limit($limit)
+                ->column();
+
+            $games = self::loadOrderedGames(array_map('intval', $ids));
+
+            if (count($games) < $limit) {
+                $games = self::backfillGames($games, self::getSales(GameSale::TYPE_BESTSELLERS, $limit * 2), $limit);
+            }
+
+            return $games;
+        }, self::SALES_CACHE_TTL);
+    }
+
+    /**
+     * Deal board: most recently released games (non-free), cheapest offer
+     * eager-loaded.
+     *
+     * @return Game[]
+     */
+    public static function getNewReleases(int $limit = 8): array
+    {
+        $key = ['game.new-releases', $limit];
+
+        return Yii::$app->cache->getOrSet($key, static function () use ($limit): array {
+            $ids = self::find()
+                ->select('id')
+                ->where([
+                    'status'  => self::STATUS_ACTIVE,
+                    'type'    => self::TYPE_GAME,
+                    'is_free' => 0,
+                ])
+                ->andWhere(['not', ['release_date' => null]])
+                ->andWhere(['<=', 'release_date', date('Y-m-d')])
+                ->orderBy(['release_date' => SORT_DESC])
+                ->limit($limit)
+                ->column();
+
+            return self::loadOrderedGames(array_map('intval', $ids));
+        }, self::SALES_CACHE_TTL);
+    }
+
+    /**
+     * Deal board: games currently at their lowest recorded price (and once
+     * pricier), ordered by the biggest drop from their peak. Cheapest offer
+     * eager-loaded; free games excluded. Empty until prices have actually moved.
+     *
+     * @return Game[]
+     */
+    public static function getHistoricalLows(int $limit = 8, ?string $currency = null): array
+    {
+        $currency = strtoupper($currency ?? CurrencyResolver::forVisitor());
+        $key = ['game.historical-lows', $currency, $limit];
+
+        return Yii::$app->cache->getOrSet($key, static function () use ($limit, $currency): array {
+            // The game's cheapest current offer (the one we display), with its own
+            // water marks — same per-store basis as isAtHistoricalLow().
+            $cheapest = (new \yii\db\Query())
+                ->select([
+                    'o.game_id',
+                    'p.price_final',
+                    'p.lowest_final',
+                    'p.highest_final',
+                    'rn' => new \yii\db\Expression(
+                        'ROW_NUMBER() OVER (PARTITION BY o.game_id ORDER BY p.price_final ASC)'
+                    ),
+                ])
+                ->from('{{%game_offer}} o')
+                ->innerJoin('{{%game_offer_price}} p', 'p.offer_id = o.id AND p.currency = :cur', [':cur' => $currency])
+                ->where(['o.status' => GameOffer::STATUS_ACTIVE])
+                ->andWhere(['>', 'p.price_final', 0]);
+
+            $ids = (new \yii\db\Query())
+                ->select('t.game_id')
+                ->from(['t' => $cheapest])
+                ->innerJoin('{{%game}} g', 'g.id = t.game_id')
+                ->where([
+                    't.rn'      => 1,
+                    'g.status'  => self::STATUS_ACTIVE,
+                    'g.type'    => self::TYPE_GAME,
+                    'g.is_free' => 0,
+                ])
+                // At its lowest ever, and once more expensive than now.
+                ->andWhere('t.price_final <= t.lowest_final')
+                ->andWhere('t.highest_final > t.price_final')
+                ->orderBy(new \yii\db\Expression('(t.highest_final - t.price_final) DESC'))
+                ->limit($limit)
+                ->column();
+
+            return self::loadOrderedGames(array_map('intval', $ids));
+        }, self::SALES_CACHE_TTL);
+    }
+
+    /**
+     * Personalized: the signed-in user's wishlisted games that are currently
+     * discounted, cheapest offer eager-loaded, biggest discount first. Empty when
+     * nothing on their wishlist is on sale. Cached per user (wishlist + prices
+     * refresh on the daily sync).
+     *
+     * @return Game[]
+     */
+    public static function getWishlistDeals(int $userId, int $limit = 12, ?string $currency = null): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $currency = strtoupper($currency ?? CurrencyResolver::forVisitor());
+        $key = ['game.wishlist-deals', $userId, $currency, $limit];
+
+        return Yii::$app->cache->getOrSet($key, static function () use ($userId, $limit, $currency): array {
+            $cheapest = (new \yii\db\Query())
+                ->select([
+                    'o.game_id',
+                    'p.price_initial',
+                    'p.price_final',
+                    'rn' => new \yii\db\Expression(
+                        'ROW_NUMBER() OVER (PARTITION BY o.game_id ORDER BY p.price_final ASC)'
+                    ),
+                ])
+                ->from('{{%game_offer}} o')
+                ->innerJoin('{{%game_offer_price}} p', 'p.offer_id = o.id AND p.currency = :cur', [':cur' => $currency])
+                ->where(['o.status' => GameOffer::STATUS_ACTIVE])
+                ->andWhere(['>', 'p.price_final', 0]);
+
+            $ids = (new \yii\db\Query())
+                ->select('t.game_id')
+                ->from(['t' => $cheapest])
+                ->innerJoin('{{%game}} g', 'g.id = t.game_id')
+                ->innerJoin('{{%user_wishlist}} w', 'w.game_id = t.game_id AND w.user_id = :uid', [':uid' => $userId])
+                ->where([
+                    't.rn'      => 1,
+                    'g.status'  => self::STATUS_ACTIVE,
+                    'g.type'    => self::TYPE_GAME,
+                    'g.is_free' => 0,
+                ])
+                ->andWhere('t.price_initial > t.price_final')
+                ->orderBy(new \yii\db\Expression('(t.price_initial - t.price_final) / t.price_initial DESC'))
+                ->limit($limit)
+                ->column();
+
+            return self::loadOrderedGames(array_map('intval', $ids));
+        }, self::SALES_CACHE_TTL);
+    }
+
+    /**
+     * Personalized: games similar to the user's most-played catalogue title,
+     * excluding ones they already own and free-to-play. Returns the seed game
+     * (for the "Because you played X" heading) and the recommendations, or null
+     * when we can't build a meaningful set. Cached per user.
+     *
+     * @return array{seed: Game, games: Game[]}|null
+     */
+    public static function getBecauseYouPlayed(int $userId, int $limit = 12): ?array
+    {
+        if ($userId <= 0) {
+            return null;
+        }
+
+        // Rotate the seed a few times a day (every 3h). The time slot drives both
+        // the cache key (so it turns over) and the index into the candidate pool.
+        $slot = intdiv(time(), 3 * 3600);
+        $key = ['game.because-you-played', $userId, $limit, $slot];
+
+        return Yii::$app->cache->getOrSet($key, static function () use ($userId, $limit, $slot): ?array {
+            // Candidates: the user's most-played catalogue games. We rotate the
+            // seed across them daily so a single dominant title (e.g. 1000h in
+            // Dota) doesn't monopolise the section forever.
+            $candidates = (new \yii\db\Query())
+                ->select('ug.game_id')
+                ->from('{{%user_game}} ug')
+                ->innerJoin('{{%game}} g', 'g.id = ug.game_id')
+                ->where(['g.status' => self::STATUS_ACTIVE, 'g.type' => self::TYPE_GAME])
+                ->andWhere(['ug.user_id' => $userId])
+                ->andWhere(['>', 'ug.playtime_minutes', 0])
+                ->orderBy(['ug.playtime_minutes' => SORT_DESC])
+                ->limit(10)
+                ->column();
+
+            if ($candidates === []) {
+                return null;
+            }
+
+            $seedId = (int)$candidates[$slot % count($candidates)];
+
+            $seed = self::find()->where(['id' => (int)$seedId])->with('genres')->one();
+            if ($seed === null || $seed->genres === []) {
+                return null;
+            }
+
+            $genreIds = array_map(static fn($genre): int => (int)$genre->id, $seed->genres);
+
+            // Games the user already owns — excluded from recommendations.
+            $owned = (new \yii\db\Query())
+                ->select('game_id')
+                ->from('{{%user_game}}')
+                ->where(['user_id' => $userId])
+                ->andWhere(['not', ['game_id' => null]]);
+
+            // Most genre overlap with the seed, then most-reviewed. Non-free only.
+            $ids = self::find()
+                ->alias('g')
+                ->select(['g.id', 'shared' => 'COUNT(DISTINCT gg.genre_id)', 'reviews' => 'MAX(r.total_reviews)'])
+                ->innerJoin('{{%game_genre}} gg', 'gg.game_id = g.id')
+                ->leftJoin('{{%review}} r', 'r.game_id = g.id')
+                ->andWhere(['gg.genre_id' => $genreIds])
+                ->andWhere(['g.status' => self::STATUS_ACTIVE, 'g.type' => self::TYPE_GAME, 'g.is_free' => 0])
+                ->andWhere(['not in', 'g.id', $owned])
+                ->groupBy('g.id')
+                ->orderBy(['shared' => SORT_DESC, 'reviews' => SORT_DESC])
+                ->limit($limit)
+                ->column();
+
+            $games = self::loadOrderedGames(array_map('intval', $ids));
+            if ($games === []) {
+                return null;
+            }
+
+            return ['seed' => $seed, 'games' => $games];
+        }, self::SALES_CACHE_TTL);
+    }
+
+    /**
+     * Loads games by id with the card eager-loading from {@see getSales()},
+     * preserving the given id order (the ranking computed in SQL).
+     *
+     * @param int[] $ids
+     * @return Game[]
+     */
+    private static function loadOrderedGames(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        $games = self::find()
+            ->where(['id' => $ids])
             ->with([
                 'genres',
                 'gameOffers' => static function ($q): void {
@@ -344,9 +701,50 @@ class Game extends ActiveRecord
                         ->with(['store', 'prices']);
                 },
             ])
-            ->orderBy(['game_sale.order' => SORT_ASC])
-            ->limit($limit)
-            ->all(), self::SALES_CACHE_TTL);
+            ->all();
+
+        $byId = [];
+        foreach ($games as $game) {
+            $byId[(int)$game->id] = $game;
+        }
+
+        $ordered = [];
+        foreach ($ids as $id) {
+            if (isset($byId[$id])) {
+                $ordered[] = $byId[$id];
+            }
+        }
+
+        return $ordered;
+    }
+
+    /**
+     * Appends games from $extra (skipping duplicates and free titles) until the
+     * list reaches $limit. Tops up wishlist-driven lists when local data is thin.
+     *
+     * @param Game[] $games
+     * @param Game[] $extra
+     * @return Game[]
+     */
+    private static function backfillGames(array $games, array $extra, int $limit): array
+    {
+        $seen = [];
+        foreach ($games as $game) {
+            $seen[(int)$game->id] = true;
+        }
+
+        foreach ($extra as $game) {
+            if (count($games) >= $limit) {
+                break;
+            }
+            if (isset($seen[(int)$game->id]) || (int)$game->is_free === 1) {
+                continue;
+            }
+            $games[] = $game;
+            $seen[(int)$game->id] = true;
+        }
+
+        return $games;
     }
 
     /**
@@ -525,6 +923,49 @@ class Game extends ActiveRecord
     }
 
     /**
+     * Whether the best current price is the lowest ever recorded *at that store*
+     * and the same store was once more expensive — so the "lowest ever" claim is
+     * meaningful (nothing is flagged before a price has actually dropped).
+     *
+     * Evaluated on the cheapest offer's own water marks, not aggregated across
+     * stores: a pricier rival store right now is not a past price drop. Reads the
+     * already-loaded price, so it costs no extra query.
+     */
+    public function isAtHistoricalLow(GameOfferPrice $price): bool
+    {
+        $current = (int)$price->price_final;
+        if ($current <= 0) {
+            return false;
+        }
+
+        $lowest = $price->lowest_final !== null ? (int)$price->lowest_final : $current;
+        $highest = $price->highest_final !== null ? (int)$price->highest_final : $current;
+
+        return $current <= $lowest && $highest > $current;
+    }
+
+    /**
+     * Price points for the chart: the cheapest current offer's recorded history
+     * in the given currency, oldest first. Empty when there's nothing to plot.
+     *
+     * @return array<int, array{price_final:string, recorded_at:string}>
+     */
+    public function getPriceSeries(string $currency): array
+    {
+        $best = $this->getBestOffer($currency);
+        if ($best === null) {
+            return [];
+        }
+
+        return GamePriceHistory::find()
+            ->select(['price_final', 'recorded_at'])
+            ->where(['offer_id' => $best->id, 'currency' => strtoupper($currency)])
+            ->orderBy(['recorded_at' => SORT_ASC, 'id' => SORT_ASC])
+            ->asArray()
+            ->all();
+    }
+
+    /**
      * The price to surface on cards and lists: the cheapest store offer in the
      * visitor's currency when one exists, otherwise the Steam price. Free games
      * report a "Free" label. Returns null when there is nothing to show (e.g. an
@@ -556,6 +997,10 @@ class Game extends ActiveRecord
                     $discount,
                     false,
                     DisplayPrice::SOURCE_OFFER,
+                    $best->store?->name,
+                    $best->store?->slug,
+                    (bool)$best->store?->isOfficial(),
+                    $this->isAtHistoricalLow($price),
                 );
             }
         }
@@ -569,6 +1014,9 @@ class Game extends ActiveRecord
                 $discount,
                 false,
                 DisplayPrice::SOURCE_STEAM,
+                'Steam',
+                'steam',
+                true,
             );
         }
 

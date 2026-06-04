@@ -4,7 +4,10 @@ namespace console\controllers;
 
 use common\components\GamesCountRecounter;
 use common\components\GameQuery;
+use common\components\InstantGaming\IgClient;
 use common\models\Game;
+use common\models\GameOffer;
+use common\models\Store;
 use DateTime;
 use Symfony\Component\DomCrawler\Crawler;
 use Yii;
@@ -24,6 +27,20 @@ class SteamController extends Controller
     private const string LOCK_SYNC         = 'steam/sync';
     private const string LOCK_COMING_SOON  = 'steam/coming-soon';
     private const string LOCK_APP_LIST     = 'steam/create-app-list';
+    private const string LOCK_BACKFILL     = 'steam/backfill-offers';
+
+    private const string STEAM_STORE_SLUG = 'steam';
+
+    /**
+     * Steam regions to read prices from, keyed by the currency we store. The
+     * main appdetails call (us) already carries USD with the full payload, so
+     * only the other two cost an extra (price-only) request per game.
+     */
+    private const array STEAM_PRICE_REGIONS = [
+        'USD' => 'us',
+        'EUR' => 'de',
+        'PLN' => 'pl',
+    ];
 
     private const int SYNC_DELAY_MIN = 2;
     private const int SYNC_DELAY_MAX = 4;
@@ -66,7 +83,7 @@ class SteamController extends Controller
     public function options($actionID): array
     {
         $options = parent::options($actionID);
-        if ($actionID === 'sync') {
+        if ($actionID === 'sync' || $actionID === 'backfill-offers') {
             $options[] = 'verbose';
         }
         return $options;
@@ -253,6 +270,219 @@ class SteamController extends Controller
         }
 
         $game->setBaseInformation($response->data[$app_id]['data']);
+
+        // Model Steam as a first-class offer (its own store row) so the cheapest
+        // offer / deal rankings can include it. The us payload already has USD;
+        // EUR/PLN come from two small price-only calls.
+        $this->syncSteamOffer($game, $response->data[$app_id]['data']);
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Upserts the Steam store offer for a game, with prices in each currency we
+     * support. Mirrors how keyshops build their offers (see
+     * {@see InstantGamingController::saveOffer()}). Free games get no offer —
+     * there is nothing to buy.
+     *
+     * @param array<string, mixed> $usData the appdetails payload already fetched
+     *                                      with cc=us (carries the USD price).
+     */
+    private function syncSteamOffer(Game $game, array $usData): void
+    {
+        if ((int)$game->is_free === 1) {
+            return;
+        }
+
+        $store = Store::findOne(['slug' => self::STEAM_STORE_SLUG]);
+        if (!$store) {
+            return; // migration not run yet — skip silently
+        }
+
+        // USD is free (already fetched); EUR/PLN need their own region call.
+        $prices = ['USD' => $this->extractPriceOverview($usData)];
+        foreach (self::STEAM_PRICE_REGIONS as $currency => $cc) {
+            if ($currency === 'USD') {
+                continue;
+            }
+            $prices[$currency] = $this->fetchSteamPrice((int)$game->steam_appid, $cc);
+            sleep(1);
+        }
+
+        // Nothing priced anywhere (unreleased / region-locked) — no offer to make.
+        if (array_filter($prices) === []) {
+            return;
+        }
+
+        $offer = GameOffer::findOne(['game_id' => $game->id, 'store_id' => $store->id])
+            ?? new GameOffer(['game_id' => $game->id, 'store_id' => $store->id]);
+        $offer->url = 'https://store.steampowered.com/app/' . $game->steam_appid;
+        $offer->region = 'Worldwide';
+        $offer->status = GameOffer::STATUS_ACTIVE;
+
+        if (!$offer->save()) {
+            $this->stderr("  ! could not save Steam offer for {$game->title}: " . json_encode($offer->getErrors()) . "\n");
+            return;
+        }
+
+        foreach ($prices as $currency => $price) {
+            if ($price === null) {
+                continue;
+            }
+            $offer->setPrice($currency, $price['final'], $price['initial']);
+        }
+    }
+
+    /**
+     * Reads Steam's price_overview into our minor-unit shape, or null when the
+     * game has no usable price. `initial` is only kept when it's a real
+     * pre-discount price (greater than final).
+     *
+     * @param array<string, mixed> $data appdetails `data` node
+     * @return array{final:int,initial:int|null}|null
+     */
+    private function extractPriceOverview(array $data): ?array
+    {
+        $po = $data['price_overview'] ?? null;
+        $final = (int)($po['final'] ?? 0);
+        if (!$po || $final <= 0) {
+            return null;
+        }
+
+        $initial = (int)($po['initial'] ?? 0);
+
+        return [
+            'final'   => $final,
+            'initial' => $initial > $final ? $initial : null,
+        ];
+    }
+
+    /**
+     * Price-only appdetails call for one region, so EUR/PLN prices reflect
+     * Steam's real regional pricing rather than an FX conversion of USD.
+     *
+     * @return array{final:int,initial:int|null}|null
+     */
+    private function fetchSteamPrice(int $appid, string $cc): ?array
+    {
+        $client = new Client(['baseUrl' => self::APPDETAILS_URL]);
+        $response = $client->createRequest()
+            ->setHeaders(['Content-language' => 'en'])
+            ->setMethod('GET')
+            ->setData(['appids' => $appid, 'cc' => $cc, 'filters' => 'price_overview'])
+            ->send();
+
+        if (!$response->isOk || empty($response->data[$appid]['success'])) {
+            return null;
+        }
+
+        return $this->extractPriceOverview($response->data[$appid]['data'] ?? []);
+    }
+
+    /**
+     * One-off bootstrap: create Steam offers for games we've already synced,
+     * from the stored USD `steam_price_final`, FX-converting to EUR/PLN with
+     * IG's published rates so the deal board has data immediately. The paced
+     * sync later overwrites these with true regional prices.
+     *
+     * @param int $limit max games to process (0 = no limit)
+     */
+    public function actionBackfillOffers(int $limit = 0): int
+    {
+        return $this->withLock(self::LOCK_BACKFILL, fn(): int => $this->runBackfillOffers($limit));
+    }
+
+    private function runBackfillOffers(int $limit): int
+    {
+        $store = Store::findOne(['slug' => self::STEAM_STORE_SLUG]);
+        if (!$store) {
+            $this->stderr("Store 'steam' not found — run migrations first.\n");
+            return ExitCode::DATAERR;
+        }
+
+        // Keep memory flat over a catalogue-sized run: the query log and profiler
+        // would otherwise accumulate a message per statement until the process is
+        // OOM-killed.
+        $db = Yii::$app->db;
+        $db->enableLogging = false;
+        $db->enableProfiling = false;
+
+        // EUR-based rates (EUR => 1.0, USD => …, PLN => …) as keyshops use them.
+        $rates = (new IgClient())->fetchRates();
+        $usdRate = (float)($rates['USD'] ?? 0);
+        $plnRate = (float)($rates['PLN'] ?? 0);
+
+        // Keyset pagination by id: only one batch of models is held at a time, and
+        // (unlike an unbuffered each()) we can still run the per-row writes below
+        // on the same connection. Each batch is released before the next is read.
+        $batchSize = 200;
+        $lastId = PHP_INT_MAX;
+        $created = 0;
+
+        while (true) {
+            $games = Game::find()
+                ->where(['status' => Game::STATUS_ACTIVE, 'type' => Game::TYPE_GAME])
+                ->andWhere(['or', ['is_free' => 0], ['is_free' => null]])
+                ->andWhere(['>', 'steam_price_final', 0])
+                ->andWhere(['<', 'id', $lastId])
+                ->orderBy(['id' => SORT_DESC])
+                ->limit($batchSize)
+                ->all();
+
+            if ($games === []) {
+                break;
+            }
+
+            foreach ($games as $game) {
+                $lastId = (int)$game->id;
+
+                $finalUsd = (int)$game->steam_price_final;
+                $initialUsd = (int)$game->steam_price_initial;
+                $initialUsd = $initialUsd > $finalUsd ? $initialUsd : 0;
+
+                $offer = GameOffer::findOne(['game_id' => $game->id, 'store_id' => $store->id])
+                    ?? new GameOffer(['game_id' => $game->id, 'store_id' => $store->id]);
+                $offer->url = 'https://store.steampowered.com/app/' . $game->steam_appid;
+                $offer->region = 'Worldwide';
+                $offer->status = GameOffer::STATUS_ACTIVE;
+                if (!$offer->save()) {
+                    continue;
+                }
+
+                // USD straight from the catalogue; EUR via USD→EUR, PLN via EUR→PLN.
+                $offer->setPrice('USD', $finalUsd, $initialUsd ?: null);
+
+                if ($usdRate > 0) {
+                    $finalEur = $finalUsd / $usdRate;
+                    $initialEur = $initialUsd > 0 ? $initialUsd / $usdRate : 0.0;
+                    $offer->setPrice('EUR', (int)round($finalEur), $initialEur > 0 ? (int)round($initialEur) : null);
+
+                    if ($plnRate > 0) {
+                        $offer->setPrice(
+                            'PLN',
+                            (int)round($finalEur * $plnRate),
+                            $initialEur > 0 ? (int)round($initialEur * $plnRate) : null
+                        );
+                    }
+                }
+
+                $created++;
+                if ($limit > 0 && $created >= $limit) {
+                    $this->stdout("Steam backfill — offers written: {$created}\n");
+                    return ExitCode::OK;
+                }
+            }
+
+            // Release per-batch buildup (Yii identity map / any buffered log).
+            Yii::getLogger()->flush();
+            gc_collect_cycles();
+
+            if ($this->verbose) {
+                $this->stdout("… {$created} Steam offers\n");
+            }
+        }
+
+        $this->stdout("Steam backfill — offers written: {$created}\n");
         return ExitCode::OK;
     }
 

@@ -17,6 +17,8 @@ use yii\db\ActiveRecord;
  * @property string      $currency
  * @property int|null    $price_initial
  * @property int|null    $price_final
+ * @property int|null    $lowest_final   running min of price_final ("historical low")
+ * @property int|null    $highest_final  running max of price_final (price ever seen)
  * @property string      $created_at
  * @property string|null $updated_at
  *
@@ -63,7 +65,7 @@ class GameOfferPrice extends ActiveRecord
     {
         return [
             [['offer_id', 'currency'], 'required'],
-            [['offer_id', 'price_initial', 'price_final'], 'integer'],
+            [['offer_id', 'price_initial', 'price_final', 'lowest_final', 'highest_final'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
             [['currency'], 'string', 'max' => 3],
             [['offer_id', 'currency'], 'unique', 'targetAttribute' => ['offer_id', 'currency']],
@@ -83,13 +85,35 @@ class GameOfferPrice extends ActiveRecord
 
     public function getCurrencySymbol(): string
     {
-        $code = strtoupper((string)$this->currency);
+        return self::symbolFor((string)$this->currency);
+    }
+
+    /** Currency symbol for a code, e.g. "€" / "zł" / "$". */
+    public static function symbolFor(string $currency): string
+    {
+        $code = strtoupper($currency);
 
         if (isset(self::CURRENCY_SYMBOLS[$code])) {
             return self::CURRENCY_SYMBOLS[$code];
         }
 
         return $code !== '' ? $code . ' ' : '$';
+    }
+
+    /**
+     * Formats a minor-unit (cents) amount in the given currency, e.g. "€32.00"
+     * / "129.99 zł". Reusable outside an instance (price chart axis, etc.).
+     */
+    public static function formatCents(int $cents, string $currency): string
+    {
+        $amount = number_format($cents / 100, 2);
+        $symbol = self::symbolFor($currency);
+
+        if (in_array(strtoupper($currency), self::SUFFIX_CURRENCIES, true)) {
+            return $amount . ' ' . $symbol;
+        }
+
+        return $symbol . $amount;
     }
 
     /**
@@ -133,13 +157,6 @@ class GameOfferPrice extends ActiveRecord
 
     private function formatPrice(int $cents): string
     {
-        $amount = number_format($cents / 100, 2);
-        $symbol = $this->getCurrencySymbol();
-
-        if (in_array(strtoupper((string)$this->currency), self::SUFFIX_CURRENCIES, true)) {
-            return $amount . ' ' . $symbol;
-        }
-
-        return $symbol . $amount;
+        return self::formatCents($cents, (string)$this->currency);
     }
 }

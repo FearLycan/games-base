@@ -33,6 +33,12 @@ $price = $game->getDisplayPrice();
         <p class="mt-0.5 text-xs text-fg-muted truncate">
             <?= Html::encode($game->getMainGenre()) ?>
         </p>
+        <?php if ($price !== null && $price->historicalLow): ?>
+            <span class="mt-1 inline-flex items-center gap-1 rounded-sm bg-accent/10 px-1.5 py-px text-[10px] font-semibold text-accent" title="Lowest price ever recorded">
+                <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12"></path><path d="m6 12 6 6 6-6"></path><path d="M5 21h14"></path></svg>
+                Lowest ever
+            </span>
+        <?php endif; ?>
     </div>
     <?php if ($price !== null): ?>
         <div class="flex-none text-right leading-tight">

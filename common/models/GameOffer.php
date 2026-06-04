@@ -154,9 +154,37 @@ class GameOffer extends ActiveRecord
         $price = GameOfferPrice::findOne(['offer_id' => $this->id, 'currency' => $currency])
             ?? new GameOfferPrice(['offer_id' => $this->id, 'currency' => $currency]);
 
+        // Captured before overwriting so we can append a history point only when
+        // the price actually changes (a step series, no duplicate rows).
+        $previousFinal = $price->getIsNewRecord() ? null : (int)$price->price_final;
+
         $price->price_final = $priceFinal;
         $price->price_initial = $priceInitial;
+
+        // Maintain the running low/high water marks behind the "historical low"
+        // signal (see {@see \common\models\Game::getDisplayPrice()}).
+        if ($priceFinal !== null && $priceFinal > 0) {
+            $price->lowest_final = $price->lowest_final === null
+                ? $priceFinal
+                : min((int)$price->lowest_final, $priceFinal);
+            $price->highest_final = $price->highest_final === null
+                ? $priceFinal
+                : max((int)$price->highest_final, $priceFinal);
+        }
+
         $price->save();
+
+        // Record a price point whenever the final price changes (incl. the first
+        // time we see this offer's price). Feeds the price-history chart.
+        if ($priceFinal !== null && $priceFinal > 0 && $previousFinal !== $priceFinal) {
+            (new GamePriceHistory([
+                'offer_id'      => $this->id,
+                'currency'      => $currency,
+                'price_final'   => $priceFinal,
+                'price_initial' => $priceInitial,
+                'recorded_at'   => date('Y-m-d H:i:s'),
+            ]))->save(false);
+        }
 
         return $price;
     }

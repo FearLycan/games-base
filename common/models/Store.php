@@ -2,6 +2,7 @@
 
 namespace common\models;
 
+use common\enums\StoreType;
 use yii\behaviors\SluggableBehavior;
 use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveQuery;
@@ -16,6 +17,7 @@ use yii\db\ActiveRecord;
  * @property string|null $logo
  * @property string|null $website
  * @property int|null    $status
+ * @property int|null    $type
  * @property int|null    $order
  * @property string      $created_at
  * @property string|null $updated_at
@@ -63,7 +65,8 @@ class Store extends ActiveRecord
     {
         return [
             [['name'], 'required'],
-            [['status', 'order'], 'integer'],
+            [['status', 'type', 'order'], 'integer'],
+            ['type', 'in', 'range' => StoreType::values()],
             [['created_at', 'updated_at'], 'safe'],
             [['name', 'slug', 'logo', 'website'], 'string', 'max' => 255],
         ];
@@ -100,5 +103,23 @@ class Store extends ActiveRecord
     public function getLogo(): string
     {
         return $this->logo ?: '/img/store-default.png';
+    }
+
+    /** The store kind as an enum; unknown/missing values fall back to keyshop. */
+    public function getType(): StoreType
+    {
+        return StoreType::tryFrom((int)$this->type) ?? StoreType::Keyshop;
+    }
+
+    /** A first-party storefront (Steam) rather than a CD-key reseller. */
+    public function isOfficial(): bool
+    {
+        return $this->getType() === StoreType::Official;
+    }
+
+    /** Short label for the store kind ("Official" / "Keyshop"), for price badges. */
+    public function getTypeLabel(): string
+    {
+        return $this->getType()->label();
     }
 }
