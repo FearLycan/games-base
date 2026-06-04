@@ -117,7 +117,8 @@ class CompanyController extends Controller
         $query = Game::find()
             ->alias('game')
             ->leftJoin('{{%review}} r', 'r.game_id = game.id')
-            ->where(['game.status' => Game::STATUS_ACTIVE, 'game.type' => Game::TYPE_GAME]);
+            ->where(['game.status' => Game::STATUS_ACTIVE, 'game.type' => Game::TYPE_GAME])
+            ->hideAdultCatalog('game');
 
         $devExists = $developerId !== null;
         $pubExists = $publisherId !== null;

@@ -3,6 +3,7 @@
 namespace frontend\controllers;
 
 use common\components\AccessControl;
+use common\components\AdultContent;
 use common\components\CurrencyResolver;
 use common\models\Category;
 use common\models\Developer;
@@ -189,7 +190,7 @@ class AutocompleteController extends Controller
         Yii::$app->response->format = Response::FORMAT_JSON;
 
         $today = date('Y-m-d');
-        $cacheKey = 'autocomplete:trending:' . $today;
+        $cacheKey = 'autocomplete:trending:' . $today . ':' . AdultContent::catalogCacheKey();
 
         return $this->cache->getOrSet($cacheKey, function () use ($today) {
             $stats = (new \yii\db\Query())
@@ -219,6 +220,7 @@ class AutocompleteController extends Controller
                 ])
                 ->alias('game')
                 ->where(['game.id' => $gameIds, 'game.status' => Game::STATUS_ACTIVE])
+                ->hideAdultCatalog('game')
                 ->indexBy('id')
                 ->asArray()
                 ->all();
@@ -269,6 +271,7 @@ class AutocompleteController extends Controller
             ->onlyWithTitle($query)
             ->andWhere(['game.status' => Game::STATUS_ACTIVE])
             ->andWhere(['game.type' => Game::TYPE_GAME])
+            ->hideAdultCatalog('game')
             ->joinWith(['review'], false)
             // Offers for the displayed price; matches the cards' pricing.
             ->with(['gameOffers' => fn($q) => $q->andWhere(['game_offer.status' => GameOffer::STATUS_ACTIVE])->with(['store', 'prices'])])

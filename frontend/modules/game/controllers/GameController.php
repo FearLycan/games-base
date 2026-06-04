@@ -3,6 +3,7 @@
 namespace frontend\modules\game\controllers;
 
 use common\components\AccessControl;
+use common\components\AdultContent;
 use common\components\BotDetector;
 use common\components\CurrencyResolver;
 use common\components\steam\SteamAchievementSync;
@@ -62,6 +63,12 @@ class GameController extends Controller
                     // so the cached page must vary by it — otherwise switching the
                     // currency reloads but keeps the previously cached one.
                     CurrencyResolver::forVisitor(),
+                    // 18+ games render differently per audience: a guest gets a 404
+                    // (never cached), an opted-out user the confirmation gate, an
+                    // opted-in/confirmed user the full page. Non-adult games yield
+                    // '' so the catalogue isn't fragmented. Keeps a cached gate from
+                    // ever being served to someone allowed to see the real page.
+                    $this->adultViewToken(),
                 ],
                 // Drop the cached page as soon as the game is (re-)synced. A sync
                 // rewrites synchronized_at, so this dependency's value changes and
@@ -88,6 +95,90 @@ class GameController extends Controller
             'params'   => [':id' => $id],
             'reusable' => true,
         ]);
+    }
+
+    /**
+     * PageCache variation token for the 18+ gate (see behaviors()). Returns ''
+     * for ordinary games so the catalogue isn't fragmented; for adult games it
+     * splits the cache by exactly what the viewer is served — 'ok' (full page),
+     * 'gate' (confirmation interstitial) or 'deny' (guest 404, never cached) —
+     * so a cached page can't leak across audiences. Mirrors {@see adultGate()}.
+     */
+    private function adultViewToken(): string
+    {
+        $id = (int)Yii::$app->request->get('id');
+        if ($id <= 0) {
+            return '';
+        }
+
+        // 'view'/'achievements' are keyed by steam_appid; 'details' by primary id.
+        $column = Yii::$app->controller->action->id === 'details' ? 'id' : 'steam_appid';
+        $isAdult = (bool)$this->cache->getOrSet(
+            ['game.is-adult', $column, $id],
+            static fn(): bool => (int)Game::find()
+                ->select('is_adult')
+                ->where([$column => $id, 'status' => Game::STATUS_ACTIVE])
+                ->limit(1)
+                ->scalar() === 1,
+            3600,
+        );
+        if (!$isAdult) {
+            return '';
+        }
+        if (AdultContent::showCatalog()) {
+            return 'ok';
+        }
+        if (Yii::$app->user->isGuest) {
+            return 'deny';
+        }
+
+        return $this->isAdultConfirmed($id) ? 'ok' : 'gate';
+    }
+
+    /**
+     * Enforces the 18+ rule on a game page. Returns null when the page may render
+     * normally; returns the confirmation gate for a signed-in, opted-out user who
+     * hasn't confirmed yet; throws 404 for guests (the game is invisible to them).
+     *
+     * @throws NotFoundHttpException
+     */
+    private function adultGate(Game $model): ?string
+    {
+        if ((int)$model->is_adult !== 1 || AdultContent::showCatalog()) {
+            return null;
+        }
+        if (Yii::$app->user->isGuest) {
+            throw new NotFoundHttpException('The requested page does not exist.');
+        }
+
+        $id = (int)Yii::$app->request->get('id');
+        if ($this->isAdultConfirmed($id)) {
+            $this->rememberAdultConfirmation($id);
+
+            return null;
+        }
+
+        return $this->render('adult-gate', ['model' => $model]);
+    }
+
+    /** True once the signed-in user has confirmed (this request, or earlier this session) they want to see this 18+ game. */
+    private function isAdultConfirmed(int $id): bool
+    {
+        if ((int)Yii::$app->request->get('confirm') === 1) {
+            return true;
+        }
+
+        $confirmed = (array)Yii::$app->session->get('adult.confirmed', []);
+
+        return !empty($confirmed[$id]);
+    }
+
+    /** Remembers, for the rest of the session, that the user confirmed this 18+ game. */
+    private function rememberAdultConfirmation(int $id): void
+    {
+        $confirmed = (array)Yii::$app->session->get('adult.confirmed', []);
+        $confirmed[$id] = true;
+        Yii::$app->session->set('adult.confirmed', $confirmed);
     }
 
     public function actionIndex(): string
@@ -209,6 +300,10 @@ class GameController extends Controller
     {
         $model = $this->findModel($id, $slug);
 
+        if (($gate = $this->adultGate($model)) !== null) {
+            return $gate;
+        }
+
         return $this->render('view', [
             'model'   => $model,
             'related' => $this->findRelatedGames($model),
@@ -219,6 +314,10 @@ class GameController extends Controller
     public function actionAchievements($id, $slug)
     {
         $model = $this->findModel($id, $slug);
+
+        if (($gate = $this->adultGate($model)) !== null) {
+            return $gate;
+        }
 
         // The achievements page only makes sense when there are achievements to
         // show; otherwise send visitors back to the game page (301) so the empty
@@ -325,7 +424,7 @@ class GameController extends Controller
             return [];
         }
 
-        return $model->getDlc()
+        $query = $model->getDlc()
             ->with([
                 'genres',
                 'gameOffers' => static function ($q): void {
@@ -334,8 +433,11 @@ class GameController extends Controller
                         ->with(['store', 'prices']);
                 },
             ])
-            ->limit($limit)
-            ->all();
+            ->limit($limit);
+
+        \common\components\AdultContent::filterCatalog($query, 'game');
+
+        return $query->all();
     }
 
     /**
@@ -362,6 +464,7 @@ class GameController extends Controller
             ->andWhere(['gg.genre_id' => $genreIds])
             ->andWhere(['g.status' => Game::STATUS_ACTIVE, 'g.type' => Game::TYPE_GAME])
             ->andWhere(['<>', 'g.id', (int)$model->id])
+            ->hideAdultCatalog('g')
             ->groupBy('g.id')
             ->orderBy(['shared' => SORT_DESC, 'reviews' => SORT_DESC])
             ->limit($limit)
@@ -389,6 +492,7 @@ class GameController extends Controller
             ->alias('game')
             ->onlyWithTitle($phrase)
             ->andWhere(['status' => Game::STATUS_ACTIVE])
+            ->hideAdultCatalog('game')
             ->joinWith(['review'])
             ->orderBy(['review.total_reviews' => SORT_DESC, 'game.title' => SORT_ASC])
             ->limit(10)
@@ -400,6 +504,17 @@ class GameController extends Controller
     {
         if (Yii::$app->request->isAjax) {
             $model = $this->findModelByMainId($id);
+
+            // Same 18+ rule as the full page: don't serve adult details to a
+            // viewer who can't see the game (guest, or signed-in + opted-out and
+            // not yet confirmed — confirmation may be keyed by either id form).
+            $allowed = AdultContent::showCatalog()
+                || (!Yii::$app->user->isGuest
+                    && ($this->isAdultConfirmed((int)$id) || $this->isAdultConfirmed((int)$model->steam_appid)));
+            if ((int)$model->is_adult === 1 && !$allowed) {
+                throw new NotFoundHttpException('The requested page does not exist.');
+            }
+
             return $this->renderPartial('_right-bar', ['model' => $model, 'gameViewButton' => true]);
         }
 

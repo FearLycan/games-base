@@ -3,6 +3,7 @@
 /* @var $this yii\web\View */
 /* @var $user common\models\User */
 /* @var $addEmailForm frontend\modules\user\models\AddEmailForm */
+/* @var $preferencesForm frontend\modules\user\models\PreferencesForm */
 
 use yii\helpers\Html;
 use yii\helpers\Url;
@@ -12,9 +13,10 @@ $this->title = 'Account settings';
 $this->params['breadcrumbs'][] = $this->title;
 ?>
 <?php $this->beginContent('@frontend/modules/user/views/layouts/account.php'); ?>
-<div class="max-w-2xl">
+<div>
     <h1 class="font-display text-2xl font-semibold text-fg text-balance mb-8 fade-up" style="animation-delay:.05s"><?= Html::encode($this->title) ?></h1>
 
+    <div class="grid items-start gap-6 lg:grid-cols-2">
     <section class="rounded-2xl border border-line bg-surface/40 p-6 fade-up" style="animation-delay:.12s">
         <h2 class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle mb-4">Email</h2>
 
@@ -53,5 +55,44 @@ $this->params['breadcrumbs'][] = $this->title;
             <?php ActiveForm::end(); ?>
         <?php endif; ?>
     </section>
+
+    <section class="rounded-2xl border border-line bg-surface/40 p-6 fade-up" style="animation-delay:.18s">
+        <h2 class="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-subtle mb-4">Mature content (18+)</h2>
+        <p class="mb-5 text-sm text-fg-muted text-pretty">
+            Adult-only games are hidden by default. Turn these on to let 18+ titles appear for your account.
+        </p>
+
+        <?php $form = ActiveForm::begin([
+            'id'     => 'preferences-form',
+            'action' => Url::to(['/user/profile/preferences']),
+        ]); ?>
+            <label class="flex cursor-pointer items-start gap-3 py-3">
+                <?= Html::activeCheckbox($preferencesForm, 'show_adult', [
+                    'label' => false,
+                    'class' => 'mt-0.5 h-4 w-4 shrink-0 rounded border-line text-accent focus:ring-accent',
+                ]) ?>
+                <span class="text-sm">
+                    <span class="block font-medium text-fg">Show 18+ games while browsing</span>
+                    <span class="block text-fg-muted">Catalogue, search, deal board, game pages and company pages.</span>
+                </span>
+            </label>
+
+            <label class="flex cursor-pointer items-start gap-3 border-t border-line py-3">
+                <?= Html::activeCheckbox($preferencesForm, 'show_adult_owned', [
+                    'label' => false,
+                    'class' => 'mt-0.5 h-4 w-4 shrink-0 rounded border-line text-accent focus:ring-accent',
+                ]) ?>
+                <span class="text-sm">
+                    <span class="block font-medium text-fg">Show 18+ games in my library, wishlist and achievements</span>
+                    <span class="block text-fg-muted">Applies to content you already own on Steam.</span>
+                </span>
+            </label>
+
+            <?= Html::submitButton('Save preferences', [
+                'class' => 'mt-5 inline-flex h-11 items-center rounded-lg bg-accent px-4 text-sm font-semibold text-white shadow-sm transition-transform duration-150 will-change-transform active:scale-[0.96]',
+            ]) ?>
+        <?php ActiveForm::end(); ?>
+    </section>
+    </div>
 </div>
 <?php $this->endContent(); ?>

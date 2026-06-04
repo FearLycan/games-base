@@ -154,6 +154,9 @@ class GameSearch extends Game
             $query->andWhere(['like', 'game.title', $this->q]);
         }
 
+        // Hide 18+ titles from anyone who hasn't opted in (guests never can).
+        $query->hideAdultCatalog('game');
+
         $this->applyPrice($query);
         $this->applyRelease($query);
         $this->applyPlatform($query);
@@ -182,6 +185,7 @@ class GameSearch extends Game
                      $this->age_adult, $this->deck, $this->reviews, $this->meta_min,
                      $relIds($this->genre_ids), $relIds($this->tag_ids), $relIds($this->category_ids),
                      $relIds($this->developer_ids), $relIds($this->publisher_ids),
+                     \common\components\AdultContent::catalogCacheKey(),
         ];
         $dataProvider->totalCount = (int)Yii::$app->cache->getOrSet(
             $countKey,
@@ -239,7 +243,7 @@ class GameSearch extends Game
     private function applyAge($query): void
     {
         if ($this->age_adult === '1') {
-            $query->andWhere(['game.required_age' => 1]);
+            $query->andWhere(['game.is_adult' => 1]);
         }
     }
 

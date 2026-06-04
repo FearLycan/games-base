@@ -2,6 +2,7 @@
 
 namespace frontend\modules\user\models;
 
+use common\components\AdultContent;
 use common\models\Game;
 use common\models\GameOffer;
 use common\models\Review;
@@ -174,14 +175,16 @@ class ProfileStats
     /** The rarest achievement the user has unlocked (lowest global %), or null. */
     public function rarestAchievement(): ?UserAchievement
     {
-        return UserAchievement::find()
+        $query = UserAchievement::find()
             ->alias('ua')
             ->innerJoinWith('achievement')
             ->innerJoinWith('game')
             ->where(['ua.user_id' => $this->userId, 'game.status' => Game::STATUS_ACTIVE])
             ->andWhere(['not', ['game_achievement.percent' => null]])
-            ->orderBy(['game_achievement.percent' => SORT_ASC])
-            ->one();
+            ->orderBy(['game_achievement.percent' => SORT_ASC]);
+        AdultContent::filterOwned($query, 'game');
+
+        return $query->one();
     }
 
     /** Average playtime (hours) across games the user has actually played. */
@@ -273,15 +276,17 @@ class ProfileStats
      */
     public function recentUnlocks(int $limit = 10): array
     {
-        return UserAchievement::find()
+        $query = UserAchievement::find()
             ->alias('ua')
             ->innerJoinWith('achievement')
             ->innerJoinWith('game')
             ->where(['ua.user_id' => $this->userId, 'game.status' => Game::STATUS_ACTIVE])
             ->andWhere(['not', ['ua.unlocked_at' => null]])
             ->orderBy(['ua.unlocked_at' => SORT_DESC])
-            ->limit($limit)
-            ->all();
+            ->limit($limit);
+        AdultContent::filterOwned($query, 'game');
+
+        return $query->all();
     }
 
     /**
@@ -292,7 +297,7 @@ class ProfileStats
      */
     public function wishlistDeals(int $limit = 8): array
     {
-        return UserWishlist::find()
+        $query = UserWishlist::find()
             ->alias('uw')
             ->innerJoinWith('game')
             ->where(['uw.user_id' => $this->userId, 'game.status' => Game::STATUS_ACTIVE])
@@ -300,8 +305,10 @@ class ProfileStats
             ->andWhere('game.steam_price_final < game.steam_price_initial')
             ->orderBy('(game.steam_price_initial - game.steam_price_final) / game.steam_price_initial DESC')
             ->limit($limit)
-            ->with(['game.gameOffers' => fn($q) => $q->andWhere(['game_offer.status' => GameOffer::STATUS_ACTIVE])->with(['store', 'prices'])])
-            ->all();
+            ->with(['game.gameOffers' => fn($q) => $q->andWhere(['game_offer.status' => GameOffer::STATUS_ACTIVE])->with(['store', 'prices'])]);
+        AdultContent::filterOwned($query, 'game');
+
+        return $query->all();
     }
 
     /**
@@ -331,6 +338,7 @@ class ProfileStats
             ->where(['g.status' => Game::STATUS_ACTIVE, 'g.type' => Game::TYPE_GAME, 'gt.tag_id' => $tagIds])
             ->andWhere(['>', 'g.steam_price_final', 0])
             ->andWhere(['not in', 'g.steam_appid', $owned])
+            ->hideAdultCatalog('g')
             ->groupBy('g.id')
             // Keep recommendations reputable, not just tag-matchy: require a
             // minimum review count so niche games with many matching tags but a
@@ -413,10 +421,13 @@ class ProfileStats
      */
     private function cataloguedGames(): \yii\db\ActiveQuery
     {
-        return UserGame::find()
+        $query = UserGame::find()
             ->where(['user_game.user_id' => $this->userId])
             ->innerJoinWith('game')
             ->andWhere(['game.status' => Game::STATUS_ACTIVE])
             ->andWhere(['not', ['game.title' => null]]);
+        AdultContent::filterOwned($query, 'game');
+
+        return $query;
     }
 }

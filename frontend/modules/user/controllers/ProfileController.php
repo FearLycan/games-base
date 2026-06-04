@@ -2,6 +2,7 @@
 
 namespace frontend\modules\user\controllers;
 
+use common\components\AdultContent;
 use common\models\Game;
 use common\models\GameOffer;
 use common\models\User;
@@ -12,6 +13,7 @@ use frontend\components\Controller;
 use frontend\modules\user\models\AchievementsFilter;
 use frontend\modules\user\models\AddEmailForm;
 use frontend\modules\user\models\LibraryFilter;
+use frontend\modules\user\models\PreferencesForm;
 use frontend\modules\user\models\ProfileStats;
 use frontend\modules\user\models\WishlistFilter;
 use Yii;
@@ -35,10 +37,10 @@ class ProfileController extends Controller
                 'class' => AccessControl::class,
                 // confirm-email is reachable from an email link, possibly while
                 // signed out, so it stays open; the rest requires a login.
-                'only'  => ['index', 'settings', 'add-email', 'library', 'wishlist', 'achievements', 'sync'],
+                'only'  => ['index', 'settings', 'add-email', 'preferences', 'library', 'wishlist', 'achievements', 'sync'],
                 'rules' => [
                     [
-                        'actions' => ['index', 'settings', 'add-email', 'library', 'wishlist', 'achievements', 'sync'],
+                        'actions' => ['index', 'settings', 'add-email', 'preferences', 'library', 'wishlist', 'achievements', 'sync'],
                         'allow'   => true,
                         'roles'   => ['@'],
                     ],
@@ -47,8 +49,9 @@ class ProfileController extends Controller
             'verbs' => [
                 'class'   => VerbFilter::class,
                 'actions' => [
-                    'add-email' => ['post'],
-                    'sync'      => ['post'],
+                    'add-email'   => ['post'],
+                    'preferences' => ['post'],
+                    'sync'        => ['post'],
                 ],
             ],
         ];
@@ -67,10 +70,31 @@ class ProfileController extends Controller
 
     public function actionSettings()
     {
+        $user = Yii::$app->user->identity;
+
         return $this->render('settings', [
-            'user'         => Yii::$app->user->identity,
-            'addEmailForm' => new AddEmailForm(Yii::$app->user->identity),
+            'user'            => $user,
+            'addEmailForm'    => new AddEmailForm($user),
+            'preferencesForm' => new PreferencesForm($user),
         ]);
+    }
+
+    /**
+     * Saves the account's content-visibility preferences (the 18+ switches).
+     */
+    public function actionPreferences()
+    {
+        /** @var User $user */
+        $user = Yii::$app->user->identity;
+        $form = new PreferencesForm($user);
+
+        if ($form->load(Yii::$app->request->post()) && $form->save()) {
+            Yii::$app->session->setFlash('success', 'Your content preferences have been saved.');
+        } else {
+            Yii::$app->session->setFlash('error', 'We could not save your preferences. Please try again.');
+        }
+
+        return $this->redirect(['settings']);
     }
 
     public function actionAddEmail()
@@ -86,8 +110,9 @@ class ProfileController extends Controller
         }
 
         return $this->render('settings', [
-            'user'         => $user,
-            'addEmailForm' => $model,
+            'user'            => $user,
+            'addEmailForm'    => $model,
+            'preferencesForm' => new PreferencesForm($user),
         ]);
     }
 
@@ -106,6 +131,7 @@ class ProfileController extends Controller
             ->innerJoinWith('game')
             ->andWhere(['game.status' => Game::STATUS_ACTIVE])
             ->andWhere(['not', ['game.title' => null]]);
+        AdultContent::filterOwned($query, 'game');
         $filter->apply($query);
 
         $dataProvider = new ActiveDataProvider([
@@ -169,6 +195,7 @@ class ProfileController extends Controller
                 $q->andWhere(['game_offer.status' => GameOffer::STATUS_ACTIVE])
                     ->with(['store', 'prices']);
             }]);
+        AdultContent::filterOwned($query, 'game');
         $filter->apply($query);
 
         $dataProvider = new ActiveDataProvider([
@@ -202,6 +229,7 @@ class ProfileController extends Controller
             ->innerJoinWith('achievement')
             ->innerJoinWith('game')
             ->where(['ua.user_id' => $user->id, 'game.status' => Game::STATUS_ACTIVE]);
+        AdultContent::filterOwned($query, 'game');
         $filter->apply($query);
 
         $dataProvider = new ActiveDataProvider([
@@ -210,11 +238,12 @@ class ProfileController extends Controller
             'sort'       => false,
         ]);
 
-        $total = (int)UserAchievement::find()
+        $totalQuery = UserAchievement::find()
             ->alias('ua')
             ->innerJoinWith('game')
-            ->where(['ua.user_id' => $user->id, 'game.status' => Game::STATUS_ACTIVE])
-            ->count();
+            ->where(['ua.user_id' => $user->id, 'game.status' => Game::STATUS_ACTIVE]);
+        AdultContent::filterOwned($totalQuery, 'game');
+        $total = (int)$totalQuery->count();
 
         return $this->render('achievements', [
             'user'         => $user,
@@ -240,6 +269,7 @@ class ProfileController extends Controller
             ->innerJoin(['g' => Game::tableName()], 'g.id = ua.game_id AND g.status = ' . Game::STATUS_ACTIVE)
             ->where(['ua.user_id' => $userId])
             ->andWhere(['not', ['g.title' => null]])
+            ->andWhere(new \yii\db\Expression(AdultContent::ownedSql('g')))
             ->orderBy(['g.title' => SORT_ASC])
             ->all();
 
@@ -252,11 +282,13 @@ class ProfileController extends Controller
      */
     private function countCatalogued(ActiveQuery $query): int
     {
-        return (int)$query
+        $query
             ->innerJoinWith('game', false)
             ->andWhere(['game.status' => Game::STATUS_ACTIVE])
-            ->andWhere(['not', ['game.title' => null]])
-            ->count();
+            ->andWhere(['not', ['game.title' => null]]);
+        AdultContent::filterOwned($query, 'game');
+
+        return (int)$query->count();
     }
 
     public function actionConfirmEmail(string $token)

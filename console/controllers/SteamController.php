@@ -12,9 +12,9 @@ use DateTime;
 use Symfony\Component\DomCrawler\Crawler;
 use Yii;
 use yii\base\Exception;
+use yii\db\Expression;
 use yii\console\Controller;
 use yii\console\ExitCode;
-use yii\helpers\VarDumper;
 use yii\httpclient\Client;
 use yii\mutex\FileMutex;
 
@@ -22,11 +22,10 @@ class SteamController extends Controller
 {
     private const string APPDETAILS_URL = 'https://store.steampowered.com/api/appdetails';
     private const string SEARCH_URL = 'https://store.steampowered.com/search/results/';
-    private const string APP_LIST_URL = 'http://api.steampowered.com/ISteamApps/GetAppList/v0002';
 
     private const string LOCK_SYNC         = 'steam/sync';
+    private const string LOCK_DISCOVER     = 'steam/discover';
     private const string LOCK_COMING_SOON  = 'steam/coming-soon';
-    private const string LOCK_APP_LIST     = 'steam/create-app-list';
     private const string LOCK_BACKFILL     = 'steam/backfill-offers';
 
     private const string STEAM_STORE_SLUG = 'steam';
@@ -44,6 +43,21 @@ class SteamController extends Controller
 
     private const int SYNC_DELAY_MIN = 2;
     private const int SYNC_DELAY_MAX = 4;
+
+    /**
+     * actionDiscover does a single (cheap) appdetails call per game, so it can
+     * pace tighter than the full sync and still stay well under the per-IP limit.
+     */
+    private const int DISCOVER_DELAY_MIN = 1;
+    private const int DISCOVER_DELAY_MAX = 2;
+
+    /**
+     * Steam `type`s worth enriching. actionDiscover keeps these in the sync queue
+     * and triages everything else (music, video, demo, hardware, mod…) straight
+     * to STATUS_INACTIVE so the full sync never spends its request budget on them.
+     */
+    private const array DISCOVER_KEEP_TYPES = [Game::TYPE_GAME, Game::TYPE_DLC];
+
     private const int SEARCH_DELAY_MIN = 5;
     private const int SEARCH_DELAY_MAX = 15;
     private const int SEARCH_PAGE_SIZE = 50;
@@ -80,18 +94,166 @@ class SteamController extends Controller
      */
     public bool $verbose = false;
 
+    /**
+     * Worker sharding for actionSync. Run the same sync on two boxes (each on its
+     * own IP, to stay under Steam's per-IP rate limit) with `--shards=2` and a
+     * distinct `--shard` (0 and 1): the `id % shards = shard` filter gives each
+     * worker a disjoint slice of the queue, so they never sync the same game and
+     * need no cross-host coordination. Defaults (shard 0 of 1 shard) leave the
+     * single-server behaviour unchanged.
+     */
+    public int $shard = 0;
+    public int $shards = 1;
+
     public function options($actionID): array
     {
         $options = parent::options($actionID);
-        if ($actionID === 'sync' || $actionID === 'backfill-offers') {
+        if ($actionID === 'sync' || $actionID === 'discover' || $actionID === 'backfill-offers') {
             $options[] = 'verbose';
+        }
+        if ($actionID === 'sync' || $actionID === 'discover') {
+            $options[] = 'shard';
+            $options[] = 'shards';
         }
         return $options;
     }
 
+    /**
+     * Validates the --shard / --shards pair, printing the reason and returning a
+     * USAGE exit code when invalid, or null when the config is sound. Shared by
+     * the sharded actions.
+     */
+    private function shardingError(): ?int
+    {
+        if ($this->shards < 1 || $this->shard < 0 || $this->shard >= $this->shards) {
+            $this->stderr("Invalid sharding: --shard must be in [0, shards) and --shards >= 1.\n");
+            return ExitCode::USAGE;
+        }
+
+        return null;
+    }
+
     public function actionSync(int $limit = 100): int
     {
-        return $this->withLock(self::LOCK_SYNC, fn(): int => $this->runSync($limit));
+        if (($err = $this->shardingError()) !== null) {
+            return $err;
+        }
+
+        // Scope the lock to the shard so two workers can run on the same host
+        // without one's busy lock blocking the other (across hosts the file locks
+        // are already independent).
+        $lock = self::LOCK_SYNC . ':' . $this->shard;
+
+        return $this->withLock($lock, fn(): int => $this->runSync($limit));
+    }
+
+    /**
+     * Lightweight triage pass that drains the raw WAIT_TO_SYNC backlog with a
+     * single appdetails call per game — no enrichment, no per-region price calls.
+     * Each game is classified once:
+     *   - request returns success=false (dead/region-locked appid) -> SUCCESS_FALSE
+     *   - a type we don't enrich (music, video, demo, hardware…)   -> INACTIVE
+     *   - a game/DLC we keep -> its cheap scalar fields are stored and it stays
+     *     WAIT_TO_SYNC (now with a non-null type) for the full sync to enrich.
+     *
+     * This is what lets the full sync stop wasting its ~9-request-per-game budget
+     * on junk: it only ever sees games discovery has already confirmed (see
+     * {@see newGamesQuery()}). Discovery operates on type-null rows and the full
+     * sync on type-non-null rows, so the two never pick the same game — they can
+     * run in parallel, and sharded across two boxes as well (--shards/--shard).
+     */
+    public function actionDiscover(int $limit = 500): int
+    {
+        if (($err = $this->shardingError()) !== null) {
+            return $err;
+        }
+
+        $lock = self::LOCK_DISCOVER . ':' . $this->shard;
+
+        return $this->withLock($lock, fn(): int => $this->runDiscover($limit));
+    }
+
+    private function runDiscover(int $limit): int
+    {
+        // Snapshot up front: discovery flips type/status on each row, which would
+        // otherwise shift a paged query's OFFSET and skip rows mid-iteration.
+        $query = $this->untriagedQuery();
+        if ($limit > 0) {
+            $query->limit($limit);
+        }
+        $appids = $query->column();
+
+        $total = count($appids);
+        $batchStart = microtime(true);
+        if ($this->verbose) {
+            $this->stdout("Starting discovery of {$total} game(s)\n");
+        }
+
+        foreach ($appids as $i => $appid) {
+            $position = $i + 1;
+            $start = microtime(true);
+            try {
+                $this->discoverOne((int)$appid);
+                if ($this->verbose) {
+                    $elapsed = round(microtime(true) - $start, 2);
+                    $this->stdout("[{$position}/{$total}] Triaged {$appid} in {$elapsed}s\n");
+                }
+            } catch (Exception $e) {
+                $elapsed = round(microtime(true) - $start, 2);
+                $this->stderr("[{$position}/{$total}] Failed {$appid} after {$elapsed}s: {$e->getMessage()}\n");
+            }
+            sleep(random_int(self::DISCOVER_DELAY_MIN, self::DISCOVER_DELAY_MAX));
+        }
+
+        if ($this->verbose) {
+            $totalElapsed = round(microtime(true) - $batchStart, 2);
+            $this->stdout("Finished discovery of {$total} game(s) in {$totalElapsed}s\n");
+        }
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Triages one queued appid with a single appdetails call. See
+     * {@see actionDiscover()} for the classification rules. A failed HTTP request
+     * throws (leaving the row untriaged for a later run) rather than dropping the
+     * game.
+     */
+    private function discoverOne(int $appid): void
+    {
+        $game = Game::findOne(['steam_appid' => $appid]);
+        if (!$game) {
+            return;
+        }
+
+        $node = $this->requestAppDetails($appid);
+        if ($node === null) {
+            throw new Exception("appdetails request failed for appid {$appid}");
+        }
+
+        $data = $node['data'] ?? null;
+        if (empty($node['success']) || !is_array($data)) {
+            $game->status = Game::STATUS_SUCCESS_FALSE;
+            $game->force_sync = false;
+            $game->synchronized_at = date('Y-m-d H:i:s');
+            $game->save(false);
+            return;
+        }
+
+        $type = $data['type'] ?? null;
+        if (!in_array($type, self::DISCOVER_KEEP_TYPES, true)) {
+            // Real Steam entry, but not something we enrich — record what it was
+            // and take it out of the queue.
+            $game->type = is_string($type) ? $type : null;
+            $game->status = Game::STATUS_INACTIVE;
+            $game->synchronized_at = date('Y-m-d H:i:s');
+            $game->save(false);
+            return;
+        }
+
+        // A game/DLC we keep: store the cheap scalars from this same payload and
+        // leave it WAIT_TO_SYNC (now type-tagged) for the full sync to enrich.
+        $game->setDiscoveryInformation($data);
     }
 
     private function runSync(int $limit): int
@@ -201,23 +363,63 @@ class SteamController extends Controller
         return $appids;
     }
 
-    /** First-time syncs: games added by the app-list / coming-soon crawlers. */
-    private function newGamesQuery(): GameQuery
+    /**
+     * Restricts a candidate query to this worker's id-class when sharding is on
+     * (no-op for a single worker). `id` is the primary key and evenly
+     * distributed, so the shards stay balanced; combined with the existing status
+     * filter, id ordering and LIMIT the planner walks the index and stops at the
+     * first matches, so the unindexable modulo stays cheap.
+     */
+    private function applyShard(GameQuery $query): GameQuery
     {
-        return Game::find()
+        if ($this->shards <= 1) {
+            return $query;
+        }
+
+        return $query->andWhere(new Expression(
+            'id % :shards = :shard',
+            [':shards' => $this->shards, ':shard' => $this->shard]
+        ));
+    }
+
+    /**
+     * Raw, not-yet-triaged stubs: queued (WAIT_TO_SYNC) with no type resolved
+     * yet (coming-soon / DLC stubs only carry a steam_appid). actionDiscover's
+     * input set; disjoint from {@see newGamesQuery()} (type-tagged), so the two
+     * passes never touch the same row.
+     */
+    private function untriagedQuery(): GameQuery
+    {
+        return $this->applyShard(Game::find()
             ->select('steam_appid')
             ->andWhere(['status' => Game::STATUS_WAIT_TO_SYNC])
-            ->orderBy(['id' => SORT_DESC]);
+            ->andWhere(['type' => null])
+            ->orderBy(['id' => SORT_DESC]));
+    }
+
+    /**
+     * First-time full syncs: games actionDiscover has already triaged as a
+     * keep-type (so WAIT_TO_SYNC with a non-null type) and are now waiting for
+     * enrichment. Untriaged stubs (type null) are intentionally excluded — they
+     * go through discovery first, which keeps junk out of the costly sync.
+     */
+    private function newGamesQuery(): GameQuery
+    {
+        return $this->applyShard(Game::find()
+            ->select('steam_appid')
+            ->andWhere(['status' => Game::STATUS_WAIT_TO_SYNC])
+            ->andWhere(['not', ['type' => null]])
+            ->orderBy(['id' => SORT_DESC]));
     }
 
     /** Already-synced games flagged for a refresh (recently viewed). */
     private function forceSyncQuery(): GameQuery
     {
-        return Game::find()
+        return $this->applyShard(Game::find()
             ->select('steam_appid')
             ->andWhere(['force_sync' => 1])
             ->andWhere(['not', ['status' => Game::STATUS_WAIT_TO_SYNC]])
-            ->orderBy(['id' => SORT_DESC]);
+            ->orderBy(['id' => SORT_DESC]));
     }
 
     /**
@@ -229,12 +431,12 @@ class SteamController extends Controller
     {
         $cutoff = (new DateTime('-' . self::SYNC_STALE_AFTER_DAYS . ' days'))->format('Y-m-d H:i:s');
 
-        return Game::find()
+        return $this->applyShard(Game::find()
             ->select('steam_appid')
             ->andWhere(['status' => Game::STATUS_ACTIVE])
             ->andWhere(['force_sync' => 0])
             ->andWhere(['<', 'synchronized_at', $cutoff])
-            ->orderBy(['synchronized_at' => SORT_ASC]);
+            ->orderBy(['synchronized_at' => SORT_ASC]));
     }
 
     public function actionGetInfo(int $app_id): int
@@ -246,22 +448,12 @@ class SteamController extends Controller
             return ExitCode::DATAERR;
         }
 
-        $client = new Client(['baseUrl' => self::APPDETAILS_URL]);
-        $request = $client->createRequest()
-            ->setHeaders(['Content-language' => 'en'])
-            ->setMethod('GET')
-            ->setData(['appids' => $app_id, 'cc' => 'us']);
-
-        $response = $request->send();
-
-        if (!$response->isOk) {
-            throw new Exception(
-                "Request to $request->url failed with response: \n"
-                . VarDumper::dumpAsString($response->data)
-            );
+        $node = $this->requestAppDetails($app_id);
+        if ($node === null) {
+            throw new Exception("appdetails request failed for appid {$app_id}");
         }
 
-        if (empty($response->data[$app_id]['success'])) {
+        if (empty($node['success'])) {
             $game->status = Game::STATUS_SUCCESS_FALSE;
             $game->force_sync = false;
             $game->synchronized_at = date('Y-m-d H:i:s');
@@ -269,14 +461,38 @@ class SteamController extends Controller
             return ExitCode::OK;
         }
 
-        $game->setBaseInformation($response->data[$app_id]['data']);
+        $game->setBaseInformation($node['data']);
 
         // Model Steam as a first-class offer (its own store row) so the cheapest
         // offer / deal rankings can include it. The us payload already has USD;
         // EUR/PLN come from two small price-only calls.
-        $this->syncSteamOffer($game, $response->data[$app_id]['data']);
+        $this->syncSteamOffer($game, $node['data']);
 
         return ExitCode::OK;
+    }
+
+    /**
+     * The appdetails (cc=us) node for one app — `$response->data[$appid]`, which
+     * carries `success` and, when successful, the full `data` payload. Returns
+     * null only when the HTTP request itself failed, so callers can retry later;
+     * a reachable-but-unknown app comes back as `['success' => false]`.
+     *
+     * @return array{success?:bool, data?:array<string,mixed>}|null
+     */
+    private function requestAppDetails(int $appid): ?array
+    {
+        $response = (new Client(['baseUrl' => self::APPDETAILS_URL]))
+            ->createRequest()
+            ->setHeaders(['Content-language' => 'en'])
+            ->setMethod('GET')
+            ->setData(['appids' => $appid, 'cc' => 'us'])
+            ->send();
+
+        if (!$response->isOk) {
+            return null;
+        }
+
+        return $response->data[$appid] ?? ['success' => false];
     }
 
     /**
@@ -562,54 +778,23 @@ class SteamController extends Controller
         return ExitCode::OK;
     }
 
+    /**
+     * @deprecated Abandoned. The ISteamApps/GetAppList endpoint this relied on
+     * stopped returning usable data, and a full-catalogue seed flooded the sync
+     * queue with junk (DLC/soundtracks/tools) faster than it could drain anyway.
+     * New appids now come from actionGetComingSoon() and the keyshop crawlers.
+     * Kept as a no-op so any leftover crontab entry fails loudly without doing
+     * harm; remove the schedule and then this stub.
+     */
     public function actionCreateAppList(): int
     {
-        return $this->withLock(self::LOCK_APP_LIST, fn(): int => $this->runCreateAppList());
-    }
-
-    private function runCreateAppList(): int
-    {
-        $client = new Client(['baseUrl' => self::APP_LIST_URL]);
-
-        $request = $client->createRequest()
-            ->setMethod('GET')
-            ->setData([
-                'key'    => Yii::$app->params['steamkey'],
-                'format' => 'json',
-            ]);
-
-        $response = $request->send();
-
-        if (!$response->isOk) {
-            $this->stderr("GetAppList request failed\n");
-            return ExitCode::TEMPFAIL;
-        }
-
-        $existing = array_flip(Game::find()
-            ->select('steam_appid')
-            ->where(['is not', 'steam_appid', null])
-            ->column()
+        $this->stderr(
+            "steam/create-app-list is deprecated and no longer functional "
+            . "(GetAppList endpoint dead). Remove it from your crontab; new appids "
+            . "come from steam/get-coming-soon and the keyshop crawlers.\n"
         );
-        $newCount = 0;
 
-        foreach ($response->data['applist']['apps'] as $app) {
-            if (isset($existing[$app['appid']])) {
-                continue;
-            }
-
-            $game = new Game();
-            $game->steam_appid = (int)$app['appid'];
-            $game->title = $app['name'];
-
-            if ($game->save()) {
-                $existing[$app['appid']] = true;
-                $newCount++;
-                $this->stdout("Nowa gra {$app['name']}\n");
-            }
-        }
-
-        $this->stdout("Dodano nowych gier: {$newCount}\n");
-        return ExitCode::OK;
+        return ExitCode::UNAVAILABLE;
     }
 
     /**

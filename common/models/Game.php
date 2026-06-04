@@ -2,6 +2,7 @@
 
 namespace common\models;
 
+use common\components\AdultContent;
 use common\components\CurrencyResolver;
 use common\components\DisplayPrice;
 use common\components\GameQuery;
@@ -25,6 +26,8 @@ use yii\httpclient\Client;
  * @property int|null       $steam_appid
  * @property int|null       $fullgame_appid
  * @property int|null       $required_age
+ * @property string|null    $content_descriptors comma-separated Steam content-descriptor ids
+ * @property bool           $is_adult            derived from content descriptors 3/4 (sexual adult-only content)
  * @property int|null       $is_free
  * @property string|null    $type
  * @property int|null       $status
@@ -75,6 +78,16 @@ class Game extends ActiveRecord
     public const string TYPE_DLC   = 'dlc';
     public const string TYPE_MUSIC = 'music';
     public const string TYPE_DEMO  = 'demo';
+
+    /**
+     * Steam content-descriptor ids that Steam itself hard-gates behind the
+     * mandatory adult opt-in, and which therefore mark a game as adult here:
+     *   3 = Adult Only Sexual Content
+     *   4 = Frequent Nudity or Sexual Content
+     * The milder descriptors (1 some nudity, 2 violence/gore, 5 general mature)
+     * are left visible — they cover plenty of mainstream M-rated titles.
+     */
+    public const array ADULT_CONTENT_DESCRIPTORS = [3, 4];
 
     private const int SALES_CACHE_TTL = 3600;
 
@@ -130,10 +143,11 @@ class Game extends ActiveRecord
     {
         return [
             [['steam_appid', 'fullgame_appid', 'status', 'steam_price_final', 'steam_price_initial', 'achievements_total'], 'integer'],
-            [['required_age', 'is_free', 'force_sync'], 'boolean'],
+            [['required_age', 'is_free', 'force_sync', 'is_adult'], 'boolean'],
             [['detailed_description', 'about_the_game', 'short_description'], 'string'],
             [['release_date', 'created_at', 'updated_at', 'synchronized_at'], 'safe'],
             [['title', 'type', 'website'], 'string', 'max' => 255],
+            [['content_descriptors'], 'string', 'max' => 64],
         ];
     }
 
@@ -324,7 +338,7 @@ class Game extends ActiveRecord
      */
     public static function getSales(int $type, int $limit = 30, bool $excludeFree = false): array
     {
-        $key = ['game.sales', $type, $limit, $excludeFree];
+        $key = ['game.sales', $type, $limit, $excludeFree, AdultContent::catalogCacheKey()];
 
         return Yii::$app->cache->getOrSet($key, static function () use ($type, $limit, $excludeFree): array {
             $query = self::find()
@@ -334,6 +348,7 @@ class Game extends ActiveRecord
                     'game.status'    => self::STATUS_ACTIVE,
                     'game.type'      => self::TYPE_GAME,
                 ])
+                ->hideAdultCatalog()
                 // Eager-load the data the cards render (genre + cheapest offer with
                 // prices/store) so the cached list carries it too — homepage and
                 // sale pages then render prices without a query per game.
@@ -392,7 +407,7 @@ class Game extends ActiveRecord
     private static function dealRanking(string $mode, int $limit, ?string $currency): array
     {
         $currency = strtoupper($currency ?? CurrencyResolver::forVisitor());
-        $key = ['game.deals', $mode, $currency, $limit];
+        $key = ['game.deals', $mode, $currency, $limit, AdultContent::catalogCacheKey()];
 
         return Yii::$app->cache->getOrSet($key, static function () use ($mode, $limit, $currency): array {
             // ROW_NUMBER picks each game's cheapest offer so the ranking stays
@@ -425,7 +440,11 @@ class Game extends ActiveRecord
                     'g.type'    => self::TYPE_GAME,
                     'g.is_free' => 0,
                 ])
-                ->andWhere('t.price_initial > t.price_final')
+                ->andWhere('t.price_initial > t.price_final');
+
+            AdultContent::filterCatalog($ids, 'g');
+
+            $ids = $ids
                 ->orderBy(new \yii\db\Expression($order))
                 ->limit($limit)
                 ->column();
@@ -443,7 +462,7 @@ class Game extends ActiveRecord
      */
     public static function getMostWishlisted(int $limit = 8): array
     {
-        $key = ['game.most-wishlisted', $limit];
+        $key = ['game.most-wishlisted', $limit, AdultContent::catalogCacheKey()];
 
         return Yii::$app->cache->getOrSet($key, static function () use ($limit): array {
             $ids = (new \yii\db\Query())
@@ -454,7 +473,11 @@ class Game extends ActiveRecord
                     'g.status'  => self::STATUS_ACTIVE,
                     'g.type'    => self::TYPE_GAME,
                     'g.is_free' => 0,
-                ])
+                ]);
+
+            AdultContent::filterCatalog($ids, 'g');
+
+            $ids = $ids
                 ->groupBy('w.game_id')
                 ->orderBy(new \yii\db\Expression('COUNT(*) DESC'))
                 ->limit($limit)
@@ -478,7 +501,7 @@ class Game extends ActiveRecord
      */
     public static function getNewReleases(int $limit = 8): array
     {
-        $key = ['game.new-releases', $limit];
+        $key = ['game.new-releases', $limit, AdultContent::catalogCacheKey()];
 
         return Yii::$app->cache->getOrSet($key, static function () use ($limit): array {
             $ids = self::find()
@@ -488,6 +511,7 @@ class Game extends ActiveRecord
                     'type'    => self::TYPE_GAME,
                     'is_free' => 0,
                 ])
+                ->hideAdultCatalog()
                 ->andWhere(['not', ['release_date' => null]])
                 ->andWhere(['<=', 'release_date', date('Y-m-d')])
                 ->orderBy(['release_date' => SORT_DESC])
@@ -508,7 +532,7 @@ class Game extends ActiveRecord
     public static function getHistoricalLows(int $limit = 8, ?string $currency = null): array
     {
         $currency = strtoupper($currency ?? CurrencyResolver::forVisitor());
-        $key = ['game.historical-lows', $currency, $limit];
+        $key = ['game.historical-lows', $currency, $limit, AdultContent::catalogCacheKey()];
 
         return Yii::$app->cache->getOrSet($key, static function () use ($limit, $currency): array {
             // The game's cheapest current offer (the one we display), with its own
@@ -540,7 +564,11 @@ class Game extends ActiveRecord
                 ])
                 // At its lowest ever, and once more expensive than now.
                 ->andWhere('t.price_final <= t.lowest_final')
-                ->andWhere('t.highest_final > t.price_final')
+                ->andWhere('t.highest_final > t.price_final');
+
+            AdultContent::filterCatalog($ids, 'g');
+
+            $ids = $ids
                 ->orderBy(new \yii\db\Expression('(t.highest_final - t.price_final) DESC'))
                 ->limit($limit)
                 ->column();
@@ -564,7 +592,7 @@ class Game extends ActiveRecord
         }
 
         $currency = strtoupper($currency ?? CurrencyResolver::forVisitor());
-        $key = ['game.wishlist-deals', $userId, $currency, $limit];
+        $key = ['game.wishlist-deals', $userId, $currency, $limit, AdultContent::ownedCacheKey()];
 
         return Yii::$app->cache->getOrSet($key, static function () use ($userId, $limit, $currency): array {
             $cheapest = (new \yii\db\Query())
@@ -592,7 +620,11 @@ class Game extends ActiveRecord
                     'g.type'    => self::TYPE_GAME,
                     'g.is_free' => 0,
                 ])
-                ->andWhere('t.price_initial > t.price_final')
+                ->andWhere('t.price_initial > t.price_final');
+
+            AdultContent::filterOwned($ids, 'g');
+
+            $ids = $ids
                 ->orderBy(new \yii\db\Expression('(t.price_initial - t.price_final) / t.price_initial DESC'))
                 ->limit($limit)
                 ->column();
@@ -618,7 +650,7 @@ class Game extends ActiveRecord
         // Rotate the seed a few times a day (every 3h). The time slot drives both
         // the cache key (so it turns over) and the index into the candidate pool.
         $slot = intdiv(time(), 3 * 3600);
-        $key = ['game.because-you-played', $userId, $limit, $slot];
+        $key = ['game.because-you-played', $userId, $limit, $slot, AdultContent::catalogCacheKey()];
 
         return Yii::$app->cache->getOrSet($key, static function () use ($userId, $limit, $slot): ?array {
             // Candidates: the user's most-played catalogue games. We rotate the
@@ -664,6 +696,7 @@ class Game extends ActiveRecord
                 ->andWhere(['gg.genre_id' => $genreIds])
                 ->andWhere(['g.status' => self::STATUS_ACTIVE, 'g.type' => self::TYPE_GAME, 'g.is_free' => 0])
                 ->andWhere(['not in', 'g.id', $owned])
+                ->hideAdultCatalog('g')
                 ->groupBy('g.id')
                 ->orderBy(['shared' => SORT_DESC, 'reviews' => SORT_DESC])
                 ->limit($limit)
@@ -1056,10 +1089,52 @@ class Game extends ActiveRecord
         }
     }
 
+    /**
+     * Lightweight counterpart to {@see setBaseInformation()} for the discovery
+     * triage pass: stores only the cheap scalar fields that come free in the
+     * appdetails payload (no extra HTTP, no relations) and deliberately leaves
+     * the row WAIT_TO_SYNC so the full sync still enriches it later. Setting the
+     * `type` is what graduates the stub from the discovery queue into the full
+     * sync queue (see SteamController::newGamesQuery()).
+     *
+     * @param array<string, mixed> $information the appdetails `data` node
+     */
+    public function setDiscoveryInformation(array $information): void
+    {
+        $this->title = $information['name'] ?? $this->title;
+        $this->type = $information['type'] ?? null;
+        $this->is_free = $information['is_free'] ?? null;
+        $this->steam_price_initial = $information['price_overview']['initial'] ?? 0;
+        $this->steam_price_final = $information['price_overview']['final'] ?? 0;
+        $this->trySetReleaseDate($information['release_date']['date'] ?? '');
+        $this->fullgame_appid = isset($information['fullgame']['appid'])
+            ? (int)$information['fullgame']['appid']
+            : null;
+        $this->save(false);
+    }
+
+    /**
+     * Stores the Steam content-descriptor ids (as a sorted CSV) and derives the
+     * adult flag from them. A game counts as adult only when it carries one of
+     * {@see ADULT_CONTENT_DESCRIPTORS} (3/4 — adult-only sexual content), the same
+     * signal Steam gates on; required_age is not used.
+     *
+     * @param int[] $ids raw content_descriptors.ids from appdetails
+     */
+    public function setContentDescriptors(array $ids): void
+    {
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        sort($ids);
+
+        $this->content_descriptors = $ids === [] ? null : implode(',', $ids);
+        $this->is_adult = array_intersect($ids, self::ADULT_CONTENT_DESCRIPTORS) !== [];
+    }
+
     public function setBaseInformation($information): self
     {
         $this->title = $information['name'];
         $this->required_age = (boolean)$information['required_age'];
+        $this->setContentDescriptors($information['content_descriptors']['ids'] ?? []);
         $this->is_free = $information['is_free'];
         $this->type = $information['type'];
         $this->detailed_description = Helper::clearHtml($information['detailed_description']);

@@ -19,17 +19,46 @@ and how long did it take".
  COMMANDS  (suggested cadence — the real schedule lives in the server crontab)
 --------------------------------------------------------------------------------
 
-  steam/sync [--limit=100] [--verbose=1]
+  steam/discover [--limit=500] [--verbose=1] [--shards=1] [--shard=0]
+      Lightweight triage of the raw queue: one cheap appdetails call per new stub
+      to classify it. Dead/region-locked appids -> success_false; types we don't
+      enrich (music, video, demo, hardware…) -> inactive; real games/DLC get their
+      cheap scalar fields stored and a type tag, which graduates them into the
+      full-sync queue. This is what stops steam/sync wasting its ~9-request budget
+      on junk. Runs on the type-null rows, sync on the type-tagged rows, so the two
+      never collide and can run in parallel (and sharded — same --shards/--shard
+      as steam/sync). Run this before/alongside steam/sync.
+      Cadence: new appids arrive rarely (coming-soon + DLC stubs), so once the
+      initial backlog is drained this only needs to run every few hours. Run it
+      often only while first draining a large WAIT_TO_SYNC / type-null backlog.
+      Drain progress: SELECT COUNT(*) FROM game WHERE status=0 AND type IS NULL;
+
+  steam/sync [--limit=100] [--verbose=1] [--shards=1] [--shard=0]
       Pulls fresh Steam data for games waiting to sync / flagged force_sync.
-      Cadence: often, small batches — e.g. every 15 min.
+      Only enriches games steam/discover has already triaged (keep-type stubs),
+      plus force_sync re-syncs and long-stale refreshes.
+      In practice the dominant load is force_sync: Game::checkSyncDate() flags
+      every viewed game whose data is older than a day, and each flag triggers a
+      full ~9-request re-sync — so the bottleneck is throughput, not new games.
+      Cadence: often, small batches — e.g. every 5 min.
+      Sharding (the lever for the force_sync backlog): run the same command on
+      both boxes (each on its own IP, to stay under Steam's per-IP rate limit)
+      with --shards=2 and a distinct --shard (0 on one, 1 on the other). Each
+      worker takes a disjoint id-class (id % shards = shard) of the force_sync /
+      new / stale queues, so they never sync the same game and need no
+      coordination — roughly doubling drain rate.
+        box A:  steam/sync 80 --shards=2 --shard=0
+        box B:  steam/sync 80 --shards=2 --shard=1
 
   steam/get-coming-soon
       Discovers upcoming Steam titles, then recounts genres/tags/features.
       Cadence: daily.
 
-  steam/create-app-list
-      Rebuilds the full Steam app list (seeds new appids).
-      Cadence: weekly / occasional.
+  steam/create-app-list   [DEPRECATED — do not schedule]
+      Abandoned: the ISteamApps/GetAppList endpoint it used is dead, and the
+      full-catalogue seed flooded the sync queue with junk faster than it drained.
+      The action is now a no-op that exits non-zero. New appids come from
+      steam/get-coming-soon and the keyshop crawlers.
 
   steam-spy/create-app-list
       Seeds appids from SteamSpy.
@@ -61,20 +90,36 @@ and how long did it take".
       Cadence: daily, after the catalog sync.
 
 --------------------------------------------------------------------------------
- EXAMPLE CRONTAB  (adjust times to taste; paths assume docker compose)
+ EXAMPLE CRONTAB — TWO BOXES (different IPs, shared DB)
 --------------------------------------------------------------------------------
 
-  # m   h   command
-  */5   *   * * *   docker compose exec -T php php yii import/all
-  */15  *   * * *   docker compose exec -T php php yii steam/sync --limit=100
-  0     */6 * * *   docker compose exec -T php php yii sale/synchronize
-  15    3   * * *   docker compose exec -T php php yii steam/get-coming-soon
-  30    3   * * *   docker compose exec -T php php yii genre/recount
-  35    3   * * *   docker compose exec -T php php yii tag/recount
-  40    3   * * *   docker compose exec -T php php yii category/recount
-  42    3   * * *   docker compose exec -T php php yii developer/recount
-  44    3   * * *   docker compose exec -T php php yii publisher/recount
-  50    3   * * *   docker compose exec -T php php yii sitemap/generate
-  0     4   * * 1   docker compose exec -T php php yii steam/create-app-list
+ The dominant Steam load is the force_sync re-sync backlog, so steam/sync is
+ sharded across both boxes (--shards=2, distinct --shard) to roughly double the
+ drain rate. Everything else stays on box A only — one-shot jobs (get-coming-soon,
+ sale, sitemap, recounts, geo-ip, cache flush) must NOT run on both or they
+ duplicate work / double the API hits. New games are rare, so steam/discover runs
+ infrequently (box A). steam-user/* hit a different Steam endpoint, so they don't
+ compete with sync for the appdetails budget.
+
+ --- BOX A (IP #1) -------------------------------------------------------------
+
+  # m          h   command
+  */5          *   * * *   php yii steam/sync 80 --shards=2 --shard=0
+  0            */4 * * *   php yii steam/discover 500
+  30           4   * * *   php yii steam/get-coming-soon
+  0            6,18 * * *  php yii sale/synchronize
+  0            6   * * *   php yii sitemap/generate
+  0            8   * * *   php yii cache/flush-all
+  */5          *   * * *   php yii import/all
+  0            4   * * 7   php yii geo-ip/update
+  0,15,30,45   *   * * *   php yii instant-gaming/match
+  7,22,37,52   *   * * *   php yii instant-gaming/refresh-prices
+  */5          *   * * *   php yii steam-user/sync 50
+  */5          *   * * *   php yii steam-user/sync-achievements 100
+
+ --- BOX B (IP #2) — only the sharded sync half ---------------------------------
+
+  # m          h   command
+  */5          *   * * *   php yii steam/sync 80 --shards=2 --shard=1
 
 ================================================================================

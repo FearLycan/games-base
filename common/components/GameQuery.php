@@ -5,6 +5,7 @@ namespace common\components;
 use common\models\Game;
 use common\models\GameOffer;
 use common\models\GameStoreScan;
+use common\components\AdultContent;
 use yii\db\ActiveQuery;
 
 /**
@@ -57,6 +58,18 @@ class GameQuery extends ActiveQuery
     public function active(string $alias = 'game'): GameQuery
     {
         return $this->andWhere([$alias . '.status' => Game::STATUS_ACTIVE]);
+    }
+
+    /**
+     * Scope — hides adult (is_adult = 1) games from a catalogue list unless the
+     * current viewer has opted in. Delegates the per-viewer decision to
+     * {@see AdultContent}. Pass $alias when the query is aliased.
+     */
+    public function hideAdultCatalog(string $alias = 'game'): GameQuery
+    {
+        AdultContent::filterCatalog($this, $alias);
+
+        return $this;
     }
 
     /**

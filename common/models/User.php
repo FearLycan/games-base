@@ -32,6 +32,8 @@ use yii\web\IdentityInterface;
  * @property string $updated_at
  * @property string $password write-only password
  * @property int    $role
+ * @property bool        $show_adult       show 18+ games in the public catalogue
+ * @property bool        $show_adult_owned show 18+ games in the user's own library/wishlist/achievements
  */
 class User extends ActiveRecord implements IdentityInterface
 {
@@ -65,6 +67,8 @@ class User extends ActiveRecord implements IdentityInterface
         return [
             ['status', 'default', 'value' => self::STATUS_INACTIVE],
             ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
+            [['show_adult', 'show_adult_owned'], 'boolean'],
+            [['show_adult', 'show_adult_owned'], 'default', 'value' => false],
         ];
     }
 

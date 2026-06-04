@@ -137,7 +137,8 @@ class PublisherController extends Controller
                 'gp.publisher_id' => $publisherId,
                 'game.status'     => Game::STATUS_ACTIVE,
                 'game.type'       => Game::TYPE_GAME,
-            ]);
+            ])
+            ->hideAdultCatalog('game');
 
         $query = match ($sort) {
             'newest' => $query->orderBy(['game.release_date' => SORT_DESC]),
