@@ -6,7 +6,9 @@ use yii\helpers\Url;
 
 /* @var $this yii\web\View */
 /* @var $game Game */
+/* @var $rank int|null Optional 1-based chart position; renders a rank numeral on the cover. */
 
+$rank = $rank ?? null;
 $price = $game->getDisplayPrice();
 ?>
 
@@ -17,6 +19,13 @@ $price = $game->getDisplayPrice();
              alt="<?= Html::encode($game->title) ?>"
              loading="lazy"
              class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]">
+        <?php if ($rank !== null): ?>
+            <!-- Chart rank: a bottom scrim keeps the numeral legible on any cover art. -->
+            <div class="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/55 to-transparent"></div>
+            <span class="absolute bottom-1.5 left-2 font-display text-xl font-bold leading-none tabular-nums text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.55)]">
+                <?= str_pad((string)$rank, 2, '0', STR_PAD_LEFT) ?>
+            </span>
+        <?php endif; ?>
         <?php if ($price !== null && $price->isDiscounted()): ?>
             <span class="absolute top-2 right-2 rounded-full bg-accent px-2 py-0.5 text-xs font-bold tabular-nums text-white shadow-sm">−<?= $price->discount ?>%</span>
         <?php endif; ?>

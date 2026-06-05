@@ -38,6 +38,7 @@ $groups = [
     'Commerce' => [
         ['Stores', 'store', 'store/index', 'bi-shop'],
         ['Offers', 'game-offer', 'game-offer/index', 'bi-cart3'],
+        ['Lists', 'game-sale', 'game-sale/index', 'bi-graph-up-arrow'],
     ],
     'System' => [
         ['Users', 'user', 'user/index', 'bi-people'],

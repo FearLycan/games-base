@@ -22,6 +22,8 @@ if ($model->isBestseller()) {
     $saleLabel = ['text' => 'New', 'class' => 'bg-sky-600/95'];
 } elseif ($model->isPopularUpcoming()) {
     $saleLabel = ['text' => 'Upcoming', 'class' => 'bg-indigo-600/95'];
+} elseif ($model->isIgTrending()) {
+    $saleLabel = ['text' => 'Trending', 'class' => 'bg-emerald-600/95'];
 }
 
 $price = $model->getDisplayPrice();

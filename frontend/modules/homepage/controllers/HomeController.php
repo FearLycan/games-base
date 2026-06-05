@@ -57,6 +57,22 @@ class HomeController extends Controller
         $new_and_noteworthy = Game::getSales(GameSale::TYPE_NEW_AND_NOTEWORTHY, 30, true);
         $popular_upcoming = Game::getSales(GameSale::TYPE_POPULAR_UPCOMING, 30, true);
 
+        // Curated Instant Gaming listings, each its own carousel. Adding a rail is
+        // one row here + a GameSale type (see InstantGamingController::LISTS). Rails
+        // with nothing matched yet are dropped so we never show an empty section.
+        $igRails = [];
+        foreach ([
+            ['type' => GameSale::TYPE_IG_TRENDING,    'eyebrow' => 'Hot right now', 'label' => 'Trending on Instant Gaming', 'tagline' => 'Selling fast this week.'],
+            ['type' => GameSale::TYPE_IG_BESTSELLERS, 'eyebrow' => 'Top sellers',   'label' => 'Instant Gaming bestsellers', 'tagline' => 'The ones most people actually buy.'],
+            ['type' => GameSale::TYPE_IG_PREORDERS,   'eyebrow' => 'Coming soon',   'label' => 'Most-wanted pre-orders',     'tagline' => 'The big releases, before they\'re out.'],
+        ] as $rail) {
+            $games = Game::getSales($rail['type'], 18, true);
+            if ($games) {
+                $rail['games'] = $games;
+                $igRails[] = $rail;
+            }
+        }
+
         // Deal board (cross-store, free titles excluded) — the price-comparison
         // value prop. The single hero "top deal" is the most dramatic discount.
         $best_deals = Game::getBestDeals(6);
@@ -93,6 +109,7 @@ class HomeController extends Controller
             'bestsellers'        => $bestsellers,
             'new_and_noteworthy' => $new_and_noteworthy,
             'popular_upcoming'   => $popular_upcoming,
+            'igRails'            => $igRails,
             'best_deals'         => $best_deals,
             'biggest_discounts'  => $biggest_discounts,
             'most_wishlisted'    => $most_wishlisted,

@@ -9,6 +9,7 @@ use yii\helpers\Url;
 /* @var $bestsellers \common\models\Game[] */
 /* @var $popular_upcoming \common\models\Game[] */
 /* @var $new_and_noteworthy \common\models\Game[] */
+/* @var $igRails array<int, array{eyebrow:string, label:string, tagline:string, games:\common\models\Game[]}> */
 /* @var $best_deals \common\models\Game[] */
 /* @var $biggest_discounts \common\models\Game[] */
 /* @var $most_wishlisted \common\models\Game[] */
@@ -199,6 +200,15 @@ $dealColumns = [
         </section>
     <?php endif; ?>
 
+    <?php foreach ($igRails as $rail): ?>
+        <?= $this->render('_ig-rail', [
+            'eyebrow' => $rail['eyebrow'],
+            'label'   => $rail['label'],
+            'tagline' => $rail['tagline'],
+            'games'   => $rail['games'],
+        ]) ?>
+    <?php endforeach; ?>
+
     <section class="mt-16 sm:mt-20">
         <div class="max-w-2xl mb-10">
             <p class="inline-flex items-center gap-2 rounded-full bg-fg/5 ring-1 ring-fg/5 px-3 py-1 text-xs font-medium text-fg-muted">
@@ -268,15 +278,15 @@ $dealColumns = [
     <?php endif; ?>
 
     <section class="mt-20 sm:mt-28">
-        <div class="text-center max-w-2xl mx-auto mb-14">
+        <div class="max-w-2xl mb-10">
             <p class="inline-flex items-center gap-2 rounded-full bg-fg/5 ring-1 ring-fg/5 px-3 py-1 text-xs font-medium text-fg-muted">
                 <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
                 Curated picks
             </p>
-            <h2 class="mt-4 font-display text-3xl sm:text-4xl font-bold text-fg tracking-tight">
+            <h2 class="mt-4 font-display text-3xl sm:text-4xl font-bold text-fg tracking-tight text-balance">
                 What's worth your time
             </h2>
-            <p class="mt-4 text-lg text-fg-muted">
+            <p class="mt-4 text-lg text-fg-muted text-pretty">
                 Three hand-picked lists, updated daily.
             </p>
         </div>
@@ -319,9 +329,13 @@ $dealColumns = [
     </section>
 
     <section class="mt-20 sm:mt-28">
-        <div class="text-center max-w-2xl mx-auto mb-10">
-            <h2 class="font-display text-3xl sm:text-4xl font-bold text-fg tracking-tight">Browse by genre</h2>
-            <p class="mt-4 text-lg text-fg-muted">Jump straight into what you're into.</p>
+        <div class="max-w-2xl mb-10">
+            <p class="inline-flex items-center gap-2 rounded-full bg-fg/5 ring-1 ring-fg/5 px-3 py-1 text-xs font-medium text-fg-muted">
+                <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
+                Your kind of game
+            </p>
+            <h2 class="mt-4 font-display text-3xl sm:text-4xl font-bold text-fg tracking-tight text-balance">Browse by genre</h2>
+            <p class="mt-4 text-lg text-fg-muted text-pretty">Jump straight into what you're into.</p>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             <?php foreach ($genreTiles as $g): ?>

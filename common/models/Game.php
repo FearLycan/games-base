@@ -349,6 +349,16 @@ class Game extends ActiveRecord
                     'game.type'      => self::TYPE_GAME,
                 ])
                 ->hideAdultCatalog()
+                ->andWhere(GameSale::isInstantGamingType($type)
+                    // The IG rails publish off the *offer*: a game appears only once
+                    // it has an active Instant Gaming offer (the single review lives
+                    // in the Offers queue). Steam charts carry no such requirement.
+                    ? ['exists', (new \yii\db\Query())
+                        ->from('{{%game_offer}} ig_offer')
+                        ->innerJoin('{{%store}} ig_store', 'ig_store.id = ig_offer.store_id')
+                        ->where('ig_offer.game_id = game.id')
+                        ->andWhere(['ig_store.slug' => 'instant-gaming', 'ig_offer.status' => GameOffer::STATUS_ACTIVE])]
+                    : [])
                 // Eager-load the data the cards render (genre + cheapest offer with
                 // prices/store) so the cached list carries it too — homepage and
                 // sale pages then render prices without a query per game.
@@ -811,6 +821,11 @@ class Game extends ActiveRecord
     public function isNewAndNoteworthy(): bool
     {
         return isset($this->saleTypes()[GameSale::TYPE_NEW_AND_NOTEWORTHY]);
+    }
+
+    public function isIgTrending(): bool
+    {
+        return isset($this->saleTypes()[GameSale::TYPE_IG_TRENDING]);
     }
 
     /**
