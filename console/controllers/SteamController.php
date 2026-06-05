@@ -383,6 +383,23 @@ class SteamController extends Controller
     }
 
     /**
+     * ORDER BY fragment that sends full games to the front of a sync bucket and
+     * DLC to the back, then falls back to the bucket's own tiebreaker. Only
+     * game/DLC ever reach the sync queue (see DISCOVER_KEEP_TYPES), so in
+     * practice this is simply "games first, DLC last". `type` is alphabetically
+     * 'dlc' < 'game', so a plain sort would invert this — hence the explicit
+     * CASE. $tiebreaker is a trusted internal fragment (e.g. 'id DESC'), never
+     * user input.
+     */
+    private function gamesFirstOrder(string $tiebreaker): Expression
+    {
+        return new Expression(
+            "CASE WHEN type = :gameType THEN 0 ELSE 1 END, $tiebreaker",
+            [':gameType' => Game::TYPE_GAME]
+        );
+    }
+
+    /**
      * Raw, not-yet-triaged stubs: queued (WAIT_TO_SYNC) with no type resolved
      * yet (coming-soon / DLC stubs only carry a steam_appid). actionDiscover's
      * input set; disjoint from {@see newGamesQuery()} (type-tagged), so the two
@@ -409,7 +426,7 @@ class SteamController extends Controller
             ->select('steam_appid')
             ->andWhere(['status' => Game::STATUS_WAIT_TO_SYNC])
             ->andWhere(['not', ['type' => null]])
-            ->orderBy(['id' => SORT_DESC]));
+            ->orderBy($this->gamesFirstOrder('id DESC')));
     }
 
     /** Already-synced games flagged for a refresh (recently viewed). */
@@ -419,7 +436,7 @@ class SteamController extends Controller
             ->select('steam_appid')
             ->andWhere(['force_sync' => 1])
             ->andWhere(['not', ['status' => Game::STATUS_WAIT_TO_SYNC]])
-            ->orderBy(['id' => SORT_DESC]));
+            ->orderBy($this->gamesFirstOrder('id DESC')));
     }
 
     /**
@@ -436,7 +453,7 @@ class SteamController extends Controller
             ->andWhere(['status' => Game::STATUS_ACTIVE])
             ->andWhere(['force_sync' => 0])
             ->andWhere(['<', 'synchronized_at', $cutoff])
-            ->orderBy(['synchronized_at' => SORT_ASC]));
+            ->orderBy($this->gamesFirstOrder('synchronized_at ASC')));
     }
 
     public function actionGetInfo(int $app_id): int
