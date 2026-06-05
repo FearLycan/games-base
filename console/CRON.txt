@@ -68,8 +68,9 @@ and how long did it take".
       Refreshes Bestsellers / New & Noteworthy / Upcoming lists.
       Cadence: every 6 hours.
 
+  instant-gaming/list-all   (cron entrypoint)
   instant-gaming/list <trending|pre-orders|bestsellers> [--verbose=1]
-      Mirrors one Instant Gaming listing page into a homepage rail (each list its
+      Mirrors the Instant Gaming listing pages into homepage rails (each list its
       own game_sale type). Scrapes the ranked games off the page (inlined Algolia
       state for trending/pre-orders, the HTML card grid for bestsellers) and
       matches each to our catalogue:
@@ -78,8 +79,11 @@ and how long did it take".
           surfaces once an admin accepts it.
       A game appears in the rail ONLY while it has an active IG offer — the
       game_sale row is just the ranking. An empty/failed fetch leaves the existing
-      rail untouched (no wipe on a network blip). Per-list file lock, so the same
-      list can't overlap itself. Run one invocation per list.
+      rail untouched (no wipe on a network blip). Per-list file lock, so a list
+      can't overlap itself.
+      list-all runs all three in one pass with a short sleep between them (one
+      failing doesn't stop the rest) — this is what cron calls. The list <name>
+      form is for a manual/targeted single run.
       Cadence: every few hours — the lists drift slowly.
 
   genre/recount
@@ -128,9 +132,7 @@ and how long did it take".
   0            4   * * 7   php yii geo-ip/update
   0,15,30,45   *   * * *   php yii instant-gaming/match
   7,22,37,52   *   * * *   php yii instant-gaming/refresh-prices
-  20           */3 * * *   php yii instant-gaming/list trending
-  35           */3 * * *   php yii instant-gaming/list bestsellers
-  50           */3 * * *   php yii instant-gaming/list pre-orders
+  20           */3 * * *   php yii instant-gaming/list-all
   */5          *   * * *   php yii steam-user/sync 50
   */5          *   * * *   php yii steam-user/sync-achievements 100
 

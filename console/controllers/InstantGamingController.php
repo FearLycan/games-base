@@ -206,18 +206,45 @@ class InstantGamingController extends Controller
     }
 
     /**
+     * Imports every list in {@see LISTS} in one pass — the cron entrypoint, so the
+     * homepage rails all refresh off a single invocation. Sleeps between lists to
+     * space the hits on IG. Each list still runs under its own lock, and one list
+     * failing (or its lock being busy) doesn't stop the others; the exit code is
+     * the worst of the runs.
+     */
+    public function actionListAll(): int
+    {
+        $exit = ExitCode::OK;
+        $first = true;
+
+        foreach (self::LISTS as $list => $config) {
+            if (!$first) {
+                $this->throttle();
+            }
+            $first = false;
+
+            $code = $this->withLock(self::LOCK_LIST . $list, fn(): int => $this->runList($list, $config));
+            if ($code !== ExitCode::OK) {
+                $exit = $code;
+            }
+        }
+
+        return $exit;
+    }
+
+    /**
      * Imports one IG listing page (see {@see LISTS}) into {{%game_sale}} as a
-     * ranked homepage section.
+     * ranked homepage section. Handy for a manual/targeted run; cron uses
+     * {@see actionListAll()} instead.
      *
      * Matching, in order of confidence:
      *   - by IG product id against an offer we already matched on this store —
-     *     unambiguous, published straight away (ACTIVE);
-     *   - else by title via {@see \common\components\GameQuery::onlyWithTitle()} —
-     *     fuzzy, so it lands in REVIEW for an admin to accept or reject.
+     *     unambiguous, so its offer is live (ACTIVE) and the game shows at once;
+     *   - else by exact normalized title — fuzzy, so the offer lands in REVIEW and
+     *     only reaches the rail once an admin accepts it in the Offers queue.
      *
-     * Re-runs honour admin decisions: an accepted row stays ACTIVE, a rejected one
-     * stays INACTIVE, and a pending one is only ever upgraded to ACTIVE once a
-     * confident id match appears. Games that drop out of the live list are removed.
+     * The game_sale row is just the ranking; whether a game actually shows is the
+     * offer's call. Re-runs re-rank in place and drop games that fell off the list.
      *
      * @param string $list one of the keys in {@see LISTS}, e.g. "trending"
      */
