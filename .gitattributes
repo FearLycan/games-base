@@ -1,3 +1,6 @@
+# Keep LF for files consumed inside Linux containers (autocrlf would break them)
+frontend/docker-entrypoint.sh   text eol=lf
+
 # Ignore all test and documentation for archive
 /.github            export-ignore
 /.gitattributes     export-ignore

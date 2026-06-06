@@ -8,6 +8,7 @@ services:
     volumes:
       - composer-cache:/root/.composer/cache:delegated
       - ./:/app
+      - cron-spool:/var/spool/cron/crontabs
     depends_on:
       mysql:
         condition: service_healthy
@@ -55,3 +56,4 @@ services:
 volumes:
   composer-cache:
   mysql-data:
+  cron-spool:
