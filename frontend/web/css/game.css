@@ -1043,3 +1043,243 @@
     }
 }
 
+/* --- Price history chart (_price-history.php) -------------------------
+ * A "market terminal" module: a live lowest-price ticker over a dual-line
+ * (official vs keyshop) Chart.js plot, in the site's light/emerald look.
+ * --------------------------------------------------------------------*/
+
+@keyframes price-chart-in {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+}
+
+.price-chart {
+    position: relative;
+    margin-top: 1.25rem;
+    padding: 1.5rem;
+    border-radius: 1.25rem;
+    border: 1px solid var(--color-line, #e2e8f0);
+    background:
+        radial-gradient(120% 80% at 100% 0%, var(--color-accent-soft, #ecfdf5) 0%, transparent 55%),
+        var(--color-canvas, #ffffff);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 12px 30px -18px rgb(15 23 42 / 0.18);
+    overflow: hidden;
+    animation: price-chart-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Soft emerald bloom anchored top-right, behind the ticker. */
+.price-chart-glow {
+    position: absolute;
+    top: -40%;
+    right: -10%;
+    width: 16rem;
+    height: 16rem;
+    background: radial-gradient(circle, color-mix(in srgb, var(--color-accent, #059669) 16%, transparent) 0%, transparent 70%);
+    filter: blur(8px);
+    pointer-events: none;
+}
+
+/* --- Header: ticker + controls --- */
+
+.price-chart-head {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.price-chart-kicker {
+    display: block;
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 0.625rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-fg-subtle, #94a3b8);
+}
+
+.price-chart-now {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 0.35rem;
+}
+
+.price-chart-amount {
+    font-family: var(--font-display, "Lexend", system-ui, sans-serif);
+    font-size: clamp(1.75rem, 5vw, 2.4rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--color-fg, #0f172a);
+}
+
+/* Delta pill: "% below peak" by default, emerald when at an all-time low. */
+.price-chart-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--color-fg-muted, #475569);
+    background: var(--color-surface-2, #f1f5f9);
+    border: 1px solid var(--color-line, #e2e8f0);
+}
+
+.price-chart-flag svg {
+    width: 0.7rem;
+    height: 0.7rem;
+}
+
+.price-chart-flag.is-low {
+    color: var(--color-accent, #059669);
+    background: var(--color-accent-soft, #ecfdf5);
+    border-color: color-mix(in srgb, var(--color-accent, #059669) 30%, transparent);
+}
+
+.price-chart-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.6rem;
+}
+
+.price-chart-legend-group {
+    display: inline-flex;
+    gap: 0.9rem;
+}
+
+/* Legend toggle: a coloured dash + label that dims when its series is hidden. */
+.price-chart-legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-fg, #0f172a);
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.price-chart-legend[data-active="false"] {
+    opacity: 0.35;
+}
+
+.price-chart-legend[data-active="false"] .price-chart-dot {
+    background: var(--color-fg-subtle, #94a3b8);
+}
+
+.price-chart-dot {
+    width: 0.9rem;
+    height: 0.3rem;
+    border-radius: 999px;
+    background: var(--dot, #059669);
+}
+
+/* Range selector: a segmented pill, mirroring the .currency-switch pattern. */
+.price-chart-ranges {
+    display: inline-flex;
+    gap: 0.2rem;
+    padding: 0.2rem;
+    border-radius: 0.7rem;
+    border: 1px solid var(--color-line, #e2e8f0);
+    background: var(--color-surface, #f8fafc);
+}
+
+.price-chart-range {
+    padding: 0.25rem 0.65rem;
+    border-radius: 0.5rem;
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--color-fg-subtle, #64748b);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.price-chart-range:hover {
+    color: var(--color-fg, #0f172a);
+}
+
+.price-chart-range[data-active="true"] {
+    background: var(--color-canvas, #ffffff);
+    color: var(--color-accent, #059669);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.10);
+}
+
+/* --- Plot --- */
+
+.price-chart-plot {
+    position: relative;
+    height: 17rem;
+}
+
+@media (min-width: 640px) {
+    .price-chart-plot { height: 19rem; }
+}
+
+/* --- Footer stat row --- */
+
+.price-chart-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+    gap: 0;
+    margin-top: 1.25rem;
+    border-top: 1px solid var(--color-line, #e2e8f0);
+}
+
+.price-chart-stat {
+    position: relative;
+    padding: 0.85rem 0 0.1rem 0.75rem;
+}
+
+.price-chart-stat + .price-chart-stat {
+    border-left: 1px solid var(--color-line, #e2e8f0);
+    padding-left: 1rem;
+}
+
+/* Coloured tick keys the stat to its series line. */
+.price-chart-stat::before {
+    content: "";
+    position: absolute;
+    top: 0.95rem;
+    left: 0.75rem;
+    width: 0.55rem;
+    height: 0.2rem;
+    border-radius: 999px;
+    background: var(--tick, var(--color-accent, #059669));
+}
+
+.price-chart-stat + .price-chart-stat::before {
+    left: 1rem;
+}
+
+.price-chart-stat dt {
+    padding-left: 0.9rem;
+    font-family: var(--font-mono, "Fira Code", ui-monospace, monospace);
+    font-size: 0.625rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-fg-subtle, #94a3b8);
+}
+
+.price-chart-stat dd {
+    margin-top: 0.15rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--color-fg, #0f172a);
+}
+
+@media (max-width: 480px) {
+    .price-chart-controls { align-items: flex-start; width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .price-chart { animation: none; }
+}
+

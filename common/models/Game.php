@@ -7,6 +7,7 @@ use common\components\CurrencyResolver;
 use common\components\DisplayPrice;
 use common\components\GameQuery;
 use common\components\Helper;
+use common\enums\StoreType;
 use DateTime;
 use Symfony\Component\DomCrawler\Crawler;
 use Yii;
@@ -993,24 +994,146 @@ class Game extends ActiveRecord
     }
 
     /**
-     * Price points for the chart: the cheapest current offer's recorded history
-     * in the given currency, oldest first. Empty when there's nothing to plot.
+     * Data for the price-history chart, split into two stepped time-series: the
+     * cheapest official-store price and the cheapest keyshop price over time, in
+     * the given currency. Each series is the running minimum across that group's
+     * offers (a step function — a point is emitted only when the group's best
+     * price changes), and is carried forward to "now" so both lines reach the
+     * right edge.
      *
-     * @return array<int, array{price_final:string, recorded_at:string}>
+     * Returns null when there is nothing meaningful to plot (fewer than two
+     * points across both groups), so the caller can skip the chart entirely.
+     *
+     * @return array{
+     *     currency:string,
+     *     official:array<int,array{t:int,y:int}>,
+     *     keyshop:array<int,array{t:int,y:int}>,
+     *     officialLow:int|null,
+     *     keyshopLow:int|null,
+     *     currentLow:int,
+     *     lowestEver:int,
+     *     peak:int,
+     *     atLow:bool
+     * }|null
      */
-    public function getPriceSeries(string $currency): array
+    public function getPriceChartData(string $currency): ?array
     {
-        $best = $this->getBestOffer($currency);
-        if ($best === null) {
-            return [];
+        $currency = strtoupper($currency);
+
+        // Bucket the active offers by store kind so each line draws from the
+        // right group; unknown/missing store falls back to keyshop (see Store).
+        $officialIds = [];
+        $keyshopIds = [];
+        foreach ($this->getActiveOffers() as $offer) {
+            $type = $offer->store?->getType() ?? StoreType::Keyshop;
+            if ($type === StoreType::Official) {
+                $officialIds[] = $offer->id;
+            } else {
+                $keyshopIds[] = $offer->id;
+            }
         }
 
-        return GamePriceHistory::find()
-            ->select(['price_final', 'recorded_at'])
-            ->where(['offer_id' => $best->id, 'currency' => strtoupper($currency)])
+        $allIds = array_merge($officialIds, $keyshopIds);
+        if ($allIds === []) {
+            return null;
+        }
+
+        // One pass over the whole history for these offers; partition in PHP.
+        $rows = GamePriceHistory::find()
+            ->select(['offer_id', 'price_final', 'recorded_at'])
+            ->where(['offer_id' => $allIds, 'currency' => $currency])
             ->orderBy(['recorded_at' => SORT_ASC, 'id' => SORT_ASC])
             ->asArray()
             ->all();
+
+        $now = time() * 1000;
+        $official = $this->stepSeries($rows, $officialIds, $now);
+        $keyshop = $this->stepSeries($rows, $keyshopIds, $now);
+
+        if (count($official) + count($keyshop) < 2) {
+            return null;
+        }
+
+        $officialLow = $official === [] ? null : min(array_column($official, 'y'));
+        $keyshopLow = $keyshop === [] ? null : min(array_column($keyshop, 'y'));
+
+        $lastValues = [];
+        if ($official !== []) {
+            $lastValues[] = $official[count($official) - 1]['y'];
+        }
+        if ($keyshop !== []) {
+            $lastValues[] = $keyshop[count($keyshop) - 1]['y'];
+        }
+
+        $lows = array_filter([$officialLow, $keyshopLow], static fn($v) => $v !== null);
+        $lowestEver = $lows === [] ? 0 : min($lows);
+        $currentLow = $lastValues === [] ? 0 : min($lastValues);
+
+        $allValues = array_merge(array_column($official, 'y'), array_column($keyshop, 'y'));
+        $peak = $allValues === [] ? 0 : max($allValues);
+
+        return [
+            'currency'    => $currency,
+            'official'    => $official,
+            'keyshop'     => $keyshop,
+            'officialLow' => $officialLow,
+            'keyshopLow'  => $keyshopLow,
+            'currentLow'  => $currentLow,
+            'lowestEver'  => $lowestEver,
+            'peak'        => $peak,
+            'atLow'       => $currentLow <= $lowestEver,
+        ];
+    }
+
+    /**
+     * Collapses per-offer history rows into a single stepped series: the running
+     * minimum final price across the given offers, emitting a point only when
+     * that minimum changes, and carrying the last value forward to $nowMs so the
+     * line reaches the present. $rows must be ordered oldest-first.
+     *
+     * @param array<int,array{offer_id:int|string,price_final:int|string,recorded_at:string}> $rows
+     * @param int[] $offerIds offers belonging to this group
+     * @return array<int,array{t:int,y:int}>
+     */
+    private function stepSeries(array $rows, array $offerIds, int $nowMs): array
+    {
+        if ($offerIds === []) {
+            return [];
+        }
+
+        $inGroup = array_flip($offerIds);
+        $current = []; // offer_id => latest known final price
+        $series = [];
+        $lastMin = null;
+
+        foreach ($rows as $row) {
+            $oid = (int)$row['offer_id'];
+            if (!isset($inGroup[$oid])) {
+                continue;
+            }
+
+            $current[$oid] = (int)$row['price_final'];
+            $min = min($current);
+            if ($min === $lastMin) {
+                continue;
+            }
+
+            $ts = strtotime($row['recorded_at']) * 1000;
+            $last = $series === [] ? null : $series[count($series) - 1];
+            if ($last !== null && $last['t'] === $ts) {
+                // Several offers changed at the same instant: keep one point.
+                $series[count($series) - 1]['y'] = $min;
+            } else {
+                $series[] = ['t' => $ts, 'y' => $min];
+            }
+            $lastMin = $min;
+        }
+
+        if ($series !== [] && $lastMin !== null) {
+            $series[] = ['t' => $nowMs, 'y' => $lastMin];
+        }
+
+        return $series;
     }
 
     /**

@@ -191,9 +191,9 @@ foreach ($sections as $i => $s) {
 
                     <?= $this->render('_offers', ['offers' => $offers, 'bestOffer' => $bestOffer, 'offerCurrency' => $offerCurrency]) ?>
 
-                    <?php $priceSeries = $model->getPriceSeries($offerCurrency); ?>
-                    <?php if (count($priceSeries) >= 2): ?>
-                        <?= $this->render('_price-history', ['series' => $priceSeries, 'currency' => $offerCurrency]) ?>
+                    <?php $priceChart = $model->getPriceChartData($offerCurrency); ?>
+                    <?php if ($priceChart !== null): ?>
+                        <?= $this->render('_price-history', ['chart' => $priceChart]) ?>
                     <?php endif; ?>
                 </article>
             <?php endif; ?>
