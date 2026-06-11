@@ -18,5 +18,6 @@ return [
     'gtag'        => '',
     'pagead2'     => '',
     'leadTag'     => '',
+    'impactTag'   => '',
     'smart-links' => [],
 ];

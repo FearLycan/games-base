@@ -133,6 +133,12 @@ if (!empty($this->params['breadcrumbs'])) {
             <meta name="mylead-verification" content="<?= Yii::$app->params['leadTag'] ?>">
         <?php endif; ?>
 
+        <?php if (isset(Yii::$app->params['impactTag']) && Yii::$app->params['impactTag']): ?>
+            <meta name="impact-site-verification"
+                  value="<?= Yii::$app->params['impactTag'] ?>"
+                  content="<?= Yii::$app->params['impactTag'] ?>">
+        <?php endif; ?>
+
         <?php if (isset(Yii::$app->params['gtag']) && Yii::$app->params['gtag']): ?>
             <!-- Google tag (gtag.js) -->
             <script async src="https://www.googletagmanager.com/gtag/js?id=<?= Yii::$app->params['gtag'] ?>"></script>
@@ -149,6 +155,7 @@ if (!empty($this->params['breadcrumbs'])) {
         <?php endif; ?>
 
         <?php if (isset(Yii::$app->params['pagead2']) && Yii::$app->params['pagead2']): ?>
+            <meta name="google-adsense-account" content="<?= Yii::$app->params['pagead2'] ?>">
             <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<?= Yii::$app->params['pagead2'] ?>" crossorigin="anonymous"></script>
         <?php endif; ?>
 
