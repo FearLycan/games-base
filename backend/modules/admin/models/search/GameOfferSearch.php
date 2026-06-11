@@ -10,14 +10,11 @@ class GameOfferSearch extends GameOffer
 {
     use GameFilterTrait;
 
-    /** Virtual filter: matches the related store's name. */
-    public ?string $storeName = null;
-
     public function rules(): array
     {
         return [
-            [['id', 'status'], 'integer'],
-            [['gameTitle', 'storeName', 'region', 'edition'], 'safe'],
+            [['id', 'status', 'store_id'], 'integer'],
+            [['gameTitle', 'region', 'edition'], 'safe'],
         ];
     }
 
@@ -40,7 +37,7 @@ class GameOfferSearch extends GameOffer
                     'region'    => ['asc' => ['game_offer.region' => SORT_ASC], 'desc' => ['game_offer.region' => SORT_DESC]],
                     'edition'   => ['asc' => ['game_offer.edition' => SORT_ASC], 'desc' => ['game_offer.edition' => SORT_DESC]],
                     'gameTitle' => ['asc' => ['game.title' => SORT_ASC], 'desc' => ['game.title' => SORT_DESC]],
-                    'storeName' => ['asc' => ['store.name' => SORT_ASC], 'desc' => ['store.name' => SORT_DESC]],
+                    'store_id'  => ['asc' => ['store.name' => SORT_ASC], 'desc' => ['store.name' => SORT_DESC]],
                 ],
             ],
         ]);
@@ -52,12 +49,12 @@ class GameOfferSearch extends GameOffer
         }
 
         $query->andFilterWhere([
-            'game_offer.id'     => $this->id,
-            'game_offer.status' => $this->status,
+            'game_offer.id'       => $this->id,
+            'game_offer.status'   => $this->status,
+            'game_offer.store_id' => $this->store_id,
         ]);
 
-        $query->andFilterWhere(['like', 'store.name', $this->storeName])
-            ->andFilterWhere(['like', 'game_offer.region', $this->region])
+        $query->andFilterWhere(['like', 'game_offer.region', $this->region])
             ->andFilterWhere(['like', 'game_offer.edition', $this->edition]);
         $this->applyGameFilter($query);
 

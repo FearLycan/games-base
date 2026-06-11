@@ -304,14 +304,31 @@ class KinguinClient
     }
 
     /**
-     * Absolute product URL for a hit, with the affiliate query appended when
-     * configured. Kinguin resolves /category/{kinguinId} to the product page.
+     * Monetized outbound URL for a hit. Kinguin resolves /category/{kinguinId} to
+     * the product page; how that gets wrapped for affiliate tracking depends on
+     * the program (config keys, in priority order):
+     *
+     *   1. `affiliate_deeplink` — a tracking-redirect template that *wraps* the
+     *      product URL, the model Kinguin's own program and the networks (Awin,
+     *      CJ, Admitad, MyLead) all use. Put a `{url}` placeholder where the
+     *      (URL-encoded) destination goes, e.g.
+     *        https://tracking.affiliateclub.cz/affc?offerid=1464&affid=ME&affsub5={url}
+     *        https://www.awin1.com/cread.php?awinmid=XXXX&awinaffid=YYYY&ued={url}
+     *        https://ad.admitad.com/g/XXXX/?ulp={url}
+     *   2. `affiliate_query` — a query string merely *appended* to the product URL
+     *      (the Instant-Gaming-style model), for the rare program that supports it.
+     *   3. neither — the plain product URL.
      *
      * @param array<string, mixed> $hit
      */
     public function buildProductUrl(array $hit): string
     {
         $url = sprintf(self::PRODUCT_URL_TEMPLATE, (string)($hit['kinguinId'] ?? ''));
+
+        $deeplink = $this->config('affiliate_deeplink');
+        if ($deeplink !== '' && str_contains($deeplink, '{url}')) {
+            return str_replace('{url}', rawurlencode($url), $deeplink);
+        }
 
         $affiliate = $this->config('affiliate_query');
         if ($affiliate !== '') {

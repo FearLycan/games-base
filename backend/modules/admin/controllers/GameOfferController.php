@@ -3,6 +3,7 @@
 namespace backend\modules\admin\controllers;
 
 use backend\models\GameOffer;
+use backend\models\Store;
 use backend\modules\admin\components\AdminHtml;
 use backend\modules\admin\models\search\GameOfferSearch;
 use Yii;
@@ -107,8 +108,9 @@ class GameOfferController extends CrudController
                 'value'             => static fn(GameOffer $m): string => AdminHtml::gameLink($m->game, $m->game_id),
             ],
             [
-                'attribute' => 'storeName',
+                'attribute' => 'store_id',
                 'label'     => 'Store',
+                'filter'    => Store::find()->orderBy(['name' => SORT_ASC])->select('name')->indexBy('id')->column(),
                 'value'     => static fn(GameOffer $m): string => $m->store->name ?? (string)$m->store_id,
             ],
             'region',

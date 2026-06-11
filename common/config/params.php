@@ -81,7 +81,18 @@ return [
         'api_url'         => 'https://gateway.kinguin.net/esa/api/v1',
         'rates_url'       => 'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml',
         'currencies'      => ['EUR', 'USD', 'PLN'],
-        'affiliate_query' => '',
+        // Affiliate monetization. Kinguin's program (and the networks Awin / CJ /
+        // Admitad / MyLead) uses a tracking-redirect *deeplink* that WRAPS the
+        // product URL — not a query param like Instant Gaming. Set
+        // `affiliate_deeplink` in params-local.php with a `{url}` placeholder for
+        // the URL-encoded destination, e.g.
+        //   'https://tracking.affiliateclub.cz/affc?offerid=1464&affid=ME&affsub5={url}'  // Kinguin own
+        //   'https://www.awin1.com/cread.php?awinmid=XXXX&awinaffid=YYYY&ued={url}'        // Awin
+        //   'https://ad.admitad.com/g/XXXX/?ulp={url}'                                     // Admitad
+        // `affiliate_query` is the fallback append-style param (rarely used here).
+        // Commission ~2-8%, 30-day cookie; excluded countries: DE, FR, US, AU.
+        'affiliate_deeplink' => '',
+        'affiliate_query'    => '',
         'proxy'           => '',
         'proxy_auth'      => '',
         'timeout'         => 20,
