@@ -7,6 +7,7 @@ return [
     'user.passwordResetTokenExpire' => 3600,
     'user.passwordMinLength' => 8,
     'steamgriddb_api_key' => '',
+    'kinguin_api_key' => '',
 
     // Fallback currency for store-offer prices (rest of world / when geo and
     // the user's choice are both unavailable). See common\components\CurrencyResolver.
@@ -60,6 +61,24 @@ return [
     'gameseal' => [
         'home_url'        => 'https://gameseal.com/',
         'suggest_url'     => 'https://gameseal.com/suggest',
+        'rates_url'       => 'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml',
+        'currencies'      => ['EUR', 'USD', 'PLN'],
+        'affiliate_query' => '',
+        'proxy'           => '',
+        'proxy_auth'      => '',
+        'timeout'         => 20,
+    ],
+
+    // Kinguin integration. Kinguin offers a first-party authenticated REST API
+    // (the ESA gateway), so there's nothing to scrape and no Cloudflare — every
+    // call carries the key from the top-level `kinguin_api_key` param (set in
+    // params-local.php). Products expose a `steam` appid, so we match by appid
+    // (with a title/edition guard) rather than by title text alone. Prices are
+    // EUR; we convert to the other currencies with ECB reference rates. Set
+    // `affiliate_query` (e.g. 'ref=yourid') in params-local.php to monetize
+    // outbound links. See common\components\Kinguin\KinguinClient.
+    'kinguin' => [
+        'api_url'         => 'https://gateway.kinguin.net/esa/api/v1',
         'rates_url'       => 'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml',
         'currencies'      => ['EUR', 'USD', 'PLN'],
         'affiliate_query' => '',

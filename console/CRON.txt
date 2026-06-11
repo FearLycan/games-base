@@ -86,6 +86,26 @@ and how long did it take".
       form is for a manual/targeted single run.
       Cadence: every few hours — the lists drift slowly.
 
+  kinguin/match [<limit=100>] [--verbose=1] [--recheck=1]
+  kinguin/refresh-prices [<limit=150>] [--verbose=1]
+  kinguin/diagnose ["<title>"]
+      Builds and refreshes Kinguin offers for our games (fourth store, alongside
+      Instant Gaming / Gamivo / GameSeal). Kinguin has a first-party REST API
+      (key in params-local.php's `kinguin_api_key`), and its products carry a
+      Steam appid, so `match` keys off the appid (with a title/edition guard) —
+      more precise than the title-only matching the other stores must use.
+        - match (heavy, rare): search by title, match, create offers. Region-free
+          matches publish straight away; region-locked ones go to the Offers
+          review queue (STATUS_REVIEW) hidden until an admin accepts them.
+        - refresh-prices (light, frequent): re-read price/stock for matched offers
+          by their stored kinguinId — one precise API call each, no re-search.
+        - diagnose: prints API/rates connectivity from this server; run it when
+          everything comes back "no match" to rule out a bad key / rate limit.
+      Prices are EUR, converted to the other currencies with ECB rates; Kinguin
+      exposes no RRP, so offers have a final price but no struck-through original.
+      Per-phase file lock, so a phase can't overlap itself.
+      Cadence: match every ~15 min, refresh-prices a few minutes offset.
+
   genre/recount
   tag/recount
   category/recount
@@ -133,6 +153,8 @@ and how long did it take".
   0,15,30,45   *   * * *   php yii instant-gaming/match
   7,22,37,52   *   * * *   php yii instant-gaming/refresh-prices
   20           */3 * * *   php yii instant-gaming/list-all
+  2,17,32,47   *   * * *   php yii kinguin/match
+  9,24,39,54   *   * * *   php yii kinguin/refresh-prices
   */5          *   * * *   php yii steam-user/sync 50
   */5          *   * * *   php yii steam-user/sync-achievements 100
 
