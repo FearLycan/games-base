@@ -200,7 +200,7 @@ class Game extends ActiveRecord
         }
 
         $synchronizedAt = new DateTime($this->synchronized_at);
-        $threshold = (new DateTime('now'))->modify('-1 day');
+        $threshold = (new DateTime('now'))->modify('-3 day');
 
         if ($synchronizedAt < $threshold) {
             $this->updateAttributes(['force_sync' => true]);
