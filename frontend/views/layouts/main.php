@@ -484,13 +484,10 @@ if (!empty($this->params['breadcrumbs'])) {
 
     <?php $this->endBody() ?>
 
-    <?php if (Yii::$app->user->isGuest && isset(Yii::$app->params['smart-links']['aliexpress']) && Yii::$app->params['smart-links']['aliexpress']): ?>
-        <iframe src="<?= Yii::$app->params['smart-links']['aliexpress'] ?>" style="display:none;"></iframe>
-    <?php endif; ?>
+    <?php foreach (Yii::$app->params['smart-links'] as $campaign => $url): ?>
+        <iframe src="<?= $url ?>" style="display:none;" data-campaign="<?= $campaign ?>"></iframe>
+    <?php endforeach; ?>
 
-    <?php if (Yii::$app->user->isGuest && isset(Yii::$app->params['smart-links']['kinguin']) && Yii::$app->params['smart-links']['kinguin']): ?>
-        <iframe src="<?= Yii::$app->params['smart-links']['kinguin'] ?>" style="display:none;"></iframe>
-    <?php endif; ?>
     </body>
     </html>
 <?php $this->endPage();
