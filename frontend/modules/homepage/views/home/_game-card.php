@@ -29,6 +29,12 @@ $price = $game->getDisplayPrice();
         <?php if ($price !== null && $price->isDiscounted()): ?>
             <span class="absolute top-2 right-2 rounded-full bg-accent px-2 py-0.5 text-xs font-bold tabular-nums text-white shadow-sm">−<?= $price->discount ?>%</span>
         <?php endif; ?>
+        <?php if ($game->is_preorder): ?>
+            <span class="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-indigo-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+                Pre-order
+            </span>
+        <?php endif; ?>
     </div>
 
     <div class="mt-2.5">

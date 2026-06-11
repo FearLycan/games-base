@@ -88,6 +88,7 @@ and how long did it take".
 
   kinguin/match [<limit=100>] [--verbose=1] [--recheck=1]
   kinguin/refresh-prices [<limit=150>] [--verbose=1]
+  kinguin/enrich-media [<limit=0>] [--verbose=1]
   kinguin/diagnose ["<title>"]
       Builds and refreshes Kinguin offers for our games (fourth store, alongside
       Instant Gaming / Gamivo / GameSeal). Kinguin has a first-party REST API
@@ -99,6 +100,13 @@ and how long did it take".
           review queue (STATUS_REVIEW) hidden until an admin accepts them.
         - refresh-prices (light, frequent): re-read price/stock for matched offers
           by their stored kinguinId — one precise API call each, no re-search.
+          ALSO captures each product's trailer(s) + pre-order flag for free (the
+          product is already fetched here), so the homepage "In motion" strip and
+          the "Pre-order" badge stay fresh with no extra scheduling.
+        - enrich-media: OPTIONAL one-shot backfill of the same trailers + pre-order
+          flag for ALL already-matched offers, so the strip fills immediately
+          instead of waiting for refresh-prices to cycle through every offer.
+          Not for cron — run it once after deploy (or after a big match run).
         - diagnose: prints API/rates connectivity from this server; run it when
           everything comes back "no match" to rule out a bad key / rate limit.
       Prices are EUR, converted to the other currencies with ECB rates; Kinguin

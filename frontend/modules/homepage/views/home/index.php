@@ -15,6 +15,7 @@ use yii\helpers\Url;
 /* @var $most_wishlisted \common\models\Game[] */
 /* @var $new_releases \common\models\Game[] */
 /* @var $historical_lows \common\models\Game[] */
+/* @var $featured_trailers \common\models\Game[] */
 /* @var $wishlist_deals \common\models\Game[] */
 /* @var $because array{seed: \common\models\Game, games: \common\models\Game[]}|null */
 /* @var $top_deal \common\models\Game|null */
@@ -209,6 +210,38 @@ $dealColumns = [
         ]) ?>
     <?php endforeach; ?>
 
+    <?php if (!empty($featured_trailers)): ?>
+        <section class="mt-16 sm:mt-20" data-carousel>
+            <div class="flex items-end justify-between gap-4 mb-6">
+                <div class="max-w-2xl">
+                    <p class="inline-flex items-center gap-2 rounded-full bg-accent/10 ring-1 ring-accent/15 px-3 py-1 text-xs font-medium text-accent">
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+                        In motion
+                    </p>
+                    <h2 class="mt-4 font-display text-3xl sm:text-4xl font-bold text-fg tracking-tight text-balance">
+                        See it before you buy it
+                    </h2>
+                    <p class="mt-3 text-lg text-fg-muted text-pretty">
+                        Trailers for games on the board — watch, then grab the best price.
+                    </p>
+                </div>
+                <div class="hidden sm:flex items-center gap-2 shrink-0">
+                    <button type="button" data-carousel-prev aria-label="Scroll left" class="grid h-9 w-9 place-items-center rounded-full bg-canvas ring-1 ring-line text-fg-muted transition hover:ring-line-strong hover:text-fg hover:bg-surface active:scale-[0.96] disabled:opacity-40 disabled:pointer-events-none">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+                    </button>
+                    <button type="button" data-carousel-next aria-label="Scroll right" class="grid h-9 w-9 place-items-center rounded-full bg-canvas ring-1 ring-line text-fg-muted transition hover:ring-line-strong hover:text-fg hover:bg-surface active:scale-[0.96] disabled:opacity-40 disabled:pointer-events-none">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <div data-carousel-track class="flex gap-4 overflow-x-auto scroll-smooth snap-x pb-2 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <?php foreach ($featured_trailers as $game): ?>
+                    <?= $this->render('_trailer-card', ['game' => $game]) ?>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
     <section class="mt-16 sm:mt-20">
         <div class="max-w-2xl mb-10">
             <p class="inline-flex items-center gap-2 rounded-full bg-fg/5 ring-1 ring-fg/5 px-3 py-1 text-xs font-medium text-fg-muted">
@@ -396,6 +429,33 @@ $dealColumns = [
         </div>
     </section>
 
+<?php if (!empty($featured_trailers)): ?>
+    <!-- Shared trailer lightbox (one per page; fed by [data-trailer-open]) -->
+    <div data-trailer-modal
+         class="fixed inset-0 z-[100] hidden items-center justify-center p-4 sm:p-6"
+         role="dialog" aria-modal="true" aria-label="Trailer">
+        <div data-trailer-backdrop class="absolute inset-0 bg-fg/70 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-4xl">
+            <div class="flex items-center justify-between gap-4 mb-3">
+                <h3 data-trailer-modal-title class="font-display text-base sm:text-lg font-semibold text-white truncate"></h3>
+                <button type="button" data-trailer-close aria-label="Close trailer"
+                        class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/20 transition hover:bg-white/20">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                </button>
+            </div>
+            <div class="relative aspect-video overflow-hidden rounded-2xl bg-black ring-1 ring-white/10 shadow-2xl">
+                <iframe data-trailer-frame class="absolute inset-0 h-full w-full" src="about:blank"
+                        title="Game trailer" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+            </div>
+            <div class="mt-3 text-right">
+                <a data-trailer-link href="#" class="inline-flex items-center gap-1 text-sm font-medium text-white/80 hover:text-white">
+                    View game page <span aria-hidden="true">→</span>
+                </a>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
 <?php
 $js = <<<'JS'
 (function () {
@@ -419,6 +479,40 @@ $js = <<<'JS'
         track.addEventListener('scroll', sync, { passive: true });
         sync();
     });
+
+    // Trailer lightbox: open from any [data-trailer-open], close on backdrop /
+    // button / Esc. Clearing the iframe src on close stops playback.
+    var modal = document.querySelector('[data-trailer-modal]');
+    if (modal) {
+        var frame = modal.querySelector('[data-trailer-frame]');
+        var titleEl = modal.querySelector('[data-trailer-modal-title]');
+        var linkEl = modal.querySelector('[data-trailer-link]');
+
+        function openTrailer(btn) {
+            frame.src = btn.getAttribute('data-embed') || 'about:blank';
+            titleEl.textContent = btn.getAttribute('data-title') || '';
+            linkEl.href = btn.getAttribute('data-href') || '#';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeTrailer() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            frame.src = 'about:blank';
+            document.body.style.overflow = '';
+        }
+
+        document.querySelectorAll('[data-trailer-open]').forEach(function (btn) {
+            btn.addEventListener('click', function () { openTrailer(btn); });
+        });
+        modal.querySelectorAll('[data-trailer-close], [data-trailer-backdrop]').forEach(function (el) {
+            el.addEventListener('click', closeTrailer);
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeTrailer();
+        });
+    }
 })();
 JS;
 $this->registerJs($js, \yii\web\View::POS_END);

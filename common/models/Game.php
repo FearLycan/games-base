@@ -30,6 +30,7 @@ use yii\httpclient\Client;
  * @property string|null    $content_descriptors comma-separated Steam content-descriptor ids
  * @property bool           $is_adult            derived from content descriptors 3/4 (sexual adult-only content)
  * @property int|null       $is_free
+ * @property bool           $is_preorder         set from Kinguin's isPreorder flag
  * @property string|null    $type
  * @property int|null       $status
  * @property string|null    $detailed_description
@@ -49,6 +50,7 @@ use yii\httpclient\Client;
  * @property Category[]     $categories
  * @property Developer[]    $developers
  * @property GameImage[]    $images
+ * @property GameVideo[]    $videos
  * @property Genre[]        $genres
  * @property Tag[]          $tags
  * @property Platform[]     $platforms
@@ -144,7 +146,7 @@ class Game extends ActiveRecord
     {
         return [
             [['steam_appid', 'fullgame_appid', 'status', 'steam_price_final', 'steam_price_initial', 'achievements_total'], 'integer'],
-            [['required_age', 'is_free', 'force_sync', 'is_adult'], 'boolean'],
+            [['required_age', 'is_free', 'is_preorder', 'force_sync', 'is_adult'], 'boolean'],
             [['detailed_description', 'about_the_game', 'short_description'], 'string'],
             [['release_date', 'created_at', 'updated_at', 'synchronized_at'], 'safe'],
             [['title', 'type', 'website'], 'string', 'max' => 255],
@@ -242,6 +244,29 @@ class Game extends ActiveRecord
     public function getImages(): ActiveQuery
     {
         return $this->hasMany(GameImage::class, ['game_id' => 'id']);
+    }
+
+    /**
+     * Gets query for [[GameVideos]] (trailers), active first, in stored order.
+     *
+     * @return ActiveQuery
+     */
+    public function getVideos(): ActiveQuery
+    {
+        return $this->hasMany(GameVideo::class, ['game_id' => 'id'])
+            ->andOnCondition(['game_video.status' => GameVideo::STATUS_ACTIVE])
+            ->orderBy(['game_video.position' => SORT_ASC, 'game_video.id' => SORT_ASC]);
+    }
+
+    /**
+     * The game's primary trailer (first active video), or null when it has none.
+     * Reads from the `videos` relation so it costs nothing when eager-loaded.
+     */
+    public function getTrailer(): ?GameVideo
+    {
+        $videos = $this->videos;
+
+        return $videos[0] ?? null;
     }
 
     /**
@@ -530,6 +555,67 @@ class Game extends ActiveRecord
                 ->column();
 
             return self::loadOrderedGames(array_map('intval', $ids));
+        }, self::SALES_CACHE_TTL);
+    }
+
+    /**
+     * Homepage "In motion": non-free games that have a trailer, freshest first.
+     * Eager-loads the trailer alongside the card's price/genre so the strip
+     * renders with zero per-card queries. Empty until videos have been imported
+     * (see KinguinController::actionEnrichMedia).
+     *
+     * @return Game[]
+     */
+    public static function getFeaturedTrailers(int $limit = 12): array
+    {
+        $key = ['game.featured-trailers', $limit, AdultContent::catalogCacheKey()];
+
+        return Yii::$app->cache->getOrSet($key, static function () use ($limit): array {
+            $ids = self::find()
+                ->select('game.id')
+                ->distinct()
+                ->innerJoin('{{%game_video}} v', 'v.game_id = game.id AND v.status = :vst', [':vst' => GameVideo::STATUS_ACTIVE])
+                ->where([
+                    'game.status'  => self::STATUS_ACTIVE,
+                    'game.type'    => self::TYPE_GAME,
+                    'game.is_free' => 0,
+                ])
+                ->hideAdultCatalog()
+                ->orderBy(['game.release_date' => SORT_DESC, 'game.id' => SORT_DESC])
+                ->limit($limit)
+                ->column();
+
+            $ids = array_map('intval', $ids);
+            if ($ids === []) {
+                return [];
+            }
+
+            $games = self::find()
+                ->where(['id' => $ids])
+                ->with([
+                    'videos',
+                    'genres',
+                    'gameOffers' => static function ($q): void {
+                        $q->andWhere(['game_offer.status' => GameOffer::STATUS_ACTIVE])
+                            ->orderBy(['game_offer.order' => SORT_ASC])
+                            ->with(['store', 'prices']);
+                    },
+                ])
+                ->all();
+
+            $byId = [];
+            foreach ($games as $game) {
+                $byId[(int)$game->id] = $game;
+            }
+
+            $ordered = [];
+            foreach ($ids as $id) {
+                if (isset($byId[$id])) {
+                    $ordered[] = $byId[$id];
+                }
+            }
+
+            return $ordered;
         }, self::SALES_CACHE_TTL);
     }
 

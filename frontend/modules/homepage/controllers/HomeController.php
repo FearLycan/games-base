@@ -81,6 +81,8 @@ class HomeController extends Controller
         $new_releases = Game::getNewReleases(6);
         // Games at their lowest price ever — empty until prices have moved.
         $historical_lows = Game::getHistoricalLows(12);
+        // "In motion": games with a trailer (from Kinguin), freshest first.
+        $featured_trailers = Game::getFeaturedTrailers(12);
         $top_deal = $biggest_discounts[0] ?? ($best_deals[0] ?? null);
 
         // Personalized: wishlisted games on sale + recommendations from the
@@ -115,6 +117,7 @@ class HomeController extends Controller
             'most_wishlisted'    => $most_wishlisted,
             'new_releases'       => $new_releases,
             'historical_lows'    => $historical_lows,
+            'featured_trailers'  => $featured_trailers,
             'wishlist_deals'     => $wishlist_deals,
             'because'            => $because,
             'top_deal'           => $top_deal,

@@ -29,6 +29,7 @@ $gameUrl = Url::to(['/game/game/view', 'id' => $model->steam_appid, 'slug' => $m
 echo JsonLdRenderer::render(GamePageSchemaBuilder::build($model, $gameUrl));
 
 $screenshots = $model->getScreenshots();
+$trailer = $model->getTrailer();
 $platforms = $model->getAvailablePlatforms();
 $reviewPercent = $model->review ? $model->review->getPercentsOfPositive() : 0;
 
@@ -48,6 +49,7 @@ $bestOffer = $model->getBestOffer($offerCurrency);
 // On-this-page jump nav + section numbering: only sections that actually render.
 $sections = [];
 if (!empty($offers))      { $sections[] = ['id' => 'where-to-buy', 'label' => 'Where to buy']; }
+if ($trailer !== null)    { $sections[] = ['id' => 'trailer',      'label' => 'Trailer']; }
 $sections[]               =   ['id' => 'about',        'label' => 'About this game'];
 if (!empty($dlcs))        { $sections[] = ['id' => 'dlc',          'label' => 'DLC & add-ons']; }
 if ($model->hasAchievements()) { $sections[] = ['id' => 'achievements', 'label' => 'Achievements']; }
@@ -195,6 +197,31 @@ foreach ($sections as $i => $s) {
                     <?php if ($priceChart !== null): ?>
                         <?= $this->render('_price-history', ['chart' => $priceChart]) ?>
                     <?php endif; ?>
+                </article>
+            <?php endif; ?>
+
+            <?php if ($trailer !== null): ?>
+                <article id="trailer" class="scroll-mt-32">
+                    <header class="flex items-center gap-3 mb-5">
+                        <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"><?= $sectionNo['trailer'] ?></span>
+                        <h2 class="font-display text-xl sm:text-2xl font-semibold text-fg">Trailer</h2>
+                    </header>
+
+                    <!-- Click-to-load facade: no third-party iframe until the user asks for it. -->
+                    <div class="relative aspect-video overflow-hidden rounded-2xl bg-black ring-1 ring-line shadow-xl shadow-fg/10"
+                         data-trailer-facade
+                         data-embed="<?= Html::encode($trailer->getEmbedUrl()) ?>">
+                        <button type="button" class="group absolute inset-0 h-full w-full" aria-label="Play trailer for <?= Html::encode($model->title) ?>">
+                            <img src="<?= Html::encode($trailer->getThumbnailUrl()) ?>" alt="" loading="lazy"
+                                 class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]">
+                            <span class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></span>
+                            <span class="absolute inset-0 grid place-items-center">
+                                <span class="grid h-16 w-16 place-items-center rounded-full bg-white/90 text-fg shadow-lg ring-1 ring-black/5 transition duration-300 group-hover:scale-110 group-hover:bg-accent group-hover:text-white">
+                                    <svg class="h-6 w-6 translate-x-[1px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+                                </span>
+                            </span>
+                        </button>
+                    </div>
                 </article>
             <?php endif; ?>
 
@@ -447,6 +474,25 @@ $js = <<<JS
             labelMore.hidden = !collapsed;
             labelLess.hidden = collapsed;
             if (icon) icon.style.transform = collapsed ? '' : 'rotate(180deg)';
+        });
+    }
+
+    // Trailer: click-to-load facade swaps the poster for the embed (autoplay).
+    var trailerFacade = document.querySelector('[data-trailer-facade]');
+    if (trailerFacade) {
+        var trailerBtn = trailerFacade.querySelector('button');
+        if (trailerBtn) trailerBtn.addEventListener('click', function () {
+            var embed = trailerFacade.getAttribute('data-embed');
+            if (!embed) return;
+            var iframe = document.createElement('iframe');
+            iframe.src = embed;
+            iframe.title = 'Game trailer';
+            iframe.className = 'absolute inset-0 h-full w-full';
+            iframe.setAttribute('frameborder', '0');
+            iframe.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
+            iframe.setAttribute('allowfullscreen', '');
+            trailerFacade.innerHTML = '';
+            trailerFacade.appendChild(iframe);
         });
     }
 

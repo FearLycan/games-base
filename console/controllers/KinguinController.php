@@ -7,6 +7,7 @@ use common\components\Kinguin\KinguinMatcher;
 use common\models\Game;
 use common\models\GameOffer;
 use common\models\GameStoreScan;
+use common\models\GameVideo;
 use common\models\Store;
 use Yii;
 use yii\console\Controller;
@@ -37,6 +38,7 @@ class KinguinController extends Controller
 
     private const string LOCK_MATCH   = 'kinguin/match';
     private const string LOCK_REFRESH = 'kinguin/refresh-prices';
+    private const string LOCK_ENRICH  = 'kinguin/enrich-media';
 
     private const int DELAY_MIN = 2;
     private const int DELAY_MAX = 5;
@@ -268,6 +270,9 @@ class KinguinController extends Controller
             }
 
             $this->applyPrices($offer, $hit, $rates, $currencies);
+            if ($offer->game !== null) {
+                $this->persistMedia($offer->game, $hit);
+            }
             $offer->region = $hit['regionalLimitations'] ?? $offer->region;
             $offer->url = $client->buildProductUrl($hit);
 
@@ -289,6 +294,124 @@ class KinguinController extends Controller
 
         $this->stdout(sprintf("Kinguin refresh — updated=%d gone=%d\n", $updated, $gone));
         return ExitCode::OK;
+    }
+
+    /**
+     * Backfill (and keep fresh) trailers + the pre-order flag for games we
+     * already matched on Kinguin, by re-reading each product once. Kinguin is
+     * the only source that hands us a YouTube trailer id, so this is what lights
+     * up the homepage "In motion" strip and the "Pre-order" badge. Cheap to
+     * re-run: videos upsert, the flag only writes on change.
+     *
+     * @param int $limit max offers to process (0 = all)
+     */
+    public function actionEnrichMedia(int $limit = 0): int
+    {
+        return $this->withLock(self::LOCK_ENRICH, fn(): int => $this->runEnrichMedia($limit));
+    }
+
+    private function runEnrichMedia(int $limit): int
+    {
+        $store = Store::findOne(['slug' => self::STORE_SLUG]);
+        if (!$store) {
+            $this->stderr("Store '" . self::STORE_SLUG . "' not found — run migrations first.\n");
+            return ExitCode::DATAERR;
+        }
+
+        $client = new KinguinClient();
+
+        $query = GameOffer::find()
+            ->with('game')
+            ->where(['store_id' => $store->id])
+            ->andWhere(['not', ['external_id' => null]])
+            ->orderBy(['updated_at' => SORT_ASC]);
+        if ($limit > 0) {
+            $query->limit($limit);
+        }
+
+        $videos = $preorders = $gone = 0;
+
+        foreach ($query->each() as $offer) {
+            if ($offer->game === null) {
+                continue;
+            }
+
+            $hit = $client->fetchProduct((string)$offer->external_id);
+            if ($hit === null) {
+                $gone++;
+                $this->throttle();
+                continue;
+            }
+
+            $stats = $this->persistMedia($offer->game, $hit);
+            $videos += $stats['videos'];
+            $preorders += $stats['preorder'];
+
+            if ($this->verbose && ($stats['videos'] > 0 || $stats['preorder'] > 0)) {
+                $this->stdout(sprintf(
+                    "+ %s — %d video(s)%s\n",
+                    $offer->game->title,
+                    $stats['videos'],
+                    $stats['preorder'] ? ', pre-order' : ''
+                ));
+            }
+
+            $this->throttle();
+        }
+
+        $this->stdout(sprintf("Kinguin enrich-media — videos=%d preorders=%d gone=%d\n", $videos, $preorders, $gone));
+        return ExitCode::OK;
+    }
+
+    /**
+     * Persists a product's trailers and pre-order flag onto the game. Videos are
+     * upserted by (game_id, provider, video_id) so re-runs don't duplicate; the
+     * pre-order flag is written only when it actually changes (no needless
+     * updated_at churn). Returns counts for the caller's summary.
+     *
+     * @param array<string, mixed> $hit
+     * @return array{videos: int, preorder: int}
+     */
+    private function persistMedia(Game $game, array $hit): array
+    {
+        $savedVideos = 0;
+
+        foreach (($hit['videos'] ?? []) as $i => $video) {
+            $videoId = trim((string)($video['video_id'] ?? ''));
+            $url = trim((string)($video['video_url'] ?? ''));
+            if ($videoId === '' || $url === '') {
+                continue;
+            }
+
+            $row = GameVideo::findOne([
+                'game_id'  => $game->id,
+                'provider' => GameVideo::PROVIDER_YOUTUBE,
+                'video_id' => $videoId,
+            ]) ?? new GameVideo([
+                'game_id'  => $game->id,
+                'provider' => GameVideo::PROVIDER_YOUTUBE,
+                'video_id' => $videoId,
+            ]);
+
+            $row->url = $url;
+            $row->position = (int)$i;
+            $row->status = GameVideo::STATUS_ACTIVE;
+
+            if ($row->save()) {
+                $savedVideos++;
+            } else {
+                $this->stderr("  ! video save failed for {$game->title}: " . json_encode($row->getErrors()) . "\n");
+            }
+        }
+
+        $isPreorder = !empty($hit['isPreorder']);
+        $preorderChanged = (bool)$game->is_preorder !== $isPreorder;
+        if ($preorderChanged) {
+            $game->is_preorder = $isPreorder;
+            $game->save(false, ['is_preorder']);
+        }
+
+        return ['videos' => $savedVideos, 'preorder' => ($isPreorder && $preorderChanged) ? 1 : 0];
     }
 
     /**
