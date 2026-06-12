@@ -27,6 +27,8 @@ class AutocompleteController extends Controller
     private const int CACHE_TTL = 1800;
     private const int TRENDING_LIMIT = 5;
     private const int TRENDING_CACHE_TTL = 300;
+    private const int SCREENSHOTS_LIMIT = 6;
+    private const int SCREENSHOTS_CACHE_TTL = 86400;
 
     private Cache $cache;
 
@@ -44,7 +46,7 @@ class AutocompleteController extends Controller
                 'rules' => [
                     [
                         'allow'   => true,
-                        'actions' => ['search', 'select2', 'trending', 'track'],
+                        'actions' => ['search', 'select2', 'trending', 'track', 'screenshots'],
                         'roles'   => ['?', '@'],
                     ],
                 ],
@@ -260,6 +262,59 @@ class AutocompleteController extends Controller
                 ] : [],
             ];
         }, self::TRENDING_CACHE_TTL);
+    }
+
+    /**
+     * Screenshot URLs for one game, for the on-hover slideshow on game cards.
+     * Lazily fetched (only for the card the user actually hovers), keyed by
+     * steam_appid to match the cards. Adult games yield no images unless the
+     * viewer has opted into 18+ content — the slideshow never leaks screenshots
+     * a viewer isn't allowed to see. Cached for a day (screenshots are static).
+     */
+    public function actionScreenshots(int $id)
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        if ($id <= 0) {
+            return ['images' => []];
+        }
+
+        $key = ['autocomplete:shots', $id, AdultContent::catalogCacheKey()];
+
+        return $this->cache->getOrSet($key, function () use ($id): array {
+            $gameId = (int)Game::find()
+                ->alias('game')
+                ->select('game.id')
+                ->where(['game.steam_appid' => $id, 'game.status' => Game::STATUS_ACTIVE])
+                ->hideAdultCatalog('game')
+                ->scalar();
+
+            if ($gameId <= 0) {
+                return ['images' => []];
+            }
+
+            $urls = GameImage::find()
+                ->select('url')
+                ->where([
+                    'game_id' => $gameId,
+                    'type'    => GameImage::TYPE_SCREENSHOT,
+                    'status'  => GameImage::STATUS_ACTIVE,
+                ])
+                ->orderBy(['id' => SORT_ASC])
+                ->limit(self::SCREENSHOTS_LIMIT)
+                ->column();
+
+            // We only store Steam's full 1920x1080 screenshot; for a hover preview
+            // that's far too heavy, so swap to the same shot's lightweight 600x338
+            // variant (same CDN path, different size segment). Unknown formats are
+            // left untouched.
+            $urls = array_map(
+                static fn(string $url): string => str_replace('.1920x1080.', '.600x338.', $url),
+                $urls,
+            );
+
+            return ['images' => array_values($urls)];
+        }, self::SCREENSHOTS_CACHE_TTL);
     }
 
     private function searchGames(string $query): array

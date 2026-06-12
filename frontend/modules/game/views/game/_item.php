@@ -31,14 +31,16 @@ $price = $model->getDisplayPrice();
 
 <a href="<?= Url::to(['/game/game/view', 'id' => $model->steam_appid, 'slug' => $model->slug]) ?>"
    class="game-card group block">
-    <div class="game-card-image relative aspect-[460/215] overflow-hidden rounded-xl bg-surface-2 ring-1 ring-line">
+    <div class="game-card-image relative aspect-[460/215] overflow-hidden rounded-xl bg-surface-2 ring-1 ring-line"
+         data-shots
+         data-shots-id="<?= (int)$model->steam_appid ?>">
         <img src="<?= Html::encode($model->getHeader()) ?>"
              alt="<?= Html::encode($model->title) ?>"
              loading="lazy"
              class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]">
 
         <?php if ($saleLabel): ?>
-            <span class="absolute top-2 left-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-white backdrop-blur <?= $saleLabel['class'] ?>">
+            <span class="absolute top-2 left-2 z-20 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-white backdrop-blur <?= $saleLabel['class'] ?>">
                 <span class="h-1 w-1 rounded-full bg-white/80"></span>
                 <?= Html::encode($saleLabel['text']) ?>
             </span>

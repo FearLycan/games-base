@@ -3,6 +3,7 @@
 namespace common\models;
 
 use common\components\steam\SteamApi;
+use common\enums\AfterDarkLayout;
 use Yii;
 use yii\base\NotSupportedException;
 use yii\behaviors\TimestampBehavior;
@@ -34,6 +35,7 @@ use yii\web\IdentityInterface;
  * @property int    $role
  * @property bool        $show_adult       show 18+ games in the public catalogue
  * @property bool        $show_adult_owned show 18+ games in the user's own library/wishlist/achievements
+ * @property string      $after_dark_layout chosen visual theme for the After Dark (18+) area
  */
 class User extends ActiveRecord implements IdentityInterface
 {
@@ -69,7 +71,18 @@ class User extends ActiveRecord implements IdentityInterface
             ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
             [['show_adult', 'show_adult_owned'], 'boolean'],
             [['show_adult', 'show_adult_owned'], 'default', 'value' => false],
+            ['after_dark_layout', 'default', 'value' => AfterDarkLayout::default()->value],
+            ['after_dark_layout', 'in', 'range' => AfterDarkLayout::values()],
         ];
+    }
+
+    /**
+     * The member's chosen After Dark (18+) theme as an enum, defaulting safely
+     * when the stored value is empty or unknown.
+     */
+    public function getAfterDarkLayout(): AfterDarkLayout
+    {
+        return AfterDarkLayout::fromValue($this->after_dark_layout);
     }
 
     public static function findIdentity($id): ?self

@@ -191,6 +191,11 @@ if (!empty($this->params['breadcrumbs'])) {
                 <a href="<?= Url::to(['/games']) ?>" class="hover:text-fg transition">Games</a>
                 <a href="<?= Url::to(['/genres']) ?>" class="hover:text-fg transition">Genres</a>
                 <a href="<?= Url::to(['/tags']) ?>" class="hover:text-fg transition">Tags</a>
+                <?php if (!Yii::$app->user->isGuest && Yii::$app->user->identity->show_adult): ?>
+                    <a href="<?= Url::to(['/after-dark/index']) ?>" class="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-500 transition">
+                        <span class="h-1.5 w-1.5 rounded-full bg-rose-500"></span> After Dark
+                    </a>
+                <?php endif; ?>
                 <?php if (Yii::$app->user->isGuest): ?>
                     <a href="<?= Url::to(['/user/auth/login']) ?>" class="hover:text-fg transition">Login</a>
                 <?php else: ?>
@@ -293,6 +298,11 @@ if (!empty($this->params['breadcrumbs'])) {
                 <a href="<?= Url::to(['/games']) ?>" class="py-2.5 hover:text-fg transition">Games</a>
                 <a href="<?= Url::to(['/genres']) ?>" class="py-2.5 hover:text-fg transition">Genres</a>
                 <a href="<?= Url::to(['/tags']) ?>" class="py-2.5 hover:text-fg transition">Tags</a>
+                <?php if (!Yii::$app->user->isGuest && Yii::$app->user->identity->show_adult): ?>
+                    <a href="<?= Url::to(['/after-dark/index']) ?>" class="inline-flex items-center gap-1.5 py-2.5 text-rose-600 hover:text-rose-500 transition">
+                        <span class="h-1.5 w-1.5 rounded-full bg-rose-500"></span> After Dark
+                    </a>
+                <?php endif; ?>
                 <?php if (Yii::$app->user->isGuest): ?>
                     <a href="<?= Url::to(['/user/auth/login']) ?>" class="py-2.5 hover:text-fg transition">Login</a>
                 <?php else: ?>

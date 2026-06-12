@@ -82,6 +82,8 @@ return [
                 'auth/<authclient:\w+>'                                => 'user/auth/auth',
                 'profile'                                              => 'user/profile/index',
                 'profile/<action>'                                     => 'user/profile/<action>',
+                'after-dark'                                           => 'after-dark/index',
+                'after-dark/<action>'                                  => 'after-dark/<action>',
                 'games'                                                => 'game/game/index',
                 'games/<type:bestsellers|new-and-noteworthy|upcoming>' => 'game/game/sale',
                 'genres'                                               => 'game/game/genres',

@@ -288,6 +288,91 @@
     text-decoration: underline;
 }
 
+/* ---- After Dark teaser ------------------------------------------------- */
+
+/* A quiet "there's more" card below the fold of the gate. Deliberately calmer
+   than the primary CTA — it informs, it doesn't compete. */
+.agate-teaser {
+    margin-top: clamp(2rem, 5vw, 3rem);
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    width: 100%;
+    max-width: 38rem;
+    padding: 1.25rem 1.4rem;
+    text-align: left;
+    border-radius: 18px;
+    border: 1px solid var(--color-line, #e2e8f0);
+    background:
+        radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--color-accent, #059669) 7%, transparent) 0%, transparent 55%),
+        color-mix(in srgb, var(--color-canvas, #fff) 60%, transparent);
+    backdrop-filter: blur(4px);
+}
+
+.agate-teaser-icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 12px;
+    color: var(--color-accent, #059669);
+    background: color-mix(in srgb, var(--color-accent, #059669) 12%, transparent);
+}
+
+.agate-teaser-eyebrow {
+    font-family: var(--font-mono, "Fira Code", monospace);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--color-fg-subtle, #94a3b8);
+}
+
+.agate-teaser-title {
+    margin-top: 0.2rem;
+    font-family: var(--font-display, "Lexend", sans-serif);
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.015em;
+    color: var(--color-fg, #0f172a);
+}
+
+.agate-teaser-text {
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--color-fg-muted, #475569);
+    text-wrap: pretty;
+}
+
+.agate-teaser-text strong {
+    font-weight: 600;
+    color: var(--color-fg, #0f172a);
+}
+
+.agate-teaser-link {
+    margin-top: 0.7rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-accent, #059669);
+    text-underline-offset: 2px;
+}
+
+.agate-teaser-link svg {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.agate-teaser-link:hover {
+    text-decoration: underline;
+}
+
+.agate-teaser-link:hover svg {
+    transform: translateX(3px);
+}
+
 /* ---- Motion ------------------------------------------------------------ */
 
 @keyframes agate-stamp {

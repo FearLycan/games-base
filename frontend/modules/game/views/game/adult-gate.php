@@ -82,5 +82,35 @@ $settingsUrl = Url::to(['/user/profile/settings']);
                 <?= Html::a('account settings', $settingsUrl) ?>.
             <?php endif; ?>
         </p>
+
+        <aside class="agate-teaser fade-up" style="animation-delay:.5s">
+            <span class="agate-teaser-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z"/><path d="m17 5 .6 1.6L19 7l-1.4.4L17 9l-.6-1.6L15 7l1.4-.4Z"/></svg>
+            </span>
+            <div class="agate-teaser-body">
+                <p class="agate-teaser-eyebrow">Once you're in</p>
+                <h2 class="agate-teaser-title">There's a whole After Dark</h2>
+                <p class="agate-teaser-text">
+                    Switch on 18+ and you unlock more than this page. <strong>After Dark</strong> is a
+                    separate, members-only space for adult titles, with its own spotlights and a feed of
+                    the newest arrivals. You even get three looks to switch between.
+                </p>
+                <?php if ($isGuest): ?>
+                    <?= Html::a(
+                        'Sign in to step inside'
+                        . '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>',
+                        $loginUrl,
+                        ['class' => 'agate-teaser-link', 'rel' => 'nofollow']
+                    ) ?>
+                <?php else: ?>
+                    <?= Html::a(
+                        'Enable 18+ to step inside'
+                        . '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>',
+                        $settingsUrl,
+                        ['class' => 'agate-teaser-link']
+                    ) ?>
+                <?php endif; ?>
+            </div>
+        </aside>
     </div>
 </div>

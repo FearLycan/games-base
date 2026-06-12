@@ -310,3 +310,125 @@
 .account-tabs::-webkit-scrollbar {
     display: none;
 }
+
+/* ----------------------------------------------------------------------
+ * Game card hover slideshow (frontend/.../game/_item.php + main.js).
+ * Screenshots are lazy-loaded on hover and cross-faded over the header
+ * image. The stage sits above the header but below the sale badge (z-20).
+ * --------------------------------------------------------------------*/
+.gcard-stage {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.gcard-shot {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transform: scale(1.04);
+    transition: opacity 0.85s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.85s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity, transform;
+}
+
+/* The active frame fades in (opacity transition) while a slow Ken Burns zoom +
+   drift runs on transform (keyframes) — the two never fight, since they animate
+   different properties. Even/odd frames drift opposite ways for variety. */
+.gcard-shot.is-on {
+    opacity: 1;
+    animation: gcard-ken 5s ease-out forwards;
+}
+
+.gcard-shot:nth-child(even).is-on {
+    animation-name: gcard-ken-alt;
+}
+
+@keyframes gcard-ken {
+    from { transform: scale(1.04) translate(0, 0); }
+    to   { transform: scale(1.13) translate(-1.6%, -1.1%); }
+}
+
+@keyframes gcard-ken-alt {
+    from { transform: scale(1.04) translate(0, 0); }
+    to   { transform: scale(1.13) translate(1.6%, 1.1%); }
+}
+
+/* Frame indicator dots — shown only while the slideshow is running. */
+.gcard-dots {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 8px;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+}
+
+.gcard-dots.is-shown {
+    opacity: 1;
+}
+
+.gcard-dot {
+    position: relative;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    transition: width 0.45s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.45s ease;
+}
+
+.gcard-dot.is-on {
+    width: 22px;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* The active dot elongates and a fill sweeps across it over one slide interval,
+   so the dots read as a gentle progress bar rather than a hard jump. */
+.gcard-dot-fill {
+    position: absolute;
+    inset: 0;
+    width: 0;
+    border-radius: inherit;
+    background: #ffffff;
+}
+
+.gcard-dot.is-on .gcard-dot-fill {
+    animation: gcard-dot-fill var(--gcard-slide, 2400ms) linear forwards;
+}
+
+@keyframes gcard-dot-fill {
+    from { width: 0; }
+    to   { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gcard-shot {
+        transition: opacity 0.2s linear;
+        transform: none;
+    }
+
+    .gcard-shot.is-on {
+        animation: none;
+        transform: none;
+    }
+
+    .gcard-dot {
+        transition: none;
+    }
+
+    .gcard-dot.is-on .gcard-dot-fill {
+        animation: none;
+        width: 100%;
+    }
+}
