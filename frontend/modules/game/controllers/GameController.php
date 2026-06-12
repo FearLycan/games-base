@@ -63,11 +63,12 @@ class GameController extends Controller
                     // so the cached page must vary by it — otherwise switching the
                     // currency reloads but keeps the previously cached one.
                     CurrencyResolver::forVisitor(),
-                    // 18+ games render differently per audience: a guest gets a 404
-                    // (never cached), an opted-out user the confirmation gate, an
-                    // opted-in/confirmed user the full page. Non-adult games yield
-                    // '' so the catalogue isn't fragmented. Keeps a cached gate from
-                    // ever being served to someone allowed to see the real page.
+                    // 18+ games render differently per audience: a guest gets a
+                    // sign-in gate (200 + noindex), an opted-out user the
+                    // confirmation gate, an opted-in/confirmed user the full page.
+                    // Non-adult games yield '' so the catalogue isn't fragmented.
+                    // Keeps a cached gate from ever being served to someone allowed
+                    // to see the real page.
                     $this->adultViewToken(),
                 ],
                 // Drop the cached page as soon as the game is (re-)synced. A sync
@@ -101,8 +102,9 @@ class GameController extends Controller
      * PageCache variation token for the 18+ gate (see behaviors()). Returns ''
      * for ordinary games so the catalogue isn't fragmented; for adult games it
      * splits the cache by exactly what the viewer is served — 'ok' (full page),
-     * 'gate' (confirmation interstitial) or 'deny' (guest 404, never cached) —
-     * so a cached page can't leak across audiences. Mirrors {@see adultGate()}.
+     * 'gate' (signed-in confirmation interstitial) or 'guest-gate' (guest sign-in
+     * prompt) — so a cached page can't leak across audiences. Mirrors
+     * {@see adultGate()}.
      */
     private function adultViewToken(): string
     {
@@ -129,7 +131,7 @@ class GameController extends Controller
             return 'ok';
         }
         if (Yii::$app->user->isGuest) {
-            return 'deny';
+            return 'guest-gate';
         }
 
         return $this->isAdultConfirmed($id) ? 'ok' : 'gate';
@@ -137,10 +139,15 @@ class GameController extends Controller
 
     /**
      * Enforces the 18+ rule on a game page. Returns null when the page may render
-     * normally; returns the confirmation gate for a signed-in, opted-out user who
-     * hasn't confirmed yet; throws 404 for guests (the game is invisible to them).
+     * normally; otherwise returns the confirmation gate (HTTP 200, noindex) — a
+     * sign-in prompt for guests, an age-confirmation for a signed-in, opted-out
+     * user who hasn't confirmed yet.
      *
-     * @throws NotFoundHttpException
+     * The gate is served (200) rather than a 404 so search engines get a clean
+     * "this URL exists but is intentionally kept out of the index" signal via the
+     * page's robots=noindex tag, instead of a phantom broken link. Adult games are
+     * already excluded from the sitemap and every catalogue/search query, so a
+     * crawler should never reach here through internal links anyway.
      */
     private function adultGate(Game $model): ?string
     {
@@ -148,7 +155,7 @@ class GameController extends Controller
             return null;
         }
         if (Yii::$app->user->isGuest) {
-            throw new NotFoundHttpException('The requested page does not exist.');
+            return $this->render('adult-gate', ['model' => $model, 'isGuest' => true]);
         }
 
         $id = (int)Yii::$app->request->get('id');
@@ -158,7 +165,7 @@ class GameController extends Controller
             return null;
         }
 
-        return $this->render('adult-gate', ['model' => $model]);
+        return $this->render('adult-gate', ['model' => $model, 'isGuest' => false]);
     }
 
     /** True once the signed-in user has confirmed (this request, or earlier this session) they want to see this 18+ game. */

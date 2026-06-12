@@ -7,12 +7,19 @@ use yii\web\View;
 
 /* @var $this View */
 /* @var $model Game */
+/* @var $isGuest bool */
+
+$isGuest ??= false;
 
 $this->title = 'Mature content - ' . Yii::$app->params['meta-title'];
 // This is an age-gate interstitial, never a destination for search engines.
 $this->params['robots'] = 'noindex,nofollow';
 $this->registerCssFile('@web/css/adult-gate.css');
 
+// Guests must sign in (and opt in) before any 18+ page renders; signed-in,
+// opted-out users only need to confirm their age for this one game. Carry the
+// current game URL as ?return so Steam sign-in lands the visitor back here.
+$loginUrl = Url::to(['/user/auth/login', 'return' => Url::current()]);
 $confirmUrl = Url::current(['confirm' => 1]);
 $settingsUrl = Url::to(['/user/profile/settings']);
 ?>
@@ -33,8 +40,13 @@ $settingsUrl = Url::to(['/user/profile/settings']);
         </h1>
 
         <p class="agate-lede fade-up" style="animation-delay:.24s">
-            Steam flags this title as adult-only sexual content. You chose to keep mature
-            games hidden, so we paused here. Continue only if you're 18 or older.
+            <?php if ($isGuest): ?>
+                Steam flags this title as adult-only sexual content. We keep mature games
+                hidden until you sign in and confirm you're 18 or older.
+            <?php else: ?>
+                Steam flags this title as adult-only sexual content. You chose to keep mature
+                games hidden, so we paused here. Continue only if you're 18 or older.
+            <?php endif; ?>
         </p>
 
         <div class="agate-game fade-up" style="animation-delay:.3s">
@@ -43,18 +55,32 @@ $settingsUrl = Url::to(['/user/profile/settings']);
         </div>
 
         <div class="agate-actions fade-up" style="animation-delay:.36s">
-            <?= Html::a(
-                'I\'m 18 or older'
-                . '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>',
-                $confirmUrl,
-                ['class' => 'agate-btn agate-btn--go', 'rel' => 'nofollow']
-            ) ?>
+            <?php if ($isGuest): ?>
+                <?= Html::a(
+                    'Sign in to continue'
+                    . '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>',
+                    $loginUrl,
+                    ['class' => 'agate-btn agate-btn--go', 'rel' => 'nofollow']
+                ) ?>
+            <?php else: ?>
+                <?= Html::a(
+                    'I\'m 18 or older'
+                    . '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>',
+                    $confirmUrl,
+                    ['class' => 'agate-btn agate-btn--go', 'rel' => 'nofollow']
+                ) ?>
+            <?php endif; ?>
             <?= Html::a('Take me back', ['/'], ['class' => 'agate-btn agate-btn--back']) ?>
         </div>
 
         <p class="agate-note fade-up" style="animation-delay:.42s">
-            Prefer to skip this every time? Show 18+ games by default in your
-            <?= Html::a('account settings', $settingsUrl) ?>.
+            <?php if ($isGuest): ?>
+                Already have an account? After signing in, turn on 18+ games in your
+                <?= Html::a('account settings', $settingsUrl) ?> to skip this step.
+            <?php else: ?>
+                Prefer to skip this every time? Show 18+ games by default in your
+                <?= Html::a('account settings', $settingsUrl) ?>.
+            <?php endif; ?>
         </p>
     </div>
 </div>

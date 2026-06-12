@@ -96,6 +96,15 @@ class AuthController extends Controller
             return $this->goHome();
         }
 
+        // A gated page (the 18+ game gate) can pass ?return=<game-path> so the
+        // visitor is sent back where they started once sign-in completes. The
+        // value is stored as the user returnUrl, which survives the Steam OpenID
+        // round-trip and is honoured by both the form login (goBack) and the
+        // Steam AuthAction.
+        if (($return = $this->safeReturnUrl(Yii::$app->request->get('return'))) !== null) {
+            Yii::$app->user->setReturnUrl($return);
+        }
+
         $model = new LoginForm();
         if ($model->load(Yii::$app->request->post()) && $model->login()) {
             return $this->goBack();
@@ -106,6 +115,36 @@ class AuthController extends Controller
         return $this->render('login', [
             'model' => $model,
         ]);
+    }
+
+    /**
+     * Validates a `?return` value before it can become the post-login redirect
+     * target, to make an open redirect impossible.
+     *
+     * Two independent guards:
+     *   1. Reject anything carrying a control character, whitespace or backslash —
+     *      these are what attackers use to smuggle a protocol-relative/absolute URL
+     *      past a naive check or to inject a response header.
+     *   2. Whitelist the *only* legitimate target: a game page (and its
+     *      achievements sub-page). The gate is the sole producer of ?return, so
+     *      pinning the value to the game route means it can never point anywhere
+     *      else — not another site, not another page on this one.
+     *
+     * @return string|null the validated local path, or null if it must be ignored
+     */
+    private function safeReturnUrl($return): ?string
+    {
+        if (!is_string($return) || $return === '') {
+            return null;
+        }
+        if (preg_match('~[\x00-\x20\\\\]~', $return)) {
+            return null;
+        }
+        if (!preg_match('~^/game/\d+/[a-z0-9-]+(?:/achievements)?$~', $return)) {
+            return null;
+        }
+
+        return $return;
     }
 
     /**
