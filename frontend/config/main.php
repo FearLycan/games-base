@@ -21,7 +21,7 @@ return [
     'id'                  => 'gamentator-app',
     'name'                => 'Gamentator',
     'basePath'            => dirname(__DIR__),
-    'bootstrap'           => ['log'],
+    'bootstrap'           => ['log', \common\components\IpBlocker::class],
     'controllerNamespace' => 'frontend\controllers',
     'defaultRoute'        => 'homepage/home/index',
     'components'          => [
@@ -69,6 +69,9 @@ return [
             ],
         ],
         'errorHandler' => [
+            // Custom handler records the source IP for every error (see the class);
+            // errorAction still renders the user-facing page.
+            'class'       => \common\components\ErrorHandler::class,
             'errorAction' => 'site/error',
         ],
         'urlManager'   => [

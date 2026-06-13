@@ -42,6 +42,7 @@ $groups = [
     ],
     'System' => [
         ['Users', 'user', 'user/index', 'bi-people'],
+        ['IP Addresses', 'ip-address', 'ip-address/index', 'bi-shield-lock'],
     ],
 ];
 
