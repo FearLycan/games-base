@@ -4,8 +4,15 @@
  * Yii console bootstrap file.
  */
 
-defined('YII_DEBUG') or define('YII_DEBUG', true);
-defined('YII_ENV') or define('YII_ENV', 'dev');
+// Env-driven so `init` doesn't regress the root `yii` back to hard-coded debug.
+// Local defaults to dev/debug with no setup; prod cron exports YII_ENV=prod to
+// turn debug OFF (keeps the sync loops' RAM flat — see console/CRON.txt).
+defined('YII_ENV') or define('YII_ENV', getenv('YII_ENV') ?: 'dev');
+defined('YII_DEBUG') or define('YII_DEBUG',
+    getenv('YII_DEBUG') !== false
+        ? filter_var(getenv('YII_DEBUG'), FILTER_VALIDATE_BOOLEAN)
+        : YII_ENV !== 'prod'
+);
 
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/vendor/yiisoft/yii2/Yii.php';

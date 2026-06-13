@@ -13,6 +13,14 @@ return [
     'bootstrap'           => ['log'],
     'controllerNamespace' => 'console\controllers',
     'on beforeAction'     => function ($event) {
+        // On production (debug off) silence the DB query log + profiler for every
+        // console command: the long sync loops issue thousands of statements and
+        // the in-memory log/profile buildup is what OOMs the 1 GB box. Locally
+        // (debug on) it stays enabled so the query log is there for debugging.
+        if (!YII_DEBUG) {
+            \Yii::$app->db->enableLogging = false;
+            \Yii::$app->db->enableProfiling = false;
+        }
         \console\components\CronLogger::start($event->action->getUniqueId());
     },
     'on afterAction'      => function ($event) {

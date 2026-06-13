@@ -30,12 +30,6 @@ class SteamSpyController extends Controller
 
     public function actionCreateAppList(): int
     {
-        $existing = array_flip(Game::find()
-            ->select('steam_appid')
-            ->where(['is not', 'steam_appid', null])
-            ->column()
-        );
-
         $page = 0;
         $newCount = 0;
 
@@ -60,17 +54,28 @@ class SteamSpyController extends Controller
                 break;
             }
 
+            // Check existence one page at a time instead of array_flip-ing the
+            // whole steam_appid column up front — the catalogue is hundreds of
+            // thousands of ids, and that single allocation was the only heavy
+            // memory use here. SteamSpy paginates distinct apps, so a per-page
+            // lookup never misses an in-run duplicate.
+            $pageAppids = array_map(static fn($app): int => (int)$app['appid'], $response->data);
+            $existing = array_flip(Game::find()
+                ->select('steam_appid')
+                ->where(['steam_appid' => $pageAppids])
+                ->column());
+
             foreach ($response->data as $app) {
-                if (isset($existing[$app['appid']])) {
+                $appid = (int)$app['appid'];
+                if (isset($existing[$appid])) {
                     continue;
                 }
 
                 $game = new Game();
-                $game->steam_appid = (int)$app['appid'];
+                $game->steam_appid = $appid;
                 $game->title = $app['name'] ?? null;
 
                 if ($game->save()) {
-                    $existing[$app['appid']] = true;
                     $newCount++;
                     $this->stdout("Nowa gra {$app['name']}\n");
                 }

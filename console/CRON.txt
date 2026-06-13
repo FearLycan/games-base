@@ -136,6 +136,26 @@ and how long did it take".
       Cadence: daily, after the catalog sync.
 
 --------------------------------------------------------------------------------
+ MEMORY: RUN THE CRON WITH DEBUG OFF  (read this first on a small box)
+--------------------------------------------------------------------------------
+
+ With YII_DEBUG on, every SQL statement is logged AND profiled, and the long sync
+ loops issue thousands of statements per run — that in-memory buildup is what OOMs
+ a 1 GB box when the full set runs. The `yii` entry script is env-driven, so the
+ ONE thing production must do is export YII_ENV=prod (which turns debug off; the
+ console then also silences the DB query log/profiler — see console/config/main.php).
+
+ If your cron honours environment lines, the single `YII_ENV=prod` line below
+ covers every job. If it does NOT (some panels strip env lines), prefix each
+ command inline instead:   YII_ENV=prod php yii <cmd>
+
+ Second rule for a small box: never let two jobs START in the same minute (each
+ `php yii` boots the whole framework — a stampede of simultaneous boots is the
+ spike that kills it), and never let two HEAVY one-shots overlap. The schedule
+ below spreads every job onto its own minute and chains the heavy daily jobs so
+ they run strictly one after another.
+
+--------------------------------------------------------------------------------
  EXAMPLE CRONTAB — TWO BOXES (different IPs, shared DB)
 --------------------------------------------------------------------------------
 
@@ -147,28 +167,54 @@ and how long did it take".
  infrequently (box A). steam-user/* hit a different Steam endpoint, so they don't
  compete with sync for the appdetails budget.
 
+ Minute lanes (so nothing boots together):
+   - the */5 jobs each sit on a distinct offset: 0, 2, 3, 4 (mod 5);
+   - every keyshop job sits on the free "minute ≡ 1 (mod 5)" lane (1,6,11,…,56),
+     one per minute, so a keyshop boot never lands on a */5 boot;
+   - the heavy daily jobs are chained behind a single cron line (sequential `;`),
+     so only one runs at a time; they may coincide only with a lean */5 job.
+
  --- BOX A (IP #1) -------------------------------------------------------------
 
-  # m          h   command
-  */5          *   * * *   php yii steam/sync 80 --shards=2 --shard=0
-  0            */4 * * *   php yii steam/discover 500
-  30           4   * * *   php yii steam/get-coming-soon
-  0            6,18 * * *  php yii sale/synchronize
-  0            6   * * *   php yii sitemap/generate
-  0            8   * * *   php yii cache/flush-all
-  */5          *   * * *   php yii import/all
-  0            4   * * 7   php yii geo-ip/update
-  0,15,30,45   *   * * *   php yii instant-gaming/match
-  7,22,37,52   *   * * *   php yii instant-gaming/refresh-prices
-  20           */3 * * *   php yii instant-gaming/list-all
-  2,17,32,47   *   * * *   php yii kinguin/match
-  9,24,39,54   *   * * *   php yii kinguin/refresh-prices
-  */5          *   * * *   php yii steam-user/sync 50
-  */5          *   * * *   php yii steam-user/sync-achievements 100
+  # Debug OFF for every job below (the single biggest RAM saver). Remove this line
+  # and prefix commands with `YII_ENV=prod` if your cron ignores env lines.
+  YII_ENV=prod
+
+  # m        h     command
+  # -- high-frequency, lean — one per minute-offset, never boot together --------
+  */5        *     * * *   php yii steam/sync 80 --shards=2 --shard=0   # 0,5,…,55
+  2-57/5     *     * * *   php yii steam-user/sync 50                   # 2,7,…,57
+  3-58/5     *     * * *   php yii steam-user/sync-achievements 100     # 3,8,…,58
+  4-59/5     *     * * *   php yii import/all                           # 4,9,…,59
+
+  # -- keyshops: all on the "≡1 (mod 5)" lane, one boot per minute --------------
+  #    (paced jobs can still run for minutes; with debug off each process is lean,
+  #     so a little execution overlap is fine — only the simultaneous BOOT hurts)
+  1          *     * * *   php yii instant-gaming/match
+  6          *     * * *   php yii instant-gaming/refresh-prices
+  11         *     * * *   php yii kinguin/match
+  16         *     * * *   php yii kinguin/refresh-prices
+  21         *     * * *   php yii gamivo/match
+  26         *     * * *   php yii gamivo/refresh-prices
+  31         *     * * *   php yii game-seal/match
+  36         *     * * *   php yii game-seal/refresh-prices
+  41         */3   * * *   php yii instant-gaming/list-all
+  46         */4   * * *   php yii steam/discover 500
+  # If prices need to move faster, add a second daily slot on the free lane
+  # (51, 56) for the busiest refresh — keep it one boot per minute.
+
+  # -- heavy daily one-shots: chained so only ONE runs at a time ----------------
+  #    coming-soon already recounts genre/tag/category, so only dev/pub follow it;
+  #    sitemap runs last so the freshly discovered games are included.
+  40         4     * * *   php yii steam/get-coming-soon; php yii developer/recount; php yii publisher/recount; php yii sitemap/generate
+  40         5,17  * * *   php yii sale/synchronize
+  40         8     * * *   php yii cache/flush-all
+  40         3     * * 7   php yii geo-ip/update
 
  --- BOX B (IP #2) — only the sharded sync half ---------------------------------
 
-  # m          h   command
-  */5          *   * * *   php yii steam/sync 80 --shards=2 --shard=1
+  # m        h     command
+  YII_ENV=prod
+  */5        *     * * *   php yii steam/sync 80 --shards=2 --shard=1
 
 ================================================================================
