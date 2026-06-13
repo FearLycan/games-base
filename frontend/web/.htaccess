@@ -2,6 +2,36 @@ AddType application/x-httpd-php83 .php
 
 RewriteEngine On
 
+# === Edge hardening (evaluated BEFORE the front controller) ===
+# NOTE: the CF-Connecting-IP / Host checks below are only meaningful if the
+# origin is ALSO firewalled to Cloudflare's IP ranges (or uses Authenticated
+# Origin Pulls). The header alone is spoofable by anyone who knows the origin IP.
+
+# 1. Force traffic through Cloudflare: no CF-Connecting-IP header → not via CF → block.
+RewriteCond %{HTTP:CF-Connecting-IP} ^$
+RewriteRule ^ - [F]
+
+# 2. Block bad User-Agents (scrapers, bots, HTTP libraries).
+#    Do NOT add a generic "bot" here — it would block Googlebot/Bingbot.
+RewriteCond %{HTTP_USER_AGENT} python        [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} curl          [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} wget          [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} Go-http-client [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} node-fetch    [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} libwww-perl   [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} Java          [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} scraper       [NC]
+RewriteRule ^ - [F]
+
+# 3. Block empty User-Agent.
+RewriteCond %{HTTP_USER_AGENT} ^$
+RewriteRule ^ - [F]
+
+# 4. Block access via raw IP or any host other than the canonical domain.
+RewriteCond %{HTTP_HOST} !^gamentator\.com$     [NC]
+RewriteCond %{HTTP_HOST} !^www\.gamentator\.com$ [NC]
+RewriteRule ^ - [F]
+
 # Standard Yii2 pretty-URL front controller: route everything that is not a
 # real file/directory through index.php. The route is read from PATH_INFO by
 # the UrlManager (enablePrettyUrl), so there is no need to pass ?r=.

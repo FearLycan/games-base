@@ -3,12 +3,15 @@
 namespace frontend\modules\homepage\controllers;
 
 use common\components\AccessControl;
+use common\components\CurrencyResolver;
+use common\components\GuestCacheControl;
 use common\models\Game;
 use common\models\GameSale;
 use common\models\Genre;
 use frontend\components\Controller;
 use Yii;
 use yii\caching\Cache;
+use yii\filters\PageCache;
 
 class HomeController extends Controller
 {
@@ -23,7 +26,7 @@ class HomeController extends Controller
     public function behaviors()
     {
         return [
-            'access'    => [
+            'access'     => [
                 'class' => AccessControl::className(),
                 'rules' => [
                     [
@@ -35,11 +38,24 @@ class HomeController extends Controller
                     ],
                 ],
             ],
-            /*'pageCache' => [
-                'class'    => 'yii\filters\PageCache',
-                'only'     => ['index'],
-                'duration' => YII_DEBUG ? 1 : 3600,
-            ],*/
+            // Strip the per-request session/no-store for anonymous visitors so the
+            // page is cacheable by the browser/CDN (must run before pageCache).
+            'guestCache' => [
+                'class' => GuestCacheControl::class,
+                'only'  => ['index'],
+            ],
+            // Cache the rendered homepage for guests only — signed-in users get
+            // personalised rails (wishlist deals / recommendations). Varied by the
+            // visitor's currency so PLN/EUR/USD prices never bleed across.
+            'pageCache'  => [
+                'class'      => PageCache::class,
+                'only'       => ['index'],
+                'enabled'    => Yii::$app->user->isGuest,
+                'duration'   => YII_DEBUG ? 1 : 900,
+                'variations' => [
+                    CurrencyResolver::forVisitor(),
+                ],
+            ],
         ];
     }
 

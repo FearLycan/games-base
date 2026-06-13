@@ -1,2 +1,41 @@
+# Aggressive SEO / scraper crawlers (honor robots.txt, no value to the site).
+User-agent: SemrushBot
+User-agent: AhrefsBot
+User-agent: MJ12bot
+User-agent: DotBot
+User-agent: DataForSeoBot
+User-agent: BLEXBot
+User-agent: PetalBot
+User-agent: SeznamBot
+User-agent: Bytespider
+User-agent: SerpstatBot
+User-agent: ZoominfoBot
+User-agent: magpie-crawler
+Disallow: /
+
+# AI training / answer-engine scrapers. Remove any you WANT to allow.
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: anthropic-ai
+User-agent: Claude-Web
+User-agent: CCBot
+User-agent: Google-Extended
+User-agent: PerplexityBot
+User-agent: Amazonbot
+User-agent: Applebot-Extended
+Disallow: /
+
+# Everyone else (real search engines).
 User-agent: *
 Allow: /
+
+Disallow: /autocomplete/
+Disallow: /game/details
+Disallow: /after-dark
+Disallow: /login
+Disallow: /signup
+Disallow: /user/auth/
+
+Sitemap: https://gamentator.com/sitemap.xml

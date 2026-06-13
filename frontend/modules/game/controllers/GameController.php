@@ -6,6 +6,7 @@ use common\components\AccessControl;
 use common\components\AdultContent;
 use common\components\BotDetector;
 use common\components\CurrencyResolver;
+use common\components\GuestCacheControl;
 use common\components\steam\SteamAchievementSync;
 use common\models\Category;
 use common\models\GameImage;
@@ -52,6 +53,12 @@ class GameController extends Controller
                         'roles'   => ['?', '@'],
                     ],
                 ],
+            ],
+            // Strip the per-request session/no-store for anonymous visitors so the
+            // page is cacheable by the browser/CDN (must run before PageCache).
+            [
+                'class' => GuestCacheControl::class,
+                'only'  => ['view', 'achievements', 'list', 'list-by-tag', 'sale', 'genres', 'tags', 'categories', 'index'],
             ],
             [
                 'class'      => PageCache::class,
