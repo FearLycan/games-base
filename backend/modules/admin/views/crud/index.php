@@ -23,7 +23,7 @@ $this->params['breadcrumbs'][] = $this->title;
     'dataProvider' => $dataProvider,
     'filterModel'  => $searchModel,
     'tableOptions' => ['class' => 'table align-middle mb-0'],
-    'layout'       => "{summary}\n{items}\n{pager}",
+    'layout'       => "{summary}\n<div class=\"admin-table-scroll\">{items}</div>\n{pager}",
     'pager'        => ['class' => LinkPager::class, 'options' => ['class' => 'pagination justify-content-center']],
     'columns'      => $columns,
 ]) ?>

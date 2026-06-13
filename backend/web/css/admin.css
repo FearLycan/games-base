@@ -388,6 +388,14 @@
     margin: 0;
 }
 
+/* Horizontal scroll for wide list tables on narrow viewports. The grid-view
+   keeps its rounded corners (overflow:hidden); the inner wrapper pans the table
+   while {summary} and {pager} stay anchored to the container width. */
+.admin-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .admin-content .grid-view thead th {
     background: #fbfbfc;
     border-bottom: 1px solid var(--ad-line);
@@ -899,8 +907,55 @@
         display: inline-block;
     }
 
+    .admin-topbar {
+        padding: 0 18px;
+    }
+
     .admin-content {
         padding: 18px;
+    }
+
+    /* Page headers: let the action button(s) drop below the title. */
+    .admin-page-header {
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+}
+
+/* ---------- Phone-width refinements ---------- */
+@media (max-width: 575.98px) {
+    .admin-page-header h1 {
+        font-size: 1.45rem;
+    }
+
+    /* Inline detail tables (offer prices, game offers) pan instead of overflow. */
+    .offer-prices,
+    .offer-panel table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* DetailView: give the value column room instead of a fixed 220px label. */
+    .admin-content .detail-view th {
+        width: 40%;
+    }
+
+    .admin-content .detail-view th,
+    .admin-content .detail-view td {
+        word-break: break-word;
+    }
+
+    /* offer-dl two-column grids: stack so values aren't squeezed. */
+    .offer-dl,
+    .offer-dl--wide {
+        grid-template-columns: 1fr;
+        gap: 2px 0;
+    }
+
+    .offer-dl dt {
+        margin-top: 8px;
     }
 }
 
