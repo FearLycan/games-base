@@ -51,9 +51,9 @@ $price = $model->getDisplayPrice();
         <h3 class="font-display text-[15px] font-semibold text-fg truncate transition-colors group-hover:text-accent">
             <?= Html::encode($model->title) ?>
         </h3>
-        <div class="mt-1 flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-fg-subtle">
+        <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-mono uppercase tracking-wider text-fg-subtle">
             <?php if ($model->getMainGenre()): ?>
-                <span class="truncate"><?= Html::encode($model->getMainGenre()) ?></span>
+                <span class="min-w-0 truncate"><?= Html::encode($model->getMainGenre()) ?></span>
             <?php endif; ?>
             <?php if ($year && $model->getMainGenre()): ?>
                 <span class="h-1 w-1 rounded-full bg-fg-subtle/40 shrink-0"></span>

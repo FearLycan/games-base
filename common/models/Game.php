@@ -573,7 +573,6 @@ class Game extends ActiveRecord
         return Yii::$app->cache->getOrSet($key, static function () use ($limit): array {
             $ids = self::find()
                 ->select('game.id')
-                ->distinct()
                 ->innerJoin('{{%game_video}} v', 'v.game_id = game.id AND v.status = :vst', [':vst' => GameVideo::STATUS_ACTIVE])
                 ->where([
                     'game.status'  => self::STATUS_ACTIVE,
@@ -581,6 +580,7 @@ class Game extends ActiveRecord
                     'game.is_free' => 0,
                 ])
                 ->hideAdultCatalog()
+                ->groupBy('game.id')
                 ->orderBy(['game.release_date' => SORT_DESC, 'game.id' => SORT_DESC])
                 ->limit($limit)
                 ->column();
