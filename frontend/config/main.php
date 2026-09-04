@@ -4,6 +4,7 @@ use frontend\modules\user\UserModule;
 use yii\log\FileTarget;
 use common\models\User;
 use common\components\WebUser;
+use frontend\modules\api\ApiModule;
 use frontend\modules\company\CompanyModule;
 use frontend\modules\developer\DeveloperModule;
 use frontend\modules\game\GameModule;
@@ -79,6 +80,11 @@ return [
             'showScriptName'  => false,
             'rules'           => [
                 '/'                                                    => 'homepage/home/index',
+                // Internal, key-protected JSON API (see frontend\modules\api).
+                'api/games'                                            => 'api/game/index',
+                'api/games/<appid:\d+>'                                => 'api/game/view',
+                'api/prices'                                           => 'api/price/index',
+                'api/stores'                                           => 'api/store/index',
                 'login'                                                => 'user/auth/login',
                 'logout'                                               => 'user/auth/logout',
                 'signup'                                               => 'user/auth/signup',
@@ -108,6 +114,9 @@ return [
         ],
     ],
     'modules'             => [
+        'api'       => [
+            'class' => ApiModule::class,
+        ],
         'homepage'  => [
             'class' => HomepageModule::class,
         ],

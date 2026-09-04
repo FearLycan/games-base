@@ -42,7 +42,12 @@ class GameOfferPrice extends ActiveRecord
             'timestamp' => [
                 'class'      => TimestampBehavior::class,
                 'attributes' => [
-                    ActiveRecord::EVENT_BEFORE_INSERT => ['created_at'],
+                    // updated_at is stamped on insert too, so it always means
+                    // "last written". The internal price feed
+                    // (frontend\modules\api) filters on it, and a NULL on
+                    // freshly-created rows would hide brand-new offers from
+                    // every incremental import until their first price change.
+                    ActiveRecord::EVENT_BEFORE_INSERT => ['created_at', 'updated_at'],
                     ActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
                 ],
                 'value'      => date("Y-m-d H:i:s"),

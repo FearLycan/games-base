@@ -9,6 +9,13 @@ return [
     'steamgriddb_api_key' => '',
     'kinguin_api_key' => '',
 
+    // Static key for the internal read-only API (frontend\modules\api), used by
+    // sister projects that import this catalogue. Set a long random value in
+    // params-local.php; while it is empty every endpoint answers 503, so a
+    // forgotten key can never expose the catalogue publicly. Callers pass it as
+    // the `X-Api-Key` header. Keep it distinct from the store API keys above.
+    'internalApiKey' => '',
+
     // Fallback currency for store-offer prices (rest of world / when geo and
     // the user's choice are both unavailable). See common\components\CurrencyResolver.
     'offerCurrency' => 'USD',
