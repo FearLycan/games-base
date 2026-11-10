@@ -40,6 +40,22 @@ return [
             // this is the name of the session cookie used for login on the frontend
             'name' => 'session',
         ],
+        'response'     => [
+            // Server-Timing: PHP time from request start to send + DB totals.
+            // Compared with the browser TTFB it separates php-fpm queue time
+            // (TTFB - app) from time spent in the app. Visible in DevTools.
+            'on beforeSend' => static function (\yii\base\Event $event): void {
+                $start = (float)($_SERVER['REQUEST_TIME_FLOAT'] ?? 0);
+                if ($start > 0 && $event->sender instanceof \yii\web\Response) {
+                    $ms = (microtime(true) - $start) * 1000;
+                    $db = \Yii::getLogger()->getDbProfiling();
+                    $event->sender->headers->set(
+                        'Server-Timing',
+                        sprintf('app;dur=%.1f, db;dur=%.1f;desc="%d queries"', $ms, $db[1] * 1000, $db[0])
+                    );
+                }
+            },
+        ],
         'authClientCollection' => [
             'class'   => \yii\authclient\Collection::class,
             'clients' => [
