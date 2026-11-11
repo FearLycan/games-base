@@ -12,7 +12,9 @@ use yii\data\ActiveDataProvider;
 class GameSearch extends Game
 {
     /** How long the total-count for a given filter combination is cached. */
-    private const int COUNT_CACHE_TTL = YII_DEBUG ? 1 : 1800;
+    // Totals only drive pagination; crawlers walk thousands of tag/genre lists,
+    // so each miss costs ~0.6 s. 6 h staleness is fine for a page count.
+    private const int COUNT_CACHE_TTL = YII_DEBUG ? 1 : 21600;
 
     public const string SORT_RELEASE = 'release';
     public const string SORT_OLDEST = 'oldest';
