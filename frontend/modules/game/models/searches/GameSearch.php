@@ -301,13 +301,20 @@ class GameSearch extends Game
             return;
         }
 
-        $query->andWhere(['game.id' => (new \yii\db\Query())
+        $ids = array_values(array_unique($ids));
+        $subQuery = (new \yii\db\Query())
             ->select('game_id')
             ->from($pivotTable)
-            ->where([$foreignKey => $ids])
-            ->groupBy('game_id')
-            ->having(['=', "COUNT(DISTINCT $foreignKey)", count($ids)]),
-        ]);
+            ->where([$foreignKey => count($ids) === 1 ? $ids[0] : $ids]);
+
+        // A single id needs no GROUP BY/HAVING: the plain IN (subquery) lets
+        // MySQL use a semi-join on the pivot index. GROUP BY ... HAVING blocked
+        // that and cost ~0.35 s COUNT + ~0.75 s page on every /game/tag/* page.
+        if (count($ids) > 1) {
+            $subQuery->groupBy('game_id')->having(['=', "COUNT(DISTINCT $foreignKey)", count($ids)]);
+        }
+
+        $query->andWhere(['game.id' => $subQuery]);
     }
 
     public function activeFilterCount(): int
