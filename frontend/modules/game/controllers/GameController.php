@@ -7,6 +7,7 @@ use common\components\AdultContent;
 use common\components\BotDetector;
 use common\components\CurrencyResolver;
 use common\components\GuestCacheControl;
+use common\components\RelatedGames;
 use common\components\steam\SteamAchievementSync;
 use common\models\Category;
 use common\models\GameImage;
@@ -468,22 +469,22 @@ class GameController extends Controller
             return [];
         }
 
-        return Game::find()
-            ->alias('g')
-            ->select(['g.*', 'shared' => 'COUNT(DISTINCT gg.genre_id)', 'reviews' => 'MAX(r.total_reviews)'])
-            ->innerJoin('{{%game_genre}} gg', 'gg.game_id = g.id')
-            ->leftJoin('{{%review}} r', 'r.game_id = g.id')
-            // andWhere (not where): GameQuery::where() force-injects the
-            // unaliased `game.status`, which breaks against our `g` alias.
-            ->andWhere(['gg.genre_id' => $genreIds])
-            ->andWhere(['g.status' => Game::STATUS_ACTIVE, 'g.type' => Game::TYPE_GAME])
-            ->andWhere(['<>', 'g.id', (int)$model->id])
-            ->hideAdultCatalog('g')
-            ->groupBy('g.id')
-            ->orderBy(['shared' => SORT_DESC, 'reviews' => SORT_DESC])
-            ->limit($limit)
+        // Cheap two-step lookup with a per-genre cached candidate pool — see
+        // RelatedGames. The old GROUP BY over every game in the shared genres
+        // cost 1.1-1.5 s per page-cache miss.
+        $ids = RelatedGames::findIds((int)$model->id, $genreIds, AdultContent::showCatalog(), $limit);
+        if ($ids === []) {
+            return [];
+        }
+
+        $games = Game::find()
+            ->andWhere(['game.id' => $ids])
             ->with(['genres', 'review'])
+            ->indexBy('id')
             ->all();
+
+        // Keep the ranking order from RelatedGames.
+        return array_values(array_filter(array_map(static fn(int $id) => $games[$id] ?? null, $ids)));
     }
 
     public function actionSearchList($phrase)
