@@ -3,6 +3,7 @@
 namespace frontend\modules\company\controllers;
 
 use common\components\AccessControl;
+use common\components\CompanyGames;
 use common\components\CompanyTimeline;
 use common\models\Developer;
 use common\models\Game;
@@ -120,29 +121,9 @@ class CompanyController extends Controller
             ->where(['game.status' => Game::STATUS_ACTIVE, 'game.type' => Game::TYPE_GAME])
             ->hideAdultCatalog('game');
 
-        $devExists = $developerId !== null;
-        $pubExists = $publisherId !== null;
-
-        if ($role === 'developed' && $devExists) {
-            $query->andWhere(['game.id' => (new Query())
-                ->select('game_id')
-                ->from('{{%game_developer}}')
-                ->where(['developer_id' => $developerId])]);
-        } elseif ($role === 'published' && $pubExists) {
-            $query->andWhere(['game.id' => (new Query())
-                ->select('game_id')
-                ->from('{{%game_publisher}}')
-                ->where(['publisher_id' => $publisherId])]);
-        } else {
-            $conditions = ['or'];
-            if ($devExists) {
-                $conditions[] = ['game.id' => (new Query())->select('game_id')->from('{{%game_developer}}')->where(['developer_id' => $developerId])];
-            }
-            if ($pubExists) {
-                $conditions[] = ['game.id' => (new Query())->select('game_id')->from('{{%game_publisher}}')->where(['publisher_id' => $publisherId])];
-            }
-            $query->andWhere($conditions);
-        }
+        // Resolve the company's game ids via the pivot indexes first; the old
+        // IN (subquery) OR IN (subquery) form scanned the whole game table.
+        $query->andWhere(CompanyGames::condition(CompanyGames::ids($developerId, $publisherId, $role), 'game'));
 
         $query = match ($sort) {
             'newest' => $query->orderBy(['game.release_date' => SORT_DESC]),

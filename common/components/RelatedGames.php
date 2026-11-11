@@ -95,17 +95,23 @@ final class RelatedGames
         $key = ['related-games.top-by-genre', $genreId, $includeAdult ? 1 : 0, self::CANDIDATES_PER_GENRE];
 
         return $cache->getOrSet($key, static function () use ($genreId, $includeAdult, $db): array {
+            // Walk `review` in total_reviews order (indexed) and stop after
+            // enough matches, instead of sorting the whole genre (1.1-1.6 s on
+            // large genres). STRAIGHT_JOIN pins that join order on MySQL.
             $query = (new Query())
-                ->select(['g.id', 'reviews' => 'COALESCE(r.total_reviews, 0)'])
-                ->from(['g' => '{{%game}}'])
-                ->innerJoin(['gg' => '{{%game_genre}}'], 'gg.game_id = g.id AND gg.genre_id = :genre', [':genre' => $genreId])
-                ->leftJoin(['r' => '{{%review}}'], 'r.game_id = g.id')
+                ->select(['id' => 'r.game_id', 'reviews' => 'r.total_reviews'])
+                ->from(['r' => '{{%review}}'])
+                ->innerJoin(['gg' => '{{%game_genre}}'], 'gg.game_id = r.game_id AND gg.genre_id = :genre', [':genre' => $genreId])
+                ->innerJoin(['g' => '{{%game}}'], 'g.id = r.game_id')
                 ->where(['g.status' => 1, 'g.type' => 'game'])
-                ->orderBy(['reviews' => SORT_DESC, 'g.id' => SORT_ASC])
+                ->orderBy(['r.total_reviews' => SORT_DESC])
                 // Over-fetch a little in case `review` has more than one row per game.
                 ->limit(self::CANDIDATES_PER_GENRE * 2);
             if (!$includeAdult) {
                 $query->andWhere(['g.is_adult' => 0]);
+            }
+            if ($db->driverName === 'mysql') {
+                $query->selectOption = 'STRAIGHT_JOIN';
             }
 
             $result = [];

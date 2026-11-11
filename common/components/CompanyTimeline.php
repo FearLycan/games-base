@@ -112,13 +112,7 @@ class CompanyTimeline
      */
     private static function computeReleaseRows(?int $developerId, ?int $publisherId, int $maxReleases): array
     {
-        $ownership = ['or'];
-        if ($developerId !== null) {
-            $ownership[] = ['game.id' => (new Query())->select('game_id')->from('{{%game_developer}}')->where(['developer_id' => $developerId])];
-        }
-        if ($publisherId !== null) {
-            $ownership[] = ['game.id' => (new Query())->select('game_id')->from('{{%game_publisher}}')->where(['publisher_id' => $publisherId])];
-        }
+        $ownership = CompanyGames::condition(CompanyGames::ids($developerId, $publisherId), 'game');
 
         /** @var Game[] $games most-reviewed released titles across the given role(s) */
         $games = Game::find()
