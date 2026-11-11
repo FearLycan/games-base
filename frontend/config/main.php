@@ -48,7 +48,15 @@ return [
                 $start = (float)($_SERVER['REQUEST_TIME_FLOAT'] ?? 0);
                 if ($start > 0 && $event->sender instanceof \yii\web\Response) {
                     $ms = (microtime(true) - $start) * 1000;
-                    $db = \Yii::getLogger()->getDbProfiling();
+                    $logger = \Yii::getLogger();
+                    $db = $logger->getDbProfiling();
+                    // Log individual slow queries (>= 250 ms) to runtime/logs/slow-sql.log.
+                    foreach ($logger->getProfiling($logger->dbEventNames) as $timing) {
+                        if ($timing['duration'] >= 0.25) {
+                            \Yii::info(sprintf('%.0f ms %s | %s', $timing['duration'] * 1000,
+                                \Yii::$app->request->url, mb_substr((string)$timing['info'], 0, 2000)), 'slow-sql');
+                        }
+                    }
                     $event->sender->headers->set(
                         'Server-Timing',
                         sprintf('app;dur=%.1f, db;dur=%.1f;desc="%d queries"', $ms, $db[1] * 1000, $db[0])
@@ -73,6 +81,13 @@ return [
                     // 404 context is logged at info level under its own category;
                     // keep it out of the main error log to avoid duplication/noise.
                     'except' => [\common\components\NotFoundLogger::CATEGORY . '*'],
+                ],
+                [
+                    'class'      => FileTarget::class,
+                    'levels'     => ['info'],
+                    'categories' => ['slow-sql'],
+                    'logFile'    => '@runtime/logs/slow-sql.log',
+                    'logVars'    => [],
                 ],
                 [
                     // Dedicated 404/4xx tracing — referrer + request context.
